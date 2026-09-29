@@ -21,6 +21,8 @@ type Props = {
 	pathname: string;
 	collapsed: boolean;
 	onToggleCollapsed: () => void;
+	/** Mobile drawer: always show labels, ignoring the desktop "collapsed" preference. */
+	mobile?: boolean;
 	/** Closes the sidebar on mobile after an item is chosen. */
 	onNavigate?: () => void;
 };
@@ -36,7 +38,7 @@ function Item({
 	pathname,
 	collapsed,
 	onNavigate,
-}: { item: NavItem } & Omit<Props, "onToggleCollapsed">) {
+}: { item: NavItem } & Omit<Props, "onToggleCollapsed" | "mobile">) {
 	const { t } = useTranslation();
 	const label = t(`nav.${item.key}`);
 	const active = isActive(item.href, pathname);
@@ -94,11 +96,14 @@ function Item({
 /** Left sidebar: main menu + Settings group; collapses to icons (desktop), opened with ☰ (mobile). */
 export function Sidebar({
 	pathname,
-	collapsed,
+	collapsed: collapsedPref,
 	onToggleCollapsed,
 	onNavigate,
+	mobile = false,
 }: Props) {
 	const { t } = useTranslation();
+	// The icon-only rail is desktop-only; the mobile drawer is full width, so labels always show.
+	const collapsed = collapsedPref && !mobile;
 	return (
 		<>
 			<AppShell.Section grow component="nav" aria-label={t("nav.menu")} py="md">
@@ -146,6 +151,7 @@ export function Sidebar({
 					))}
 				</Stack>
 			</AppShell.Section>
+			{/* Desktop-only toggle, so it reflects the stored preference. */}
 			<AppShell.Section
 				visibleFrom="sm"
 				py="sm"
@@ -153,8 +159,8 @@ export function Sidebar({
 			>
 				<UnstyledButton
 					onClick={onToggleCollapsed}
-					aria-label={collapsed ? t("nav.expand") : t("nav.collapse")}
-					aria-expanded={!collapsed}
+					aria-label={collapsedPref ? t("nav.expand") : t("nav.collapse")}
+					aria-expanded={!collapsedPref}
 					w="100%"
 					px="md"
 					py={6}
@@ -163,15 +169,15 @@ export function Sidebar({
 						display: "flex",
 						alignItems: "center",
 						gap: 8,
-						justifyContent: collapsed ? "center" : "flex-start",
+						justifyContent: collapsedPref ? "center" : "flex-start",
 					}}
 				>
-					{collapsed ? (
+					{collapsedPref ? (
 						<IconChevronRight size={ICON_SIZE} />
 					) : (
 						<IconChevronLeft size={ICON_SIZE} />
 					)}
-					{!collapsed && <Text size="sm">{t("nav.collapse")}</Text>}
+					{!collapsedPref && <Text size="sm">{t("nav.collapse")}</Text>}
 				</UnstyledButton>
 			</AppShell.Section>
 		</>

@@ -6,13 +6,16 @@ export function PageHeader({
 	title,
 	description,
 	children,
+	mb = 48,
 }: {
 	title: string;
 	description?: string;
 	children?: ReactNode;
+	/** Space below the header; pages with an action right under it use less. */
+	mb?: number;
 }) {
 	return (
-		<Stack gap="xs" mb={48}>
+		<Stack gap="xs" mb={mb}>
 			<Title order={1} style={{ letterSpacing: "-0.01em" }}>
 				{title}
 			</Title>

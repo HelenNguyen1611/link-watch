@@ -7,9 +7,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconTrash } from "@/components/icons";
 import { useApi } from "@/lib/api-context";
+import { PALETTE } from "@/lib/colors";
 import { formatDateTime, formatMs } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 import { httpCodeColor, responseTimeColor } from "./status-style";
+import css from "./table.module.css";
 
 function DeleteButton({ id }: { id: string }) {
 	const { t } = useTranslation();
@@ -23,7 +25,7 @@ function DeleteButton({ id }: { id: string }) {
 	return confirming ? (
 		<Button
 			size="xs"
-			color="red"
+			color={PALETTE.danger}
 			leftSection={<IconTrash size={16} />}
 			loading={remove.isPending}
 			onClick={() => remove.mutate()}
@@ -35,7 +37,7 @@ function DeleteButton({ id }: { id: string }) {
 		<Button
 			size="xs"
 			variant="subtle"
-			color="red"
+			color={PALETTE.danger}
 			leftSection={<IconTrash size={16} />}
 			onClick={() => setConfirming(true)}
 		>
@@ -48,9 +50,21 @@ function DeleteButton({ id }: { id: string }) {
 export function LinkTable({ links }: { links: LinkView[] }) {
 	const { t } = useTranslation();
 	if (links.length === 0) return <Text c="dimmed">{t("links.empty")}</Text>;
+	const th = (key: string) => (
+		<Table.Th c="dimmed" fz="xs" fw={400} style={{ whiteSpace: "nowrap" }}>
+			{t(`links.col.${key}`)}
+		</Table.Th>
+	);
 	return (
-		<Table.ScrollContainer minWidth={760}>
+		// Scrolls both ways inside the viewport so the header row and URL column stay pinned.
+		<Table.ScrollContainer
+			minWidth={820}
+			maxHeight="calc(100dvh - var(--app-shell-header-height, 64px) - 2rem)"
+			className={css.scroll}
+			data-table-scroll
+		>
 			<Table
+				stickyHeader
 				highlightOnHover
 				verticalSpacing="md"
 				horizontalSpacing="sm"
@@ -58,59 +72,57 @@ export function LinkTable({ links }: { links: LinkView[] }) {
 			>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
+						<Table.Th
+							c="dimmed"
+							fz="xs"
+							fw={400}
+							className={css.sticky}
+							data-sticky="true"
+						>
 							{t("links.col.url")}
 						</Table.Th>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
-							{t("links.col.domain")}
-						</Table.Th>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
-							{t("links.col.status")}
-						</Table.Th>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
-							{t("links.col.http")}
-						</Table.Th>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
-							{t("links.col.responseTime")}
-						</Table.Th>
-						<Table.Th c="dimmed" fz="xs" fw={400}>
-							{t("links.col.lastChecked")}
-						</Table.Th>
+						{th("status")}
+						{th("domain")}
+						{th("http")}
+						{th("responseTime")}
+						{th("lastChecked")}
 						<Table.Th />
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>
 					{links.map((l) => (
 						<Table.Tr key={l.id}>
-							<Table.Td>
+							<Table.Td className={css.sticky} data-sticky="true">
 								<Stack gap={0}>
 									<Anchor
 										href={l.url}
 										target="_blank"
 										rel="noopener noreferrer"
 										size="sm"
+										title={l.url}
+										lineClamp={2}
 										style={{ wordBreak: "break-all" }}
 									>
 										{l.url}
 									</Anchor>
 									{l.name && (
-										<Text size="xs" c="dimmed">
+										<Text size="xs" c="dimmed" truncate>
 											{l.name}
 										</Text>
 									)}
 								</Stack>
 							</Table.Td>
-							<Table.Td>{l.domain}</Table.Td>
 							<Table.Td>
 								<Stack gap={2} align="flex-start">
 									<StatusBadge status={l.status} />
 									{l.lastErrorType && (
-										<Text size="xs" c="dimmed">
+										<Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
 											{t(`errorType.${l.lastErrorType}`)}
 										</Text>
 									)}
 								</Stack>
 							</Table.Td>
+							<Table.Td>{l.domain}</Table.Td>
 							<Table.Td>
 								<Text
 									size="sm"

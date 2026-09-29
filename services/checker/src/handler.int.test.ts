@@ -1,10 +1,12 @@
 import http from "node:http";
 import type { AddressInfo } from "node:net";
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import type { ProbeResult } from "@linkwatch/core";
 import { checkTtl } from "@linkwatch/core/db";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
 import { createLink, deleteLink } from "@linkwatch/core/usecases";
 import type { SQSEvent, SQSRecord } from "aws-lambda";
+import { mockClient } from "aws-sdk-client-mock";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHandler } from "./handler";
 
@@ -307,5 +309,118 @@ describe("Checker handler — incidents (5.2)", () => {
 			day: "2026-09-30",
 		}).go();
 		expect(stat.data).toMatchObject({ checks: 3, dead: 2, up: 1 });
+	});
+});
+
+describe("Checker handler — delayed rechecks (step 14, PLAN Q2)", () => {
+	const sqsMock = mockClient(SQSClient);
+	const QUEUE = "https://sqs.local/linkwatch-priority";
+	const withQueue = (when: Date) =>
+		createHandler({
+			db: t.db,
+			now: () => when,
+			probeOptions: { allowPrivate: true },
+			priorityQueue: { sqs: new SQSClient({}), queueUrl: QUEUE },
+		});
+	const sent = () =>
+		sqsMock.commandCalls(SendMessageCommand).map((c) => ({
+			delay: c.args[0].input.DelaySeconds,
+			queue: c.args[0].input.QueueUrl,
+			body: JSON.parse(c.args[0].input.MessageBody ?? "{}"),
+		}));
+
+	it("5.2 step 1: first failure → recheck job on the priority queue after 120 seconds", async () => {
+		sqsMock.reset();
+		sqsMock.on(SendMessageCommand).resolves({ MessageId: "x" });
+		const link = await createLink(t.db, { url: `${base}/404?q1` }, { now });
+		await withQueue(now)(event(record(job(link.domain, [link.id]))));
+		expect(sent()).toEqual([
+			{
+				delay: 120,
+				queue: QUEUE,
+				body: {
+					kind: "recheck",
+					domain: link.domain,
+					linkIds: [link.id],
+					dueAt: "2026-09-29T23:04:00.000Z",
+				},
+			},
+		]);
+		// next_run_at is only a Dispatcher fallback, 5 minutes after the recheck.
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data?.nextRunAt).toBe("2026-09-29T23:09:00.000Z");
+	});
+
+	it("5.2 step 3: the recheck opens the incident and queues the next one after 600 seconds", async () => {
+		sqsMock.reset();
+		sqsMock.on(SendMessageCommand).resolves({ MessageId: "x" });
+		const link = await createLink(t.db, { url: `${base}/404?q3` }, { now });
+		await withQueue(now)(event(record(job(link.domain, [link.id]))));
+		const recheck = sent()[0]?.body;
+		const later = new Date("2026-09-29T23:04:00.000Z");
+		await withQueue(later)(
+			event({
+				...record(recheck),
+				eventSourceARN: "arn:aws:sqs:ap-southeast-1:1:linkwatch-priority",
+			}),
+		);
+		expect(
+			(await t.db.Incident.query.primary({ linkId: link.id }).go()).data,
+		).toHaveLength(1);
+		expect(sent().map((s) => s.delay)).toEqual([120, 600]);
+	});
+
+	it("FR-17: a healthy link on the default schedule queues nothing", async () => {
+		sqsMock.reset();
+		const link = await createLink(t.db, { url: `${base}/200?q0` }, { now });
+		await withQueue(now)(event(record(job(link.domain, [link.id]))));
+		expect(sent()).toEqual([]);
+	});
+
+	it("NFR-04: SQS failing to queue the recheck does not fail the message (Dispatcher fallback)", async () => {
+		sqsMock.reset();
+		sqsMock.on(SendMessageCommand).rejects(new Error("throttled"));
+		const link = await createLink(t.db, { url: `${base}/404?qf` }, { now });
+		const res = await withQueue(now)(
+			event(record(job(link.domain, [link.id]))),
+		);
+		expect(res.batchItemFailures).toEqual([]);
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data).toMatchObject({
+			status: "suspect",
+			nextRunAt: "2026-09-29T23:09:00.000Z",
+		});
+	});
+
+	it("NFR-04: on the priority Standard queue only the failed message is returned", async () => {
+		const arn = "arn:aws:sqs:ap-southeast-1:1:linkwatch-priority";
+		const a = await createLink(t.db, { url: `${base}/200?std` }, { now });
+		const res = await handler()(
+			event(
+				{ ...record("{bad", "p1"), eventSourceARN: arn },
+				{
+					...record(
+						{
+							kind: "recheck",
+							domain: a.domain,
+							linkIds: [a.id],
+							dueAt: now.toISOString(),
+						},
+						"p2",
+					),
+					eventSourceARN: arn,
+				},
+			),
+		);
+		expect(res.batchItemFailures).toEqual([{ itemIdentifier: "p1" }]);
+		expect(
+			(await t.db.Check.query.byLink({ linkId: a.id }).go()).data,
+		).toHaveLength(1);
 	});
 });

@@ -6,6 +6,7 @@ import {
 	type Evaluation,
 	evaluateCheck,
 } from "../incident";
+import { planNextRun } from "../queue";
 import { DEFAULT_SCHEDULE, localDay, type Schedule } from "../schedule";
 import type { LinkStatus } from "../schema/enums";
 
@@ -33,7 +34,12 @@ export type RecordCheckOptions = {
 };
 
 export type RecordCheckOutcome =
-	| { kind: "recorded"; evaluation: Evaluation }
+	| {
+			kind: "recorded";
+			evaluation: Evaluation;
+			/** PLAN Q2: the caller queues a delayed recheck on the priority queue. */
+			recheck?: { delaySeconds: number; dueAt: string };
+	  }
 	/** FR-04 paused, deleted/paused during the check, or the same job already recorded. */
 	| { kind: "skipped"; reason: "paused" | "duplicate_or_changed" };
 
@@ -80,10 +86,11 @@ export async function recordCheck(
 	if (evaluation.action.kind === "skip")
 		return { kind: "skipped", reason: "paused" };
 
+	const plan = evaluation.nextRunAt && planNextRun(evaluation.nextRunAt, now);
 	const removed = [
 		checked.httpCode === undefined && "lastHttpCode",
 		checked.errorType === undefined && "lastErrorType",
-		evaluation.nextRunAt === undefined && "nextRunAt",
+		!plan && "nextRunAt",
 	].filter((k): k is "lastHttpCode" | "lastErrorType" | "nextRunAt" =>
 		Boolean(k),
 	);
@@ -95,9 +102,7 @@ export async function recordCheck(
 			lastJobId: jobId,
 			...(checked.httpCode !== undefined && { lastHttpCode: checked.httpCode }),
 			...(checked.errorType && { lastErrorType: checked.errorType }),
-			...(evaluation.nextRunAt && {
-				nextRunAt: evaluation.nextRunAt.toISOString(),
-			}),
+			...(plan && { nextRunAt: plan.storedNextRunAt.toISOString() }),
 		});
 		if (removed.length) update = update.remove(removed) as typeof update;
 		await update
@@ -125,7 +130,17 @@ export async function recordCheck(
 			.go(),
 		applyIncidentAction(db, link, checked, evaluation),
 	]);
-	return { kind: "recorded", evaluation };
+	return {
+		kind: "recorded",
+		evaluation,
+		...(plan?.delaySeconds !== undefined &&
+			evaluation.nextRunAt && {
+				recheck: {
+					delaySeconds: plan.delaySeconds,
+					dueAt: evaluation.nextRunAt.toISOString(),
+				},
+			}),
+	};
 }
 
 async function applyIncidentAction(

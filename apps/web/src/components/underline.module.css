@@ -13,7 +13,7 @@
 }
 
 .input[data-error] {
-	border-bottom-color: var(--mantine-color-red-6);
+	border-bottom-color: var(--mantine-color-error);
 }
 
 .label {

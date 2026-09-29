@@ -5,13 +5,19 @@ import type {
 	SQSBatchItemFailure,
 	SQSBatchResponse,
 	SQSEvent,
+	SQSRecord,
 } from "aws-lambda";
 import pLimit, { type LimitFunction } from "p-limit";
+import { enqueuePriority, type PriorityQueue } from "./enqueue";
 import {
 	type ProbeOptions,
 	type ProbeTarget,
 	probe as realProbe,
 } from "./probe";
+
+/** Records without a source ARN (tests) are treated as FIFO. */
+const isFifo = (record: SQSRecord) =>
+	!record.eventSourceARN || record.eventSourceARN.endsWith(".fifo");
 
 /** FR-14 / NFR-09: at most 2 concurrent requests per domain. */
 export const PER_DOMAIN_CONCURRENCY = 2;
@@ -21,6 +27,8 @@ export type CheckerDeps = {
 	now?: () => Date;
 	probe?: (target: ProbeTarget, opts: ProbeOptions) => Promise<ProbeResult>;
 	probeOptions?: ProbeOptions;
+	/** PLAN Q2: delayed rechecks; without it the Dispatcher picks the link up via next_run_at. */
+	priorityQueue?: PriorityQueue;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
 };
 
@@ -69,14 +77,33 @@ export function createHandler(deps: CheckerDeps) {
 			now: now(),
 			jobId,
 		});
-		if (outcome.kind === "skipped")
+		if (outcome.kind === "skipped") {
 			log("Check not recorded", { domain, id, reason: outcome.reason });
-		else if (outcome.evaluation.action.kind !== "none")
+			return;
+		}
+		if (outcome.evaluation.action.kind !== "none")
 			log("Incident action", {
 				domain,
 				id,
 				action: outcome.evaluation.action.kind,
 			});
+		if (outcome.recheck && deps.priorityQueue) {
+			try {
+				await enqueuePriority(
+					deps.priorityQueue,
+					{
+						kind: "recheck",
+						domain,
+						linkIds: [id],
+						dueAt: outcome.recheck.dueAt,
+					},
+					outcome.recheck.delaySeconds,
+				);
+			} catch (err) {
+				// The check is already recorded: the Dispatcher fallback (next_run_at) covers a lost recheck.
+				log("Recheck not queued", { domain, id, error: String(err) });
+			}
+		}
 	}
 
 	return async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
@@ -89,9 +116,10 @@ export function createHandler(deps: CheckerDeps) {
 			return created;
 		};
 		const failures: SQSBatchItemFailure[] = [];
-		// FIFO: return a failed message and every later one to keep ordering within the group.
 		for (const record of event.Records) {
-			if (failures.length) {
+			// FIFO: return a failed message and every later one to keep ordering within the group.
+			// The priority Standard queue has no ordering, so only the failed message is returned.
+			if (failures.length && isFifo(record)) {
 				failures.push({ itemIdentifier: record.messageId });
 				continue;
 			}

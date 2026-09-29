@@ -73,7 +73,11 @@
 	"linkForm": {
 		"url": "URL",
 		"name": "Display name",
+		"namePlaceholder": "e.g. Pricing page (optional)",
 		"add": "Add",
+		"submit": "Add link",
+		"cancel": "Cancel",
+		"added": "Link added",
 		"errors": {
 			"invalid_url": "Invalid URL",
 			"unsupported_scheme": "Only http:// and https:// are supported",

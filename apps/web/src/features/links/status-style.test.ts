@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { COLOR } from "@/lib/colors";
 import { httpCodeColor, responseTimeColor, STATUS_STYLE } from "./status-style";
 
 describe("status colours", () => {
 	it("SRS 5.1: each status has a colour and icon matching its meaning", () => {
 		expect(STATUS_STYLE.up).toMatchObject({
-			color: "green.7",
+			color: COLOR.success,
 			icon: "circle-check",
 		});
 		expect(STATUS_STYLE.slow).toMatchObject({
@@ -16,7 +17,7 @@ describe("status colours", () => {
 			icon: "unlink",
 		});
 		expect(STATUS_STYLE.down).toMatchObject({
-			color: "red.7",
+			color: COLOR.danger,
 			icon: "circle-x",
 		});
 		expect(STATUS_STYLE.pending).toMatchObject({
@@ -29,11 +30,17 @@ describe("status colours", () => {
 		});
 	});
 
+	it("success and outage use the shared site-wide variables, not raw shades", () => {
+		expect(STATUS_STYLE.up.color).toBe("var(--lw-color-success)");
+		expect(STATUS_STYLE.down.color).toBe("var(--lw-color-danger)");
+		expect(httpCodeColor(500)).toBe("var(--lw-color-danger)");
+	});
+
 	it("HTTP code: 2xx/3xx neutral, 4xx orange, 5xx red, none neutral", () => {
 		expect(httpCodeColor(200)).toBeUndefined();
 		expect(httpCodeColor(301)).toBeUndefined();
 		expect(httpCodeColor(404)).toBe("orange.7");
-		expect(httpCodeColor(503)).toBe("red.7");
+		expect(httpCodeColor(503)).toBe(COLOR.danger);
 		expect(httpCodeColor(undefined)).toBeUndefined();
 	});
 

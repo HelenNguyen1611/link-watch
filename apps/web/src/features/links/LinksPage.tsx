@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { PALETTE } from "@/lib/colors";
 import { AddLinkForm } from "./AddLinkForm";
 import { LinkTable } from "./LinkTable";
 
@@ -44,7 +45,11 @@ export function LinksPage() {
 
 	return (
 		<>
-			<PageHeader title={t("links.title")} description={t("links.subtitle")} />
+			<PageHeader
+				title={t("links.title")}
+				description={t("links.subtitle")}
+				mb={24}
+			/>
 			<Box pb={40}>
 				<AddLinkForm />
 			</Box>
@@ -57,7 +62,7 @@ export function LinksPage() {
 			{links.isPending ? (
 				<Loader />
 			) : links.isError && !unauthorized ? (
-				<Alert color="red" variant="light">
+				<Alert color={PALETTE.danger} variant="light">
 					{t("links.loadError")}
 				</Alert>
 			) : (

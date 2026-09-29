@@ -23,9 +23,11 @@ vi.mock("next/link", () => ({
 function Harness({
 	pathname = "/links/",
 	initial = false,
+	mobile = false,
 }: {
 	pathname?: string;
 	initial?: boolean;
+	mobile?: boolean;
 }) {
 	const [collapsed, setCollapsed] = useState(initial);
 	return (
@@ -35,6 +37,7 @@ function Harness({
 					pathname={pathname}
 					collapsed={collapsed}
 					onToggleCollapsed={() => setCollapsed((c) => !c)}
+					mobile={mobile}
 				/>
 			</AppShell.Navbar>
 		</AppShell>
@@ -83,6 +86,13 @@ describe("Sidebar", () => {
 		expect(toggle.getAttribute("aria-expanded")).toBe("false");
 		await userEvent.click(toggle);
 		expect(screen.getByText("Overview")).toBeTruthy();
+	});
+
+	it("mobile: the drawer always shows labels, even when collapsed on desktop", () => {
+		render(<Harness initial mobile />);
+		for (const label of ["Overview", "Links", "Settings", "API key"]) {
+			expect(screen.getByText(label)).toBeTruthy();
+		}
 	});
 
 	it("collapsed: every item is a centred icon of the same size, including the Settings icon", async () => {

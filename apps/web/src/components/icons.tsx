@@ -94,6 +94,11 @@ export const IconChevronRight = (p: P) => (
 		<path d="m9.5 6 6 6-6 6" />
 	</Icon>
 );
+export const IconPlus = (p: P) => (
+	<Icon {...p}>
+		<path d="M12 5v14M5 12h14" />
+	</Icon>
+);
 export const IconArrowRight = (p: P) => (
 	<Icon {...p}>
 		<path d="M5 12h14M13 6l6 6-6 6" />

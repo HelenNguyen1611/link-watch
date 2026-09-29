@@ -6,7 +6,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
 import type { Api } from "@/lib/api";
 import { ApiContext } from "@/lib/api-context";
-import { theme } from "@/lib/theme";
+import { cssVariablesResolver, theme } from "@/lib/theme";
 
 /** Renders with the same providers as the app, using a fake API. */
 export function renderWithApi(ui: ReactElement, api: Api) {
@@ -16,7 +16,10 @@ export function renderWithApi(ui: ReactElement, api: Api) {
 	return render(
 		<I18nextProvider i18n={i18n}>
 			<QueryClientProvider client={client}>
-				<MantineProvider theme={theme}>
+				<MantineProvider
+					theme={theme}
+					cssVariablesResolver={cssVariablesResolver}
+				>
 					<ApiContext.Provider value={api}>{ui}</ApiContext.Provider>
 				</MantineProvider>
 			</QueryClientProvider>

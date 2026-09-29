@@ -1,14 +1,18 @@
 "use client";
 
 import { LinkInput, type LinkInputRaw } from "@linkwatch/core";
-import { Button, Group, TextInput } from "@mantine/core";
+import { Box, Button, Flex, TextInput } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight, IconPlus } from "@/components/icons";
 import underline from "@/components/underline.module.css";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { COLOR, PALETTE } from "@/lib/colors";
+import classes from "./add-link-form.module.css";
 
 type FormValues = { url: string; name: string };
 type Issue = {
@@ -37,6 +41,12 @@ export function AddLinkForm() {
 	const { t } = useTranslation();
 	const api = useApi();
 	const queryClient = useQueryClient();
+	// Collapsed: a single "+ Add" button. Open: the fields with "Add link" and Cancel.
+	const [open, setOpen] = useState(false);
+	const addButton = useRef<HTMLButtonElement>(null);
+	const wasOpen = useRef(false);
+	// Bumped after each successful add so the URL field is refocused once the reset has rendered.
+	const [added, setAdded] = useState(0);
 
 	const resolver: Resolver<FormValues, unknown, LinkInputRaw> = async (
 		values,
@@ -60,10 +70,32 @@ export function AddLinkForm() {
 		resolver,
 	});
 
+	// Focus the URL field on open; give focus back to "+ Add" on close.
+	useEffect(() => {
+		if (open) form.setFocus("url");
+		else if (wasOpen.current) addButton.current?.focus();
+		wasOpen.current = open;
+	}, [open, form]);
+
+	useEffect(() => {
+		if (added > 0) form.setFocus("url");
+	}, [added, form]);
+
+	const close = () => {
+		form.reset();
+		setOpen(false);
+	};
+
 	const create = useMutation({
 		mutationFn: (input: LinkInputRaw) => api.createLink(input),
 		onSuccess: () => {
+			// Stay open so several links can be added in a row.
 			form.reset();
+			setAdded((n) => n + 1);
+			notifications.show({
+				color: PALETTE.success,
+				message: t("linkForm.added"),
+			});
 			return queryClient.invalidateQueries({ queryKey: ["links"] });
 		},
 		onError: (err) => {
@@ -87,46 +119,88 @@ export function AddLinkForm() {
 		},
 	});
 
+	if (!open)
+		return (
+			<Button
+				ref={addButton}
+				variant="light"
+				h={44}
+				px="md"
+				leftSection={<IconPlus size={18} />}
+				styles={{ label: { fontSize: 16, fontWeight: 500 } }}
+				onClick={() => setOpen(true)}
+			>
+				{t("linkForm.add")}
+			</Button>
+		);
+
 	return (
 		<form
+			className={classes.form}
 			onSubmit={form.handleSubmit((input) => create.mutate(input))}
+			onKeyDown={(e) => {
+				if (e.key === "Escape") close();
+			}}
 			noValidate
 		>
-			<Group align="flex-end" wrap="wrap" gap="xl">
-				<TextInput
-					label={t("linkForm.url")}
-					placeholder="https://example.com/page"
-					required
-					classNames={underline}
-					style={{ flex: "2 1 320px" }}
-					error={form.formState.errors.url?.message}
-					{...form.register("url")}
-				/>
-				<TextInput
-					label={t("linkForm.name")}
-					classNames={underline}
-					style={{ flex: "1 1 200px" }}
-					error={form.formState.errors.name?.message}
-					{...form.register("name")}
-				/>
-				<Button
-					type="submit"
-					variant="subtle"
-					px={0}
-					loading={create.isPending}
-					rightSection={<IconArrowRight size={18} />}
-					styles={{ label: { fontSize: 16, fontWeight: 500 } }}
+			{/* Desktop: URL, name and actions in one row. Mobile: stacked, full-width submit. */}
+			<Flex
+				direction={{ base: "column", sm: "row" }}
+				align={{ base: "stretch", sm: "flex-end" }}
+				gap="md"
+			>
+				<Flex
+					direction={{ base: "column", sm: "row" }}
+					gap="md"
+					style={{ flex: 1, minWidth: 0 }}
+					data-form-fields
 				>
-					{t("linkForm.add")}
-				</Button>
-			</Group>
+					<TextInput
+						label={t("linkForm.url")}
+						placeholder="https://example.com/page"
+						required
+						classNames={underline}
+						style={{ flex: 2, minWidth: 0 }}
+						error={form.formState.errors.url?.message}
+						{...form.register("url")}
+					/>
+					<TextInput
+						label={t("linkForm.name")}
+						placeholder={t("linkForm.namePlaceholder")}
+						classNames={underline}
+						style={{ flex: 1, minWidth: 0 }}
+						error={form.formState.errors.name?.message}
+						{...form.register("name")}
+					/>
+				</Flex>
+				{/* One row on every screen: Cancel on the left, Add link on the right. */}
+				<Flex
+					align="center"
+					gap="xs"
+					style={{ flexShrink: 0 }}
+					data-form-actions
+				>
+					<Button variant="subtle" color="gray" h={44} onClick={close}>
+						{t("linkForm.cancel")}
+					</Button>
+					<Button
+						type="submit"
+						variant="light"
+						h={44}
+						px="md"
+						style={{ flexGrow: 1 }}
+						loading={create.isPending}
+						rightSection={<IconArrowRight size={18} />}
+						styles={{ label: { fontSize: 16, fontWeight: 500 } }}
+					>
+						{t("linkForm.submit")}
+					</Button>
+				</Flex>
+			</Flex>
 			{form.formState.errors.root && (
-				<div
-					role="alert"
-					style={{ color: "var(--mantine-color-red-7)", marginTop: 8 }}
-				>
+				<Box role="alert" mt={8} style={{ color: COLOR.danger }}>
 					{form.formState.errors.root.message}
-				</div>
+				</Box>
 			)}
 		</form>
 	);

@@ -55,4 +55,21 @@ describe("AppLayout", () => {
 			"1",
 		);
 	});
+
+	it("mobile (test viewport is below sm): a collapsed preference still shows menu labels", async () => {
+		localStorage.setItem(SIDEBAR_STORAGE_KEY, "true");
+		renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
+		const nav = await screen.findByRole("navigation", { name: "Menu" });
+		expect(nav.textContent).toContain("Overview");
+		expect(nav.textContent).toContain("API key");
+	});
+
+	it("header: logo on the left, menu (burger) button on the right", async () => {
+		renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
+		const logo = await screen.findByRole("link", { name: "LinkWatch" });
+		const burger = screen.getAllByRole("button", { name: "Menu" })[0];
+		expect(
+			logo.compareDocumentPosition(burger) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
 });

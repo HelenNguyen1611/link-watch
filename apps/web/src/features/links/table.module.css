@@ -1,0 +1,32 @@
+/*
+ * Mobile: pull the table left by the cell padding so URL text lines up with the page title,
+ * and right by the page gutter so rows run to the screen edge (more room to read).
+ */
+/* Below the `sm` breakpoint (48em), same as the AppShell navbar. */
+@media (max-width: 47.99em) {
+	.scroll {
+		margin-left: calc(-1 * var(--mantine-spacing-sm));
+		margin-right: calc(-1 * var(--mantine-spacing-md));
+	}
+}
+
+/* URL column pinned to the left while the table scrolls horizontally (mobile). */
+.sticky {
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	min-width: 200px;
+	max-width: 300px;
+	background: var(--mantine-color-body);
+	box-shadow: inset -1px 0 0 var(--mantine-color-gray-2);
+}
+
+/* Header cell of the URL column sits above both the pinned column and the pinned header row. */
+thead .sticky {
+	z-index: 3;
+}
+
+/* Keep the row hover colour on the pinned cell (it needs an opaque background). */
+tr:hover > .sticky {
+	background: var(--table-hover-color, var(--mantine-color-gray-0));
+}

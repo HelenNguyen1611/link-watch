@@ -1,7 +1,15 @@
 "use client";
 
-import { Anchor, AppShell, Box, Burger, Group, Text } from "@mantine/core";
-import { useDisclosure, useLocalStorage } from "@mantine/hooks";
+import {
+	Anchor,
+	AppShell,
+	Box,
+	Burger,
+	Group,
+	Text,
+	useMantineTheme,
+} from "@mantine/core";
+import { useDisclosure, useLocalStorage, useMediaQuery } from "@mantine/hooks";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -16,6 +24,9 @@ export const SIDEBAR_STORAGE_KEY = "linkwatch.sidebarCollapsed";
 export function AppLayout({ children }: { children: ReactNode }) {
 	const { t } = useTranslation();
 	const pathname = usePathname() ?? "/";
+	const theme = useMantineTheme();
+	// Same breakpoint as the AppShell navbar: below it the sidebar is the ☰ drawer.
+	const desktop = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
 	const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] =
 		useDisclosure(false);
 	const [collapsed, setCollapsed] = useLocalStorage({
@@ -39,8 +50,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
 			withBorder
 		>
 			<AppShell.Header>
-				<Group h="100%" px="lg" justify="space-between" wrap="nowrap">
+				{/* Logo on the left; tagline (desktop) and the menu button (mobile) on the right. */}
+				<Group
+					h="100%"
+					px={{ base: "md", sm: "lg" }}
+					justify="space-between"
+					wrap="nowrap"
+				>
+					<Anchor
+						component={Link}
+						href="/"
+						underline="never"
+						c="inherit"
+						onClick={closeMobile}
+					>
+						<Logo label={t("app.title")} />
+					</Anchor>
 					<Group gap="sm" wrap="nowrap">
+						<Text size="sm" c="dimmed" visibleFrom="md">
+							{t("app.tagline")}
+						</Text>
 						<Burger
 							opened={mobileOpened}
 							onClick={toggleMobile}
@@ -48,19 +77,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 							size="sm"
 							aria-label={t("nav.menu")}
 						/>
-						<Anchor
-							component={Link}
-							href="/"
-							underline="never"
-							c="inherit"
-							onClick={closeMobile}
-						>
-							<Logo label={t("app.title")} />
-						</Anchor>
 					</Group>
-					<Text size="sm" c="dimmed" visibleFrom="md">
-						{t("app.tagline")}
-					</Text>
 				</Group>
 			</AppShell.Header>
 			<AppShell.Navbar>
@@ -69,6 +86,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 					collapsed={collapsed}
 					onToggleCollapsed={() => setCollapsed((c) => !c)}
 					onNavigate={closeMobile}
+					mobile={!desktop}
 				/>
 			</AppShell.Navbar>
 			<AppShell.Main>
