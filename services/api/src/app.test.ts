@@ -1,60 +1,119 @@
-import { API_KEY_HEADER, LinkInput } from "@linkwatch/core";
+import { LinkInput } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
+import type { AuthMode } from "./middleware/auth";
 
-const SECRET = "bi-mat-thu-nghiem-0123456789";
-const app = () => {
-	const a = createApp({ db: {} as Db, getApiKey: async () => SECRET });
+const gateway: AuthMode = { kind: "apiGateway" };
+
+const app = (auth: AuthMode = gateway) => {
+	const a = createApp({ db: {} as Db, auth });
 	a.post("/_test/zod", async (c) =>
 		c.json(LinkInput.parse(await c.req.json())),
 	);
 	a.get("/_test/boom", () => {
 		throw new Error("internal detail");
 	});
+	a.get("/_test/me", (c) => c.json(c.get("user")));
+	a.get("/public/_test", (c) => c.text("public"));
 	return a;
 };
-const withKey = (key = SECRET): RequestInit => ({
-	headers: { [API_KEY_HEADER]: key },
+
+/** Lambda env as hono/aws-lambda passes it: the API Gateway v2 event. */
+const lambdaEnv = (claims?: Record<string, unknown>) => ({
+	event: {
+		requestContext: claims ? { authorizer: { jwt: { claims } } } : {},
+	},
+});
+const ID_CLAIMS = {
+	sub: "c0ffee",
+	email: "admin@abc.com",
+	token_use: "id",
+};
+const signedIn = lambdaEnv(ID_CLAIMS);
+const json = (body: string) => ({
+	method: "POST",
+	headers: { "content-type": "application/json" },
+	body,
 });
 
-describe("API khung", () => {
-	it("GET /api/health needs no key", async () => {
-		const res = await app().request("/api/health");
+describe("API auth — FR-28, NFR-07", () => {
+	it("GET /api/health needs no sign-in", async () => {
+		const res = await app().request("/api/health", {}, lambdaEnv());
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({ ok: true });
 	});
 
-	it("NFR-07 (temporary): missing key header → 401", async () => {
-		const res = await app().request("/api/_test/boom");
+	it("FR-28: /api/public/* needs no sign-in (email token links)", async () => {
+		const res = await app().request("/api/public/_test", {}, lambdaEnv());
+		expect(res.status).toBe(200);
+	});
+
+	it("NFR-07: no JWT claims → 401", async () => {
+		const res = await app().request("/api/_test/me", {}, lambdaEnv());
 		expect(res.status).toBe(401);
 		expect(await res.json()).toEqual({ error: "unauthorized" });
 	});
 
-	it("NFR-07 (temporary): wrong key → 401, including different length", async () => {
+	it("NFR-07: an access token (not an ID token) or claims without email → 401", async () => {
 		expect(
-			(await app().request("/api/_test/boom", withKey("sai"))).status,
+			(
+				await app().request(
+					"/api/_test/me",
+					{},
+					lambdaEnv({ ...ID_CLAIMS, token_use: "access" }),
+				)
+			).status,
 		).toBe(401);
 		expect(
-			(await app().request("/api/_test/boom", withKey(`${SECRET}x`))).status,
+			(
+				await app().request(
+					"/api/_test/me",
+					{},
+					lambdaEnv({ sub: "x", token_use: "id" }),
+				)
+			).status,
 		).toBe(401);
 	});
 
-	it("NFR-07 (temporary): unconfigured (empty) key rejects every request instead of failing open", async () => {
-		const a = createApp({ db: {} as Db, getApiKey: async () => "" });
-		a.get("/_test/ok", (c) => c.text("ok"));
-		const res = await a.request("/api/_test/ok", {
-			headers: { [API_KEY_HEADER]: "" },
-		});
+	it("FR-28: Cognito claims → the user is available to routes", async () => {
+		const res = await app().request("/api/_test/me", {}, signedIn);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ sub: "c0ffee", email: "admin@abc.com" });
+	});
+
+	it("NFR-07: the temporary x-linkwatch-key header no longer grants access", async () => {
+		const res = await app().request(
+			"/api/_test/me",
+			{ headers: { "x-linkwatch-key": "anything" } },
+			lambdaEnv(),
+		);
 		expect(res.status).toBe(401);
 	});
 
-	it("FR-01: Zod error → 400 with per-field details", async () => {
-		const res = await app().request("/api/_test/zod", {
-			method: "POST",
-			headers: { [API_KEY_HEADER]: SECRET, "content-type": "application/json" },
-			body: JSON.stringify({ url: "ftp://abc.com" }),
+	it("local mode: Bearer token required, signs in as the fake user", async () => {
+		const local = app({
+			kind: "local",
+			user: { sub: "local-dev", email: "dev@localhost" },
 		});
+		expect((await local.request("/api/_test/me")).status).toBe(401);
+		const res = await local.request("/api/_test/me", {
+			headers: { authorization: "Bearer fake" },
+		});
+		expect(await res.json()).toEqual({
+			sub: "local-dev",
+			email: "dev@localhost",
+		});
+	});
+});
+
+describe("API errors", () => {
+	it("FR-01: Zod error → 400 with per-field details", async () => {
+		const res = await app().request(
+			"/api/_test/zod",
+			json(JSON.stringify({ url: "ftp://abc.com" })),
+			signedIn,
+		);
 		expect(res.status).toBe(400);
 		const body = await res.json();
 		expect(body.error).toBe("validation");
@@ -65,17 +124,17 @@ describe("API khung", () => {
 	});
 
 	it("non-JSON body → 400", async () => {
-		const res = await app().request("/api/_test/zod", {
-			method: "POST",
-			headers: { [API_KEY_HEADER]: SECRET, "content-type": "application/json" },
-			body: "{not json",
-		});
+		const res = await app().request(
+			"/api/_test/zod",
+			json("{not json"),
+			signedIn,
+		);
 		expect(res.status).toBe(400);
 		expect((await res.json()).error).toBe("invalid_json");
 	});
 
 	it("unexpected error → 500 without leaking internal details", async () => {
-		const res = await app().request("/api/_test/boom", withKey());
+		const res = await app().request("/api/_test/boom", {}, signedIn);
 		expect(res.status).toBe(500);
 		const text = await res.text();
 		expect(text).not.toContain("internal detail");
@@ -83,17 +142,17 @@ describe("API khung", () => {
 	});
 
 	it("unknown route → 404 JSON", async () => {
-		const res = await app().request("/api/does-not-exist", withKey());
+		const res = await app().request("/api/does-not-exist", {}, signedIn);
 		expect(res.status).toBe(404);
 		expect(await res.json()).toEqual({ error: "not_found" });
 	});
 });
 
 describe("CORS (local development only)", () => {
-	it("with corsOrigins: OPTIONS preflight passes without a key and allows the key header", async () => {
+	it("with corsOrigins: OPTIONS preflight passes without sign-in and allows the Authorization header", async () => {
 		const a = createApp({
 			db: {} as Db,
-			getApiKey: async () => SECRET,
+			auth: { kind: "local", user: { sub: "l", email: "l@l" } },
 			corsOrigins: ["http://localhost:3000"],
 		});
 		const res = await a.request("/api/links", {
@@ -101,7 +160,7 @@ describe("CORS (local development only)", () => {
 			headers: {
 				origin: "http://localhost:3000",
 				"access-control-request-method": "POST",
-				"access-control-request-headers": `${API_KEY_HEADER},content-type`,
+				"access-control-request-headers": "authorization,content-type",
 			},
 		});
 		expect(res.status).toBe(204);
@@ -110,13 +169,15 @@ describe("CORS (local development only)", () => {
 		);
 		expect(
 			res.headers.get("access-control-allow-headers")?.toLowerCase(),
-		).toContain(API_KEY_HEADER);
+		).toContain("authorization");
 	});
 
 	it("by default (production, same origin via CloudFront) no CORS headers are sent", async () => {
-		const res = await app().request("/api/health", {
-			headers: { origin: "https://evil.example" },
-		});
+		const res = await app().request(
+			"/api/health",
+			{ headers: { origin: "https://evil.example" } },
+			lambdaEnv(),
+		);
 		expect(res.headers.get("access-control-allow-origin")).toBeNull();
 	});
 });

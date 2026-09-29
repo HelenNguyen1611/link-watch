@@ -248,7 +248,8 @@
 - **Xong khi:** test int: incident mở 24 giờ chưa ack → 1 email Nhắc lại; đã ack → không gửi.
 - **Phụ thuộc:** 16a
 
-### Bước 18b — Auth Cognito thay header tạm
+### Bước 18b — Auth Cognito thay header tạm ✅
+- ✅ đã làm (29/09/2026): `middleware/auth.ts` đọc claims của JWT authorizer (payload 2.0), bắt buộc **ID token** (`token_use = id`, có `email`) → `c.get("user")`; công khai `/api/health`, `/api/public/*`. Local: mọi `Authorization: Bearer …` đăng nhập thành `LOCAL_USER_EMAIL` (mặc định `dev@localhost`). Đã xóa `shared-secret.ts`, `secret.ts`, dependency SSM. `API_KEY_HEADER` trong core còn giữ cho web/smoke đến Bước 23b/40b.
 - **File:** `src/middleware/auth.ts` (đọc JWT claims từ API GW; chế độ local dùng user giả); xóa `shared-secret.ts`.
 - **FR/AC:** FR-28 (MVP: email + mật khẩu qua Cognito, 1 vai trò Admin), NFR-07.
 - **Xong khi:** test `app.request()`: 401 khi thiếu claims; không còn route nào đọc `x-linkwatch-key`.

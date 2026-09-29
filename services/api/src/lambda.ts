@@ -1,18 +1,15 @@
 import { Logger } from "@aws-lambda-powertools/logger";
-import { SSMClient } from "@aws-sdk/client-ssm";
 import { createDb } from "@linkwatch/core/db";
 import { handle } from "hono/aws-lambda";
 import { createApp } from "./app";
-import { createSecretLoader } from "./secret";
 
 const logger = new Logger({ serviceName: "api" });
-const secretName = process.env.API_KEY_PARAM ?? "/linkwatch/api-shared-secret";
 
 const app = createApp({
 	db: createDb(),
-	getApiKey: createSecretLoader({ ssm: new SSMClient({}), name: secretName }),
+	auth: { kind: "apiGateway" },
 	log: (message, extra) => logger.error(message, extra ?? {}),
 });
 
-/** Lambda entry: API Gateway HTTP API → Hono. */
+/** Lambda entry: API Gateway HTTP API (Cognito JWT authorizer) → Hono. */
 export const handler = handle(app);

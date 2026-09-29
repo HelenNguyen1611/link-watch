@@ -10,7 +10,6 @@
 		"@aws-lambda-powertools/metrics": "^2.35.0",
 		"@aws-lambda-powertools/tracer": "^2.35.0",
 		"@aws-sdk/client-sqs": "^3.1141.0",
-		"@aws-sdk/client-ssm": "3.1141.0",
 		"@hono/node-server": "2.1.1",
 		"@linkwatch/core": "workspace:*",
 		"hono": "^4.13.9",

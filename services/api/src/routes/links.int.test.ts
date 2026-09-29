@@ -1,4 +1,4 @@
-import { API_KEY_HEADER, type LinkView } from "@linkwatch/core";
+import type { LinkView } from "@linkwatch/core";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../app";
@@ -7,7 +7,10 @@ let t: TestDb;
 let app: ReturnType<typeof createApp>;
 beforeAll(async () => {
 	t = await createTestDb();
-	app = createApp({ db: t.db, getApiKey: async () => "k" });
+	app = createApp({
+		db: t.db,
+		auth: { kind: "local", user: { sub: "u1", email: "admin@abc.com" } },
+	});
 });
 afterAll(() => t?.drop());
 
@@ -15,7 +18,7 @@ const call = (path: string, init: RequestInit = {}) =>
 	app.request(path, {
 		...init,
 		headers: {
-			[API_KEY_HEADER]: "k",
+			authorization: "Bearer test",
 			"content-type": "application/json",
 			...(init.headers ?? {}),
 		},
