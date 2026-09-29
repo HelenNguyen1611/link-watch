@@ -4,6 +4,7 @@ import {
 	computeNextRun,
 	DEFAULT_SCHEDULE,
 	JITTER_MAX_MS,
+	localDay,
 	nextRunAt,
 } from "./schedule";
 
@@ -134,5 +135,12 @@ describe("nextRunAt", () => {
 			utc("2026-09-30T23:00:00Z").getTime(),
 		);
 		expect(t.getTime()).toBeLessThan(utc("2026-09-30T23:05:00Z").getTime());
+	});
+});
+
+describe("localDay — NFR-08", () => {
+	it("NFR-08: the day follows Asia/Saigon, not UTC", () => {
+		expect(localDay(new Date("2026-09-29T16:59:59.999Z"))).toBe("2026-09-29");
+		expect(localDay(new Date("2026-09-29T17:00:00.000Z"))).toBe("2026-09-30");
 	});
 });

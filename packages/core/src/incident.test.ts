@@ -4,7 +4,9 @@ import {
 	type ActiveIncident,
 	type EvaluateContext,
 	evaluateCheck,
+	incidentId,
 	type LinkCheckState,
+	parseIncidentId,
 } from "./incident";
 import { DEFAULT_SCHEDULE, nextRunAt, type Schedule } from "./schedule";
 import type { CheckResultKind } from "./schema/enums";
@@ -208,5 +210,21 @@ describe("evaluateCheck — SRS 5.2 incident confirmation", () => {
 		);
 		expect(r.action).toEqual({ kind: "skip" });
 		expect(r.nextRunAt).toBeUndefined();
+	});
+});
+
+describe("incidentId — SRS 6.2", () => {
+	it("SRS 6.2: round-trips link id and opened_at", () => {
+		const id = incidentId(LINK_ID, OPENED_AT);
+		expect(id).toBe(`${LINK_ID}@${OPENED_AT}`);
+		expect(parseIncidentId(id)).toEqual({
+			linkId: LINK_ID,
+			openedAt: OPENED_AT,
+		});
+	});
+
+	it("SRS 6.2: rejects a malformed id", () => {
+		expect(() => parseIncidentId("no-separator")).toThrow();
+		expect(() => parseIncidentId("@2026")).toThrow();
 	});
 });

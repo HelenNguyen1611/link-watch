@@ -131,3 +131,20 @@ export function evaluateCheck(
 		nextRunAt: nextRunAt(ctx.schedule, ctx.linkId, now),
 	};
 }
+
+/**
+ * SRS 6.2: incident id = `<linkId>@<openedAt>`, the incident item being LINK#<linkId> / INC#<openedAt>.
+ * Used as the INC#<id> partition of emails sent (MAIL#) and in links to the incident page.
+ */
+export const incidentId = (linkId: string, openedAt: string) =>
+	`${linkId}@${openedAt}`;
+
+export function parseIncidentId(id: string): {
+	linkId: string;
+	openedAt: string;
+} {
+	const at = id.indexOf("@");
+	if (at <= 0 || at === id.length - 1)
+		throw new Error(`Invalid incident id: ${JSON.stringify(id)}`);
+	return { linkId: id.slice(0, at), openedAt: id.slice(at + 1) };
+}

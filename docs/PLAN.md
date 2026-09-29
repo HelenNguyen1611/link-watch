@@ -204,7 +204,8 @@
 - **Xong khi:** `pnpm test:int` pass: ghi/đọc người nhận theo domain và link, đọc email admin mặc định.
 - **Phụ thuộc:** 8a
 
-### Bước 9b — ElectroDB: DayStat, Incident, Notification
+### Bước 9b — ElectroDB: DayStat, Incident, Notification ✅
+- ✅ đã làm (29/09/2026): incident id = `<linkId>@<openedAt>`; GSI2 pk = `INC#<state>`, sk = `<openedAt>#<linkId>` (incident đã đóng vẫn ở GSI2 dưới `INC#closed` để SCR-07 liệt kê); DayStat theo ngày Asia/Saigon, TTL 732 ngày; Notification SK `MAIL#<sentAt>#<to>` (1 dòng cho mỗi incident × người nhận).
 - **File:** `src/db/entities/{day-stat,incident,notification}.ts` + int test.
 - **FR/AC:** NFR-08 (DAY# giữ 2 năm, incident vĩnh viễn), GSI2 `state`/`opened_at`, FR-25.
 - **Xong khi:** `pnpm test:int` pass: cộng dồn DayStat, liệt kê incident đang mở qua GSI2.

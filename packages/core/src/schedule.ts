@@ -54,3 +54,8 @@ export function applyJitter(base: Date, linkId: string): Date {
 export function nextRunAt(schedule: Schedule, linkId: string, now: Date): Date {
 	return applyJitter(computeNextRun(schedule, now), linkId);
 }
+
+/** NFR-08: calendar day (YYYY-MM-DD) in Asia/Saigon, used as the DAY# key of daily stats. */
+export function localDay(at: Date): string {
+	return new Date(at.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
+}
