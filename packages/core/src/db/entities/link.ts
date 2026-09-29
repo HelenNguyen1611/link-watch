@@ -40,6 +40,8 @@ export function linkEntity(client: DynamoDBDocumentClient, table: string) {
 				lastHttpCode: { type: "number" },
 				lastResponseMs: { type: "number" },
 				lastErrorType: { type: CheckErrorType.options },
+				/** SRS 5.2: id of the last job recorded — a redelivered job is ignored. */
+				lastJobId: { type: "string" },
 				createdAt: { type: "string", readOnly: true, default: now },
 				updatedAt: { type: "string", watch: "*", set: now, default: now },
 				deletedAt: { type: "string" },

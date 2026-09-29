@@ -1,11 +1,6 @@
-import {
-	CheckJob,
-	classify,
-	DEFAULT_SCHEDULE,
-	nextRunAt,
-	type ProbeResult,
-} from "@linkwatch/core";
+import { CheckJob, classify, type ProbeResult } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
+import { recordCheck } from "@linkwatch/core/usecases";
 import type {
 	SQSBatchItemFailure,
 	SQSBatchResponse,
@@ -30,15 +25,19 @@ export type CheckerDeps = {
 };
 
 /**
- * SQS (FIFO, MessageGroupId = domain) → check each link → store the result.
- * Milestone 1 version: no double confirmation / incidents yet (step 12b).
+ * SQS (FIFO, MessageGroupId = domain) → check each link → store the result and
+ * apply the incident confirmation state machine (SRS 5.2) through `recordCheck`.
  */
 export function createHandler(deps: CheckerDeps) {
 	const now = deps.now ?? (() => new Date());
 	const probe = deps.probe ?? realProbe;
 	const log = deps.log ?? (() => {});
 
-	async function checkLink(domain: string, id: string): Promise<void> {
+	async function checkLink(
+		domain: string,
+		id: string,
+		jobId: string,
+	): Promise<void> {
 		const { data: link } = await deps.db.Link.get({ domain, id }).go();
 		if (!link || link.deletedAt || link.paused) {
 			log("Skipping link", {
@@ -46,6 +45,11 @@ export function createHandler(deps: CheckerDeps) {
 				id,
 				reason: link ? "paused/deleted" : "not_found",
 			});
+			return;
+		}
+		// SQS redelivery of a job already recorded: no second request to the site.
+		if (link.lastJobId === jobId) {
+			log("Skipping link", { domain, id, reason: "duplicate_job" });
 			return;
 		}
 		const raw = await probe(
@@ -61,42 +65,18 @@ export function createHandler(deps: CheckerDeps) {
 			expectedCodes: link.expectedCodes,
 			keyword: link.keyword,
 		});
-		const checkedAt = now().toISOString();
-
-		// put (not create): an SQS retry of the same message overwrites the same key instead of failing forever.
-		await deps.db.Check.put({ linkId: id, checkedAt, ...checked }).go();
-
-		const cleared = (["lastHttpCode", "lastErrorType"] as const).filter(
-			(k) =>
-				(k === "lastHttpCode" ? checked.httpCode : checked.errorType) ===
-				undefined,
-		);
-		try {
-			let update = deps.db.Link.patch({ domain, id }).set({
-				status: checked.result,
-				lastCheckedAt: checkedAt,
-				lastResponseMs: checked.responseMs,
-				...(checked.httpCode !== undefined && {
-					lastHttpCode: checked.httpCode,
-				}),
-				...(checked.errorType && { lastErrorType: checked.errorType }),
-				nextRunAt: nextRunAt(DEFAULT_SCHEDULE, id, now()).toISOString(),
+		const outcome = await recordCheck(deps.db, link, checked, {
+			now: now(),
+			jobId,
+		});
+		if (outcome.kind === "skipped")
+			log("Check not recorded", { domain, id, reason: outcome.reason });
+		else if (outcome.evaluation.action.kind !== "none")
+			log("Incident action", {
+				domain,
+				id,
+				action: outcome.evaluation.action.kind,
 			});
-			if (cleared.length) update = update.remove(cleared) as typeof update;
-			// If the link was deleted/paused during the check, do not reset next_run_at.
-			await update
-				.where(
-					({ deletedAt, paused }, { notExists, eq }) =>
-						`${notExists(deletedAt)} AND ${eq(paused, false)}`,
-				)
-				.go();
-		} catch (err) {
-			if (
-				!/ConditionalCheckFailed|conditional request failed/i.test(String(err))
-			)
-				throw err;
-			log("Link changed state during the check", { domain, id });
-		}
 	}
 
 	return async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
@@ -119,7 +99,9 @@ export function createHandler(deps: CheckerDeps) {
 				const job = CheckJob.parse(JSON.parse(record.body));
 				const limit = limitFor(job.domain);
 				await Promise.all(
-					job.linkIds.map((id) => limit(() => checkLink(job.domain, id))),
+					job.linkIds.map((id) =>
+						limit(() => checkLink(job.domain, id, record.messageId)),
+					),
 				);
 			} catch (err) {
 				log("Message failed", {

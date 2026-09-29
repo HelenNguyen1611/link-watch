@@ -26,6 +26,8 @@
 - Lấy "bây giờ" và sinh id qua tham số/tiêm phụ thuộc để test điều khiển được thời gian.
 - Chạy local: API Hono qua `@hono/node-server` + DynamoDB Local; handler Lambda gọi được trực tiếp trong test.
 
+**Đã chốt 29/09/2026 (Mốc 2):** địa chỉ gửi mặc định `noreply@watch.hueai.net`; email admin mặc định và người nhận smoke test `helen@wootech.co` (phải xác thực trong SES sandbox); bước hạ tầng viết + synth + test rồi commit local; bỏ header tạm và chuyển sang Cognito trong cùng một lần push.
+
 **Đã chốt 29/09/2026 (sau Mốc 1 phần local):**
 
 - **Ngôn ngữ (đổi so với SRS NFR-10):** giao diện **chỉ tiếng Anh** (bỏ tiếng Việt khỏi UI). Toàn bộ code (tên, comment, tên test, thông điệp lỗi/log, message commit) viết tiếng Anh; tài liệu `docs/` giữ tiếng Việt.
@@ -211,7 +213,8 @@
 - **Xong khi:** `pnpm test:int` pass: cộng dồn DayStat, liệt kê incident đang mở qua GSI2.
 - **Phụ thuộc:** 9a
 
-### Bước 12b — Checker: xác nhận 2 lần và incident
+### Bước 12b — Checker: xác nhận 2 lần và incident ✅
+- ✅ đã làm (29/09/2026): logic nằm ở `packages/core/src/usecases/checks.ts` (`recordCheck`), handler chỉ gọi. **Đổi so với plan (người dùng chốt 29/09/2026):** không dùng Powertools Idempotency (thêm 2 lượt ghi/link vào bảng provisioned free tier); chống trùng bằng `lastJobId` (= SQS messageId) trên Link — lượt ghi Link có điều kiện `lastJobId <> messageId` là điểm chốt, sau đó mới ghi Check, DayStat, incident. Lambda chết sau điểm chốt thì mất bản ghi check/DayStat của lần đó; incident chưa kịp mở sẽ được mở lại ở các lần check sau. Đến Bước 14, recheck 2/10 phút vẫn đi qua Dispatcher (trễ tối đa 5 phút).
 - **File:** `src/handler.ts` (thêm evaluateCheck → ghi DayStat + incident; Idempotency Powertools).
 - **FR/AC:** 5.2; AC-04/AC-05 mức lưu trữ (incident mở sau 2 lần lỗi).
 - **Xong khi:** `pnpm test:int` (DynamoDB Local + mock SQS) pass cho 2 lần 404 → 1 incident; lỗi 1 lần rồi OK → không incident.

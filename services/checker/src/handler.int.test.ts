@@ -15,7 +15,7 @@ let base: string;
 beforeAll(async () => {
 	t = await createTestDb();
 	server = http.createServer((req, res) => {
-		const code = Number(req.url?.slice(1)) || 200;
+		const code = Number.parseInt(req.url?.slice(1) ?? "", 10) || 200;
 		res.writeHead(code).end("ok");
 	});
 	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
@@ -47,7 +47,7 @@ const handler = () =>
 	});
 
 describe("Checker handler", () => {
-	it("FR-17: link 404 → dead link, writes 1 check record with ttl, updates the latest check", async () => {
+	it("FR-17 + 5.2: first 404 → suspect, writes 1 check record with ttl, updates the latest check", async () => {
 		const link = await createLink(t.db, { url: `${base}/404` }, { now });
 		const res = await handler()(event(record(job(link.domain, [link.id]))));
 		expect(res.batchItemFailures).toEqual([]);
@@ -66,7 +66,7 @@ describe("Checker handler", () => {
 			id: link.id,
 		}).go();
 		expect(data).toMatchObject({
-			status: "dead",
+			status: "suspect",
 			lastCheckedAt: now.toISOString(),
 			lastHttpCode: 404,
 			lastErrorType: "http_4xx",
@@ -193,24 +193,119 @@ describe("Checker handler", () => {
 			id: link.id,
 		}).go();
 		expect(data).toMatchObject({
-			status: "dead",
+			status: "suspect",
 			lastErrorType: "blocked_private_address",
 		});
 	});
 });
 
 describe("Checker handler — retry", () => {
-	it("NFR-04: SQS redelivering the same message (same timestamp) does not fail it", async () => {
-		const link = await createLink(t.db, { url: `${base}/200?retry` }, { now });
-		const h = handler();
+	it("NFR-04 + 5.2: SQS redelivering the same message is recorded once (no double-counted failure)", async () => {
+		const link = await createLink(t.db, { url: `${base}/404?retry` }, { now });
+		let probes = 0;
+		const h = createHandler({
+			db: t.db,
+			now: () => now,
+			probe: async () => {
+				probes++;
+				return { httpCode: 404, responseMs: 10, redirectCount: 0 };
+			},
+		});
+		const msg = record(job(link.domain, [link.id]), "same-message");
+		expect((await h(event(msg))).batchItemFailures).toEqual([]);
+		expect((await h(event(msg))).batchItemFailures).toEqual([]);
+		expect(probes).toBe(1);
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data?.status).toBe("suspect");
+		const stat = await t.db.DayStat.get({
+			linkId: link.id,
+			day: "2026-09-30",
+		}).go();
+		expect(stat.data?.checks).toBe(1);
 		expect(
-			(await h(event(record(job(link.domain, [link.id]))))).batchItemFailures,
+			(await t.db.Incident.query.primary({ linkId: link.id }).go()).data,
 		).toEqual([]);
-		expect(
-			(await h(event(record(job(link.domain, [link.id]))))).batchItemFailures,
-		).toEqual([]);
-		expect(
-			(await t.db.Check.query.byLink({ linkId: link.id }).go()).data,
-		).toHaveLength(1);
+	});
+});
+
+describe("Checker handler — incidents (5.2)", () => {
+	const at = (iso: string) => new Date(iso);
+	const checkAt = (domain: string, id: string, when: Date) =>
+		createHandler({
+			db: t.db,
+			now: () => when,
+			probeOptions: { allowPrivate: true },
+		})(event(record(job(domain, [id]))));
+	const incidents = async (linkId: string) =>
+		(await t.db.Incident.query.primary({ linkId }).go()).data;
+
+	it("AC-04: 404 twice in a row → exactly 1 open dead-link incident", async () => {
+		const link = await createLink(t.db, { url: `${base}/404?ac04` }, { now });
+		await checkAt(link.domain, link.id, at("2026-09-29T23:02:00.000Z"));
+		expect(await incidents(link.id)).toEqual([]);
+		await checkAt(link.domain, link.id, at("2026-09-29T23:04:00.000Z"));
+		const list = await incidents(link.id);
+		expect(list).toHaveLength(1);
+		expect(list[0]).toMatchObject({
+			state: "open",
+			type: "dead",
+			openedAt: "2026-09-29T23:04:00.000Z",
+			domain: link.domain,
+			url: link.url,
+			httpCode: 404,
+		});
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data?.status).toBe("dead");
+		// 5.2 step 3: recheck after 10 minutes
+		expect(data?.nextRunAt).toBe("2026-09-29T23:14:00.000Z");
+
+		// A third failure keeps the same incident.
+		await checkAt(link.domain, link.id, at("2026-09-29T23:14:00.000Z"));
+		expect(await incidents(link.id)).toHaveLength(1);
+		const open = await t.db.Incident.query.byState({ state: "open" }).go();
+		expect(open.data.filter((i) => i.linkId === link.id)).toHaveLength(1);
+	});
+
+	it("AC-05: one failure then OK → no incident", async () => {
+		const link = await createLink(t.db, { url: `${base}/503?ac05` }, { now });
+		await checkAt(link.domain, link.id, at("2026-09-29T23:02:00.000Z"));
+		await t.db.Link.patch({ domain: link.domain, id: link.id })
+			.set({ url: `${base}/200?ac05` })
+			.go();
+		await checkAt(link.domain, link.id, at("2026-09-29T23:04:00.000Z"));
+		expect(await incidents(link.id)).toEqual([]);
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data?.status).toBe("up");
+	});
+
+	it("AC-07: open incident, link back to 200 → incident closed with the downtime", async () => {
+		const link = await createLink(t.db, { url: `${base}/404?ac07` }, { now });
+		await checkAt(link.domain, link.id, at("2026-09-29T23:02:00.000Z"));
+		await checkAt(link.domain, link.id, at("2026-09-29T23:04:00.000Z"));
+		await t.db.Link.patch({ domain: link.domain, id: link.id })
+			.set({ url: `${base}/200?ac07` })
+			.go();
+		await checkAt(link.domain, link.id, at("2026-09-29T23:34:00.000Z"));
+		const [inc] = await incidents(link.id);
+		expect(inc).toMatchObject({
+			state: "closed",
+			closedAt: "2026-09-29T23:34:00.000Z",
+			closedReason: "recovered",
+			downtimeMs: 30 * 60_000,
+		});
+		const stat = await t.db.DayStat.get({
+			linkId: link.id,
+			day: "2026-09-30",
+		}).go();
+		expect(stat.data).toMatchObject({ checks: 3, dead: 2, up: 1 });
 	});
 });
