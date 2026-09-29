@@ -1,0 +1,24 @@
+{
+  "name": "linkwatch",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm --filter @linkwatch/web dev",
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "synth": "pnpm --filter @linkwatch/infra exec cdk synth",
+    "deploy:dev": "pnpm --filter @linkwatch/infra exec cdk deploy --all -c stage=dev",
+    "db:local": "docker run -d --name linkwatch-ddb -p 8000:8000 amazon/dynamodb-local"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@types/aws-lambda": "^8.10.163",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

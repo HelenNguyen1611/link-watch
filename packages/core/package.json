@@ -1,0 +1,1 @@
+{"name":"@linkwatch/core","version":"0.1.0","private":true,"type":"module","main":"src/index.ts","dependencies":{"@aws-sdk/client-dynamodb":"^3.1141.0","@aws-sdk/lib-dynamodb":"^3.1141.0","electrodb":"^3.9.3","tldts":"^7.4.16","zod":"^4.6.5"}}
