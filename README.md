@@ -42,10 +42,14 @@ Nếu `pnpm install` báo "Ignored build scripts", chạy `pnpm approve-builds` 
 
 ## Triển khai AWS
 
+Deploy chính là **push `main`**: GitHub Actions (`.github/workflows/deploy.yml`) chạy lint/typecheck/test → build web → đăng nhập AWS bằng OIDC (role `linkwatch-github-deploy`, không lưu access key) → `cdk deploy --all`. Lỗi ở bước kiểm tra thì không deploy.
+
+Deploy tay từ máy **chỉ khi khẩn cấp** (vd. GitHub Actions ngừng hoạt động):
+
 ```bash
-aws configure sso
-pnpm --filter @linkwatch/infra exec cdk bootstrap aws://<ACCOUNT_ID>/ap-southeast-1
-pnpm deploy:dev
+aws sso login --profile linkwatch
+pnpm --filter @linkwatch/web build
+pnpm run deploy --profile linkwatch   # phải có "run": "pnpm deploy" là lệnh có sẵn của pnpm
 ```
 
 Giữ chi phí gần 0: Lambda ngoài VPC (không NAT Gateway), không RDS/EC2, bật AWS Budgets 1 USD. Chi tiết ở SRS mục 3.4–3.5.

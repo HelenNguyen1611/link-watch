@@ -30,6 +30,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Kiểm tra (lỗi thì không deploy)
+        run: pnpm lint && pnpm typecheck && pnpm test
+
       - name: Build web (Next.js static export → apps/web/out)
         run: pnpm --filter @linkwatch/web build
 
