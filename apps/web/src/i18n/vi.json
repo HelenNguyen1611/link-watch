@@ -1,0 +1,16 @@
+{
+	"app": { "title": "LinkWatch", "tagline": "Theo dõi link chết và site down" },
+	"nav": { "links": "Link" },
+	"apiKey": {
+		"title": "Nhập khóa API",
+		"description": "Bản chạy thử dùng khóa API tạm. Khóa chỉ lưu trên trình duyệt này.",
+		"label": "Khóa API",
+		"save": "Lưu",
+		"change": "Đổi khóa",
+		"invalid": "Khóa API không đúng. Hãy nhập lại."
+	},
+	"home": {
+		"intro": "Thêm link cần theo dõi và xem trạng thái kiểm tra gần nhất.",
+		"open": "Mở danh sách link"
+	}
+}

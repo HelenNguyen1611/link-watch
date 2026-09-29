@@ -6,7 +6,7 @@
 		"dev:web": "pnpm --filter @linkwatch/web dev",
 		"dev:api": "pnpm --filter @linkwatch/api dev",
 		"build": "pnpm -r build",
-		"test": "vitest run --project unit",
+		"test": "vitest run --project unit --project web",
 		"test:int": "vitest run --project int --passWithNoTests",
 		"lint": "biome check .",
 		"format": "biome format --write .",

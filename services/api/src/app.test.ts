@@ -88,3 +88,35 @@ describe("API khung", () => {
 		expect(await res.json()).toEqual({ error: "not_found" });
 	});
 });
+
+describe("CORS (chỉ khi chạy local)", () => {
+	it("bật corsOrigins: preflight OPTIONS qua được khi chưa có khóa, cho phép header khóa", async () => {
+		const a = createApp({
+			db: {} as Db,
+			getApiKey: async () => SECRET,
+			corsOrigins: ["http://localhost:3000"],
+		});
+		const res = await a.request("/api/links", {
+			method: "OPTIONS",
+			headers: {
+				origin: "http://localhost:3000",
+				"access-control-request-method": "POST",
+				"access-control-request-headers": `${API_KEY_HEADER},content-type`,
+			},
+		});
+		expect(res.status).toBe(204);
+		expect(res.headers.get("access-control-allow-origin")).toBe(
+			"http://localhost:3000",
+		);
+		expect(
+			res.headers.get("access-control-allow-headers")?.toLowerCase(),
+		).toContain(API_KEY_HEADER);
+	});
+
+	it("mặc định (production, cùng origin qua CloudFront) không trả header CORS", async () => {
+		const res = await app().request("/api/health", {
+			headers: { origin: "https://evil.example" },
+		});
+		expect(res.headers.get("access-control-allow-origin")).toBeNull();
+	});
+});

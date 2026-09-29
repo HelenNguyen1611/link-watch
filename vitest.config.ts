@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const exclude = [
@@ -7,7 +8,7 @@ const exclude = [
 	"**/out/**",
 ];
 
-// unit: chạy trong `pnpm test`, không cần Docker.
+// unit + web: chạy trong `pnpm test`, không cần Docker.
 // int: chạy trong `pnpm test:int`, cần DynamoDB Local (`pnpm db:local`).
 export default defineConfig({
 	test: {
@@ -16,8 +17,23 @@ export default defineConfig({
 				extends: true,
 				test: {
 					name: "unit",
-					include: ["**/*.test.ts", "**/*.test.tsx"],
-					exclude: [...exclude, "**/*.int.test.ts"],
+					include: ["**/*.test.ts"],
+					exclude: [...exclude, "**/*.int.test.ts", "apps/web/**"],
+				},
+			},
+			{
+				extends: true,
+				oxc: { jsx: { runtime: "automatic" } },
+				resolve: {
+					alias: {
+						"@": fileURLToPath(new URL("./apps/web/src", import.meta.url)),
+					},
+				},
+				test: {
+					name: "web",
+					environment: "jsdom",
+					include: ["apps/web/**/*.test.ts", "apps/web/**/*.test.tsx"],
+					exclude,
 				},
 			},
 			{

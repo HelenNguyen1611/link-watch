@@ -1,0 +1,19 @@
+{
+	"app": {
+		"title": "LinkWatch",
+		"tagline": "Monitor dead links and site outages"
+	},
+	"nav": { "links": "Links" },
+	"apiKey": {
+		"title": "Enter API key",
+		"description": "This preview uses a temporary API key. It is stored in this browser only.",
+		"label": "API key",
+		"save": "Save",
+		"change": "Change key",
+		"invalid": "Wrong API key. Please enter it again."
+	},
+	"home": {
+		"intro": "Add links to monitor and see their latest check status.",
+		"open": "Open link list"
+	}
+}
