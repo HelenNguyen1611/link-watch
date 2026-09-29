@@ -3,10 +3,12 @@ import {
 	createDocumentClient,
 	createRawClient,
 } from "./client";
+import { checkEntity } from "./entities/check";
 import { domainEntity } from "./entities/domain";
 import { linkEntity } from "./entities/link";
 
 export * from "./client";
+export { CHECK_TTL_DAYS, checkTtl } from "./entities/check";
 export * from "./table";
 
 export type DbOptions = ClientOptions & { table?: string };
@@ -21,6 +23,7 @@ export function createDb(opts: DbOptions = {}) {
 		client,
 		Domain: domainEntity(client, table),
 		Link: linkEntity(client, table),
+		Check: checkEntity(client, table),
 	};
 }
 export type Db = ReturnType<typeof createDb>;
