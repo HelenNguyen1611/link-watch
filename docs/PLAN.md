@@ -197,7 +197,8 @@
 - **Xong khi:** test `FR-20`, `FR-22`, `FR-23`, `FR-24`, `AC-06` pass.
 - **Phụ thuộc:** 5
 
-### Bước 8b — ElectroDB: Recipient, Settings
+### Bước 8b — ElectroDB: Recipient, Settings ✅
+- ✅ đã làm (29/09/2026): Recipient có `scope` (`DOMAIN`/`LINK`) + `target` → PK `DOMAIN#<domain>` hoặc `LINK#<id>`, SK `RCP#<email>`; email lưu dạng chuẩn hóa (trim, chữ thường) nên khóa tự chống trùng. Settings là 1 item `SETTINGS`/`META` (địa chỉ gửi, tên người gửi mặc định `LinkWatch`, email admin mặc định, nhắc lại bật + 24 giờ); chưa có item thì `get` trả `null`, nơi gọi dùng mặc định.
 - **File:** `src/db/entities/{recipient,settings}.ts` + int test.
 - **FR/AC:** FR-20.
 - **Xong khi:** `pnpm test:int` pass: ghi/đọc người nhận theo domain và link, đọc email admin mặc định.

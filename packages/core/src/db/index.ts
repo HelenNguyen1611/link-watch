@@ -7,10 +7,17 @@ import {
 import { checkEntity } from "./entities/check";
 import { domainEntity } from "./entities/domain";
 import { linkEntity } from "./entities/link";
+import { recipientEntity } from "./entities/recipient";
+import { settingsEntity } from "./entities/settings";
 import { urlLockEntity } from "./entities/url-lock";
 
 export * from "./client";
 export { CHECK_TTL_DAYS, checkTtl } from "./entities/check";
+export {
+	RECIPIENT_SCOPES,
+	type RecipientScope,
+} from "./entities/recipient";
+export { DEFAULT_REMINDER_INTERVAL_HOURS } from "./entities/settings";
 export * from "./table";
 
 export type DbOptions = ClientOptions & { table?: string };
@@ -25,6 +32,8 @@ export function createDb(opts: DbOptions = {}) {
 		Link: linkEntity(client, table),
 		Check: checkEntity(client, table),
 		UrlLock: urlLockEntity(client, table),
+		Recipient: recipientEntity(client, table),
+		Settings: settingsEntity(client, table),
 	};
 	return {
 		table,

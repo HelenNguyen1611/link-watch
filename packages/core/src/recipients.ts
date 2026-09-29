@@ -1,4 +1,5 @@
-const normalizeEmail = (email: string) => email.trim().toLowerCase();
+/** FR-20: emails compare case-insensitively, surrounding spaces ignored. */
+export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 function uniqueEmails(emails: Iterable<string>): string[] {
 	const seen = new Set<string>();
