@@ -56,4 +56,4 @@ pnpm --filter @linkwatch/web build
 pnpm run deploy --profile linkwatch   # phải có "run": "pnpm deploy" là lệnh có sẵn của pnpm
 ```
 
-Giữ chi phí gần 0: Lambda ngoài VPC (không NAT Gateway), không RDS/EC2, bật AWS Budgets 1 USD. Chi tiết ở SRS mục 3.4–3.5.
+Giữ chi phí gần 0: Lambda ngoài VPC (không NAT Gateway), không RDS/EC2, cảnh báo chi phí bằng budget "My Zero-Spend Budget" (quản lý thủ công trên Console, xem docs/RUNBOOK.md). Chi tiết ở SRS mục 3.4–3.5.

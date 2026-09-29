@@ -96,6 +96,12 @@ describe("LinkWatch-Web", () => {
 		});
 	});
 
+	it("chưa truyền API thì không có behavior /api/* (template như trước)", () => {
+		template.hasResourceProperties("AWS::CloudFront::Distribution", {
+			DistributionConfig: Match.objectLike({ CacheBehaviors: Match.absent() }),
+		});
+	});
+
 	it("báo lỗi rõ khi chưa build web", () => {
 		const app = new cdk.App();
 		expect(
@@ -104,5 +110,72 @@ describe("LinkWatch-Web", () => {
 					siteDir: path.join(__dirname, "fixtures/khong-ton-tai"),
 				}),
 		).toThrow(/Chưa có/);
+	});
+});
+
+describe("LinkWatch-Web + behavior /api/*", () => {
+	let template: Template;
+	const API_DOMAIN = "abc123.execute-api.ap-southeast-1.amazonaws.com";
+
+	beforeAll(() => {
+		const app = new cdk.App();
+		const stack = new WebStack(app, "LinkWatch-Web", {
+			env: { account: config.account, region: config.region },
+			siteDir: path.join(__dirname, "fixtures/site"),
+			apiOriginDomain: API_DOMAIN,
+		});
+		template = Template.fromStack(stack);
+	});
+
+	it("vẫn giữ nguyên logical ID của tài nguyên đã deploy", () => {
+		const ids = Object.keys(template.toJSON().Resources);
+		expect(ids).toEqual(expect.arrayContaining(DEPLOYED_LOGICAL_IDS));
+	});
+
+	it("/api/* → API Gateway: không cache, mọi phương thức, chuyển header trừ Host, HTTPS", () => {
+		template.hasResourceProperties("AWS::CloudFront::Distribution", {
+			DistributionConfig: Match.objectLike({
+				CacheBehaviors: [
+					Match.objectLike({
+						PathPattern: "/api/*",
+						// Managed-CachingDisabled và Managed-AllViewerExceptHostHeader
+						CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+						OriginRequestPolicyId: "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+						AllowedMethods: [
+							"GET",
+							"HEAD",
+							"OPTIONS",
+							"PUT",
+							"PATCH",
+							"POST",
+							"DELETE",
+						],
+						ViewerProtocolPolicy: "https-only",
+						FunctionAssociations: Match.absent(),
+					}),
+				],
+				Origins: Match.arrayWith([
+					Match.objectLike({
+						DomainName: API_DOMAIN,
+						CustomOriginConfig: Match.objectLike({
+							OriginProtocolPolicy: "https-only",
+						}),
+					}),
+				]),
+			}),
+		});
+	});
+
+	it("behavior mặc định (web tĩnh) không đổi: vẫn cache và rewrite index.html", () => {
+		template.hasResourceProperties("AWS::CloudFront::Distribution", {
+			DistributionConfig: Match.objectLike({
+				DefaultCacheBehavior: Match.objectLike({
+					CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+					FunctionAssociations: [
+						Match.objectLike({ EventType: "viewer-request" }),
+					],
+				}),
+			}),
+		});
 	});
 });

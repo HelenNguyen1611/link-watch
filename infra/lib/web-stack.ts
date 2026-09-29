@@ -17,6 +17,8 @@ import { config } from "./config";
 export interface WebStackProps extends cdk.StackProps {
 	/** Thư mục site tĩnh; mặc định apps/web/out. Test truyền thư mục mẫu để không cần build web. */
 	siteDir?: string;
+	/** Domain execute-api của LinkWatch-Api; có thì thêm behavior /api/* (Bước 37a). */
+	apiOriginDomain?: string;
 }
 
 export class WebStack extends cdk.Stack {
@@ -92,6 +94,24 @@ function handler(event) {
 				},
 			],
 		});
+
+		// /api/* → API Gateway: cùng origin với web nên không cần CORS. Không cache, chuyển mọi
+		// header trừ Host (API Gateway cần Host của chính nó) để header khóa API tới được Lambda.
+		if (props?.apiOriginDomain) {
+			distribution.addBehavior(
+				"/api/*",
+				new origins.HttpOrigin(props.apiOriginDomain, {
+					protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+				}),
+				{
+					viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+					allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+					cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+					originRequestPolicy:
+						cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+				},
+			);
+		}
 
 		new s3deploy.BucketDeployment(this, "DeploySite", {
 			sources: [s3deploy.Source.asset(siteDir)],

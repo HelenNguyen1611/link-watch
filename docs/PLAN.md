@@ -12,7 +12,7 @@
 
 ## Hạ tầng đã có (29/09/2026) — không tạo lại, chỉ mở rộng
 
-- 1 môi trường, không stage. Tên stack `LinkWatch-<Tên>`: đã có `LinkWatch-Web`, `LinkWatch-Cicd`; sẽ thêm `LinkWatch-Data`, `LinkWatch-Workers`, `LinkWatch-Api`, `LinkWatch-Ops`.
+- 1 môi trường, không stage. Tên stack `LinkWatch-<Tên>`: đã có `LinkWatch-Web`, `LinkWatch-Cicd`; đã thêm `LinkWatch-Data` (Bước 35), sẽ thêm `LinkWatch-Workers`, `LinkWatch-Api`. Budget quản lý thủ công trên Console, không nằm trong CDK.
 - `infra/lib/config.ts` là nguồn duy nhất cho account, region, domain, ARN chứng chỉ, GitHub OIDC; stack mới đọc từ đây.
 - `LinkWatch-Web`: S3 + OAC + CloudFront + rewrite `index.html` + BucketDeployment `apps/web/out`.
 - `LinkWatch-Cicd`: OIDC provider + role `linkwatch-github-deploy`.
@@ -161,16 +161,16 @@
 - Stack mới `LinkWatch-Api`: HTTP API (chưa có JWT authorizer), Lambda API, quyền đọc SSM `/linkwatch/api-shared-secret` (tham chiếu theo tên). Mở rộng `LinkWatch-Web`: thêm behavior `/api/*` → API Gateway trên distribution có sẵn (cùng origin, không cần CORS; `CACHING_DISABLED`, forward header `x-linkwatch-key`), không đổi logical ID tài nguyên cũ.
 - **FR/AC:** NFR-07 (tạm). Assertion: logical ID cũ của `LinkWatch-Web` còn nguyên (test ở Bước 0). **Phụ thuộc:** 36a, 19a
 
-### Bước 38a — Budgets
-- Stack mới `LinkWatch-Ops`: AWS Budgets 1 USD/tháng (email cảnh báo). Đưa lên Mốc 1 để có cảnh báo chi phí trước khi Lambda chạy thật.
-- **Việc người dùng làm trước khi deploy:** đăng nhập tài khoản root, bật "IAM user and role access to Billing information" (hiện đang tắt). Xem `docs/RUNBOOK.md` mục 1. Claude phải nhắc khi tới bước này.
+### Bước 38a — Budgets (chỉ tài liệu, gộp vào commit Bước 37a)
+- **Đổi 29/09/2026:** tài khoản đã có sẵn budget "My Zero-Spend Budget" (tạo thủ công trên Console, cảnh báo khi chi phí > 0,01 USD). **Không tạo Budget bằng CDK**, không có stack `LinkWatch-Ops`.
+- `docs/RUNBOOK.md`: ghi Budget quản lý thủ công; bật "IAM access to Billing" là tùy chọn (chỉ để user helen xem chi phí, deploy không cần).
 - **FR/AC:** SRS 3.4 (Budgets). **Phụ thuộc:** 0
 
 ### Bước 40a — Smoke test Mốc 1 (mới)
 - ✅ đã làm: `deploy.yml` chạy lint/typecheck/test trước `cdk deploy` (commit `chore(ci)`).
-- **File:** `scripts/smoke.ts` (gọi `/api/health`; tạo 4 link mẫu; chờ tối đa 10 phút; kiểm tra 4 trạng thái; thử request không có header → 401; xóa link mẫu); `docs/RUNBOOK.md` (tạo SSM SecureString bằng CLI trước lần push đầu).
+- **File:** `scripts/smoke.ts` (gọi `/api/health`; tạo 4 link mẫu; chờ tối đa 10 phút; kiểm tra 4 trạng thái; thử request không có header → 401; xóa link mẫu); `docs/RUNBOOK.md` (mục tạo SSM SecureString đã thêm ở Bước 37a).
 - Không push; người dùng review rồi push để deploy.
-- **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass trên https://watch.hueai.net; Budgets đã bật. **Phụ thuộc:** 26a, 37a, 38a
+- **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass trên https://watch.hueai.net. **Phụ thuộc:** 26a, 37a
 
 ---
 
