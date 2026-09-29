@@ -227,7 +227,8 @@
 - **Xong khi:** test mock SQS xác nhận message đúng hàng đợi, đúng `DelaySeconds`; test int: lỗi lần 1 → job recheck 120 giây.
 - **Phụ thuộc:** 12b, 13a
 
-### Bước 15a — Mẫu email Sự cố, Hồi phục, Nhắc lại (`packages/emails`)
+### Bước 15a — Mẫu email Sự cố, Hồi phục, Nhắc lại (`packages/emails`) ✅
+- ✅ đã làm (29/09/2026): chữ trong email gom ở `src/strings.ts` (tiếng Anh); giờ hiển thị dạng số `2026-09-30 06:04 (GMT+7)` để không phụ thuộc ICU; link trang sự cố `/incidents/?id=<incidentId>` (trang làm ở Mốc 3). Nút "Đã khắc phục" để Bước 15b.
 - **File:** `src/{incident,recovery,reminder}.tsx`, `src/render.ts`, test snapshot HTML + text.
 - **FR/AC:** FR-21, FR-22 (email gộp liệt kê từng link), FR-24.
 - **Xong khi:** test render pass; tiêu đề đúng FR-24.

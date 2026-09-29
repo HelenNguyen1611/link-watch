@@ -5,6 +5,7 @@
 	"type": "module",
 	"main": "src/index.ts",
 	"dependencies": {
+		"@linkwatch/core": "workspace:*",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
 		"react-email": "^6.11.0"

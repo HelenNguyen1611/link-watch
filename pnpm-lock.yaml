@@ -163,6 +163,9 @@ importers:
 
   packages/emails:
     dependencies:
+      '@linkwatch/core':
+        specifier: workspace:*
+        version: link:../core
       react:
         specifier: ^19.3.0
         version: 19.3.0
