@@ -234,7 +234,8 @@
 - **Xong khi:** test render pass; tiêu đề đúng FR-24.
 - **Phụ thuộc:** 6
 
-### Bước 16a — Alert Lambda: stream → gộp → SES
+### Bước 16a — Alert Lambda: stream → gộp → SES ✅
+- ✅ đã làm (29/09/2026): Streams: incident INSERT → `down`, MODIFY sang `closed` → `recovery` → `OUTBOX#<domain>#<kind>` / `EVT#<at>#<incidentId>`; sự kiện đầu tạo `WINDOW` (có điều kiện) và gửi message trễ 300 giây. **Lệch Q3:** message flush vào **hàng đợi `alert` Standard riêng** (Alert tiêu thụ), không vào hàng đợi ưu tiên của Checker. Flush xóa `WINDOW` trước rồi mới đọc outbox; Sự cố chỉ gửi cho incident chưa đóng và chưa báo (`downNotifiedAt`); Hồi phục chỉ gửi khi đã có email Sự cố và chưa có `recoveryNotifiedAt` → flush bị gửi lại không gửi trùng. SES: app tự retry 3 lần (SDK `maxAttempts: 1`), lỗi vĩnh viễn không retry; mỗi incident × người nhận một dòng `MAIL#`. Người gửi/admin lấy từ Settings, thiếu thì dùng env `SENDER_EMAIL`, `DEFAULT_ADMIN_EMAIL`, link dùng `APP_URL`. **Quy tắc 80%:** Dispatcher ghi `TICK`/`<dispatchedAt>` khi lượt ≥ 20 link (trước khi gửi SQS), Checker cộng `failed` cho mỗi lần check lỗi của job `scheduled`; flush thấy lượt ≥ 80% lỗi trong 30 phút gần nhất → không gửi cho người nhận domain, gửi đúng 1 email admin mỗi lượt (`adminNotifiedAt` có điều kiện); incident bị chặn email thì cũng không có email Hồi phục.
 - **File:** `services/alert/src/handler.ts` (lọc sự kiện incident open/close từ Streams), `src/outbox.ts` (gộp 5 phút theo Q3), `src/send.ts` (SES v2, retry 3 lần, ghi `MAIL#`).
 - **FR/AC:** FR-20 → FR-22, FR-24, FR-25, 5.2 bước 5, NFR-03; **AC-04**, **AC-06**, **AC-07**.
 - **Xong khi:** `pnpm test:int` (DynamoDB Local + `aws-sdk-client-mock` cho SES) pass `AC-04`, `AC-06`, `AC-07`.

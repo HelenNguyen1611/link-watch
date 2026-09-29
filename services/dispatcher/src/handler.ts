@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { SendMessageBatchCommand, type SQSClient } from "@aws-sdk/client-sqs";
 import { MAX_LINKS_PER_JOB, type ScheduledJob } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
+import { recordTick } from "@linkwatch/core/usecases";
 import pLimit from "p-limit";
 
 /**
@@ -101,6 +102,9 @@ export function createHandler(deps: DispatcherDeps) {
 				links: part,
 			})),
 		);
+
+		// 5.2 step 5: written before sending so the Checker can already count failures.
+		await recordTick(deps.db, dispatchedAt, leased.length);
 
 		let dispatched = 0;
 		let failed = 0;

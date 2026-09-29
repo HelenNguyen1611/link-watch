@@ -10,8 +10,13 @@ import { domainEntity } from "./entities/domain";
 import { incidentEntity } from "./entities/incident";
 import { linkEntity } from "./entities/link";
 import { notificationEntity } from "./entities/notification";
+
+export { OUTBOX_KINDS, type OutboxKind } from "./entities/outbox";
+
+import { outboxEntity, outboxWindowEntity } from "./entities/outbox";
 import { recipientEntity } from "./entities/recipient";
 import { settingsEntity } from "./entities/settings";
+import { tickEntity } from "./entities/tick";
 import { urlLockEntity } from "./entities/url-lock";
 
 export * from "./client";
@@ -47,6 +52,9 @@ export function createDb(opts: DbOptions = {}) {
 		Incident: incidentEntity(client, table),
 		DayStat: dayStatEntity(client, table),
 		Notification: notificationEntity(client, table),
+		Outbox: outboxEntity(client, table),
+		OutboxWindow: outboxWindowEntity(client, table),
+		Tick: tickEntity(client, table),
 	};
 	return {
 		table,

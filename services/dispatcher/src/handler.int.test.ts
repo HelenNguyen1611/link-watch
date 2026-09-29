@@ -91,6 +91,13 @@ describe("Dispatcher", () => {
 		}
 	});
 
+	it("5.2 step 5: a run of ≥ 20 links is recorded for the 80% rule", async () => {
+		const { data } = await t.db.Tick.get({
+			dispatchedAt: tick.toISOString(),
+		}).go();
+		expect(data).toMatchObject({ checked: 48, failed: 0 });
+	});
+
 	it("SQS: each SendMessageBatch call has at most 10 messages", async () => {
 		for (const c of sqsMock.commandCalls(SendMessageBatchCommand)) {
 			expect(c.args[0].input.Entries?.length).toBeLessThanOrEqual(10);

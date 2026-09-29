@@ -1,6 +1,6 @@
 import { CheckJob, classify, type ProbeResult } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
-import { recordCheck } from "@linkwatch/core/usecases";
+import { addTickFailure, recordCheck } from "@linkwatch/core/usecases";
 import type {
 	SQSBatchItemFailure,
 	SQSBatchResponse,
@@ -45,6 +45,8 @@ export function createHandler(deps: CheckerDeps) {
 		domain: string,
 		id: string,
 		jobId: string,
+		/** dispatchedAt of a scheduled job (5.2 step 5 run), undefined for priority jobs. */
+		tick?: string,
 	): Promise<void> {
 		const { data: link } = await deps.db.Link.get({ domain, id }).go();
 		if (!link || link.deletedAt || link.paused) {
@@ -81,6 +83,8 @@ export function createHandler(deps: CheckerDeps) {
 			log("Check not recorded", { domain, id, reason: outcome.reason });
 			return;
 		}
+		if (tick && (checked.result === "dead" || checked.result === "down"))
+			await addTickFailure(deps.db, tick);
 		if (outcome.evaluation.action.kind !== "none")
 			log("Incident action", {
 				domain,
@@ -128,7 +132,14 @@ export function createHandler(deps: CheckerDeps) {
 				const limit = limitFor(job.domain);
 				await Promise.all(
 					job.linkIds.map((id) =>
-						limit(() => checkLink(job.domain, id, record.messageId)),
+						limit(() =>
+							checkLink(
+								job.domain,
+								id,
+								record.messageId,
+								job.kind === "scheduled" ? job.dispatchedAt : undefined,
+							),
+						),
 					),
 				);
 			} catch (err) {

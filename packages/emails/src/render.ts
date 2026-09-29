@@ -1,11 +1,13 @@
-import { emailSubject } from "@linkwatch/core";
+import { emailSubject, systemWideOutageSubject } from "@linkwatch/core";
 import { createElement, type ReactElement } from "react";
 import { render } from "react-email";
 import { IncidentEmail } from "./incident";
+import { OutageEmail } from "./outage";
 import { RecoveryEmail } from "./recovery";
 import { ReminderEmail } from "./reminder";
 import type {
 	IncidentEmailProps,
+	OutageEmailProps,
 	RecoveryEmailProps,
 	ReminderEmailProps,
 } from "./types";
@@ -42,4 +44,11 @@ export const renderReminderEmail = (props: ReminderEmailProps) =>
 	renderBoth(
 		emailSubject("reminder", props.domain, props.items.length),
 		createElement(ReminderEmail, props),
+	);
+
+/** SRS 5.2 step 5: single admin email for a system-wide outage run. */
+export const renderOutageEmail = (props: OutageEmailProps) =>
+	renderBoth(
+		systemWideOutageSubject(props.failed, props.checked),
+		createElement(OutageEmail, props),
 	);

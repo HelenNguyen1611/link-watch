@@ -424,3 +424,34 @@ describe("Checker handler — delayed rechecks (step 14, PLAN Q2)", () => {
 		).toHaveLength(1);
 	});
 });
+
+describe("Checker handler — system-wide outage counter (5.2 step 5)", () => {
+	it("5.2: failed checks of a scheduled job are added to its run; priority jobs are not", async () => {
+		const dispatchedAt = "2026-09-29T23:00:00.000Z";
+		await t.db.Tick.put({ dispatchedAt, checked: 20 }).go();
+		const bad = await createLink(t.db, { url: `${base}/503?tick` }, { now });
+		const good = await createLink(t.db, { url: `${base}/200?tick` }, { now });
+		await handler()(
+			event(
+				record({
+					kind: "scheduled",
+					domain: bad.domain,
+					linkIds: [bad.id, good.id],
+					dispatchedAt,
+				}),
+			),
+		);
+		await handler()(
+			event(
+				record({
+					kind: "recheck",
+					domain: bad.domain,
+					linkIds: [bad.id],
+					dueAt: dispatchedAt,
+				}),
+			),
+		);
+		const { data } = await t.db.Tick.get({ dispatchedAt }).go();
+		expect(data?.failed).toBe(1);
+	});
+});

@@ -21,6 +21,16 @@ export const en = {
 		intro: (hours: number) =>
 			`These incidents are still open and nobody has acknowledged them in the last ${hours} hours:`,
 	},
+	outage: {
+		preview: (failed: number, checked: number) =>
+			`${failed} of ${checked} links failed in one run`,
+		heading: "Possible network problem on the LinkWatch side",
+		intro: (failed: number, checked: number) =>
+			`${failed} of ${checked} links failed in the same run. This usually means LinkWatch itself could not reach the internet, so no alerts were sent to domain recipients.`,
+		run: "Run started",
+		advice:
+			"Check the LinkWatch Checker logs. Incidents confirmed during this run stay open and are closed silently when the links respond again.",
+	},
 	fields: {
 		type: "Type",
 		error: "Error",

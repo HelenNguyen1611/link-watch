@@ -68,3 +68,14 @@ export function planNextRun(nextRunAt: Date, now: Date): NextRunPlan {
 		delaySeconds: Math.max(0, Math.ceil(delayMs / 1000)),
 	};
 }
+
+/**
+ * PLAN Q3: delayed message on the alert queue — flush the grouped email of one domain
+ * and kind 5 minutes after the first event (FR-22).
+ */
+export const AlertJob = z.object({
+	kind: z.literal("flush"),
+	domain: z.string().min(1),
+	notification: z.enum(["down", "recovery"]),
+});
+export type AlertJob = z.infer<typeof AlertJob>;

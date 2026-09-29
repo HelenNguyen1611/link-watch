@@ -31,6 +31,10 @@ export function incidentEntity(client: DynamoDBDocumentClient, table: string) {
 				ackedBy: { type: "string" },
 				ackedAt: { type: "string" },
 				note: { type: "string" },
+				/** FR-21: the incident email went out; only then is a recovery email sent. */
+				downNotifiedAt: { type: "string" },
+				/** FR-21: the recovery email went out (a redelivered flush does not resend it). */
+				recoveryNotifiedAt: { type: "string" },
 				/** FR-23: last reminder email sent. */
 				lastReminderAt: { type: "string" },
 			},

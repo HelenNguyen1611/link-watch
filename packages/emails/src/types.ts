@@ -34,3 +34,10 @@ export type ReminderEmailProps = Common & {
 	intervalHours: number;
 	now: string;
 };
+
+/** SRS 5.2 step 5: system-wide outage notice for the admin. */
+export type OutageEmailProps = {
+	dispatchedAt: string;
+	checked: number;
+	failed: number;
+};

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatDuration, formatTime, incidentUrl } from "./format";
 import {
 	renderIncidentEmail,
+	renderOutageEmail,
 	renderRecoveryEmail,
 	renderReminderEmail,
 } from "./render";
@@ -135,5 +136,20 @@ describe("format helpers", () => {
 		expect(incidentUrl(`${APP}/`, "L1@2026-09-29T23:04:00.000Z")).toBe(
 			`${APP}/incidents/?id=L1%402026-09-29T23%3A04%3A00.000Z`,
 		);
+	});
+});
+
+describe("renderOutageEmail — SRS 5.2 step 5", () => {
+	it("5.2: admin notice with the failed/checked counts", async () => {
+		const email = await renderOutageEmail({
+			dispatchedAt: "2026-09-29T23:00:00.000Z",
+			checked: 100,
+			failed: 92,
+		});
+		expect(email.subject).toBe(
+			"[LinkWatch][NETWORK] 92/100 links failed in one run — possible LinkWatch network issue",
+		);
+		expect(email.text).toContain("92 of 100 links failed in the same run");
+		expect(email.text).toContain("2026-09-30 06:00 (GMT+7)");
 	});
 });
