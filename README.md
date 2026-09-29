@@ -35,6 +35,8 @@ pnpm dev:web                 # giao diện: http://localhost:3000
 pnpm db:local                # DynamoDB Local tại cổng 8000
 pnpm db:init                 # tạo bảng "linkwatch" trên DynamoDB Local
 pnpm test:int                # integration test (cần db:local)
+pnpm dev:api                 # API local: http://localhost:8787/api (khóa tạm: "dev")
+NEXT_PUBLIC_API_BASE=http://localhost:8787 pnpm dev:web   # web gọi API local
 pnpm lint                    # Biome
 pnpm test                    # Vitest
 pnpm synth                   # kiểm tra CDK
