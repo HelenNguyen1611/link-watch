@@ -155,7 +155,7 @@
 
 ### Bước 36a — Workers: hàng đợi FIFO, Dispatcher, Checker
 - Stack mới `LinkWatch-Workers`: SQS FIFO + DLQ (maxReceive 3), NodejsFunction arm64/esbuild cho dispatcher/checker, **không VPC**, log 14 ngày, EventBridge Scheduler 5 phút, event source mapping SQS, IAM tối thiểu.
-- **Đổi 29/09/2026:** không dùng reserved concurrency cho Checker (phụ thuộc hạn mức concurrency của tài khoản, tài khoản mới có thể chỉ có 10). Giới hạn bằng `maxConcurrency = 5` trên event source SQS. Khi hạn mức tài khoản ≥ 100 có thể cân nhắc reserved concurrency.
+- **Đổi 29/09/2026:** không dùng reserved concurrency cho Checker. Hạn mức concurrency của tài khoản **hiện là 10** (đã/sẽ xin tăng lên 1000), reserve 10 sẽ làm deploy lỗi. Giới hạn bằng `maxConcurrency = 5` trên event source SQS để chừa suất cho API, Dispatcher và Lambda BucketDeployment. Khi hạn mức ≥ 100: có thể tăng `maxConcurrency` hoặc cân nhắc reserved concurrency.
 - **FR/AC:** NFR-04, NFR-06, SRS 3.4 quy tắc chi phí. Assertion: không có `AWS::EC2::NatGateway`, không có `VpcConfig`. **Phụ thuộc:** 35, 12a, 13a
 
 ### Bước 37a — Api stack + behavior `/api/*`

@@ -13,8 +13,9 @@ export interface WorkersStackProps extends cdk.StackProps {
 
 /**
  * NFR-06: số lần gọi Checker đồng thời tối đa, giới hạn trên event source SQS (tối thiểu 2).
- * Không dùng reserved concurrency để không phụ thuộc hạn mức concurrency của tài khoản;
- * khi hạn mức ≥ 100 có thể cân nhắc reserved concurrency. Tăng thông lượng: nâng số này.
+ * Hạn mức concurrency tài khoản hiện 10: chừa suất cho API, Dispatcher, BucketDeployment và
+ * không dùng reserved concurrency (sẽ làm deploy lỗi). Khi hạn mức ≥ 100: tăng số này
+ * hoặc cân nhắc reserved concurrency (docs/RUNBOOK.md mục 3).
  */
 export const CHECKER_MAX_CONCURRENCY = 5;
 /** 20 link/message, 2 đồng thời/domain, tối đa 30 s + 5 s đọc SSL mỗi link ≈ 350 s. */

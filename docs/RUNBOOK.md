@@ -32,8 +32,8 @@ aws ssm put-parameter --name /linkwatch/api-shared-secret --type SecureString \
 
 ## 3. Giới hạn đồng thời của Checker
 
-- Checker được giới hạn **5 lần gọi đồng thời** bằng `maxConcurrency` trên event source SQS (`infra/lib/workers-stack.ts`, `CHECKER_MAX_CONCURRENCY`), không dùng reserved concurrency để deploy không phụ thuộc hạn mức concurrency của tài khoản.
+- Hạn mức concurrency Lambda của tài khoản **hiện là 10** (29/09/2026; đã/sẽ xin tăng lên 1000 trong Service Quotas → AWS Lambda → Concurrent executions).
+- Checker được giới hạn **5 lần gọi đồng thời** bằng `maxConcurrency` trên event source SQS (`infra/lib/workers-stack.ts`, `CHECKER_MAX_CONCURRENCY`) để chừa suất cho API, Dispatcher và Lambda BucketDeployment. Không dùng reserved concurrency vì với hạn mức 10 thì deploy sẽ lỗi.
 - Xem hạn mức: `aws lambda get-account-settings --region ap-southeast-1 --profile linkwatch` (`AccountLimit.ConcurrentExecutions`).
-- Khi hạn mức tài khoản ≥ 100 có thể cân nhắc thêm reserved concurrency cho Checker. Tăng thông lượng (NFR-06): nâng `CHECKER_MAX_CONCURRENCY` rồi deploy, không sửa code.
+- Khi hạn mức ≥ 100: có thể tăng `CHECKER_MAX_CONCURRENCY` (NFR-06, chỉ đổi số rồi deploy) hoặc cân nhắc reserved concurrency cho Checker.
 - Job lỗi 3 lần nằm ở DLQ (output `CheckDlqUrl` của `LinkWatch-Workers`); link tự được gửi lại sau 30 phút giữ chỗ.
-
