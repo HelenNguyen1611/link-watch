@@ -220,7 +220,8 @@
 - **Xong khi:** `pnpm test:int` (DynamoDB Local + mock SQS) pass cho 2 lần 404 → 1 incident; lỗi 1 lần rồi OK → không incident.
 - **Phụ thuộc:** 5, 9b, 12a
 
-### Bước 14 — Check lại có độ trễ (recheck 2/10 phút, xác minh +2/+5 phút, Check now)
+### Bước 14 — Check lại có độ trễ (recheck 2/10 phút, xác minh +2/+5 phút, Check now) ✅
+- ✅ đã làm (29/09/2026): `CheckJob` = `scheduled` (FIFO) | `recheck`/`check_now`/`verify` (hàng đợi ưu tiên, có `dueAt`). `planNextRun`: lần chạy kế trong ≤ 15 phút → gửi message trễ vào hàng đợi ưu tiên và ghi `next_run_at` = giờ recheck + 5 phút làm dự phòng cho Dispatcher. Gửi SQS lỗi không làm fail message (đã có dự phòng). Hàng đợi Standard chỉ trả lại đúng message lỗi. Mới nối `recheck`; `check_now` (Bước 21) và `verify` (Mốc 3) chỉ có schema. Checker đọc `PRIORITY_QUEUE_URL` (Bước 36b). `node_modules` được cài lại bằng pnpm 10.33.0 (trước đó cài nhầm bằng 12.6.0).
 - **File:** `packages/core/src/queue.ts` (kiểu message dùng chung), `services/checker/src/enqueue.ts`; hàng đợi ưu tiên theo giả định Q2.
 - **FR/AC:** 5.2 bước 1 và 3, FR-16, FR-36, FR-37.
 - **Xong khi:** test mock SQS xác nhận message đúng hàng đợi, đúng `DelaySeconds`; test int: lỗi lần 1 → job recheck 120 giây.

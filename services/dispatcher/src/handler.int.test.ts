@@ -1,6 +1,6 @@
 import { SendMessageBatchCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { createHandler as createChecker } from "@linkwatch/checker/handler";
-import { type CheckJob, JITTER_MAX_MS } from "@linkwatch/core";
+import { JITTER_MAX_MS, type ScheduledJob } from "@linkwatch/core";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
 import { createLink } from "@linkwatch/core/usecases";
 import type { SQSEvent } from "aws-lambda";
@@ -38,7 +38,7 @@ const sentEntries = (): Entry[] =>
 		.commandCalls(SendMessageBatchCommand)
 		.flatMap((c) => c.args[0].input.Entries as Entry[]);
 const sentJobs = () =>
-	sentEntries().map((e) => JSON.parse(e.MessageBody) as CheckJob);
+	sentEntries().map((e) => JSON.parse(e.MessageBody) as ScheduledJob);
 
 const dispatcher = (now: Date) =>
 	createHandler({
@@ -81,7 +81,7 @@ describe("Dispatcher", () => {
 		expect(byDomain("b.vn")).toEqual([3]);
 		expect(jobs.flatMap((j) => j.linkIds).sort()).toEqual([...a, ...b].sort());
 		for (const e of sentEntries()) {
-			const job = JSON.parse(e.MessageBody) as CheckJob;
+			const job = JSON.parse(e.MessageBody) as ScheduledJob;
 			expect(e.MessageGroupId).toBe(job.domain);
 			expect(e.MessageDeduplicationId).toMatch(/^[0-9a-f]{64}$/);
 			expect(job).toMatchObject({
@@ -184,8 +184,9 @@ describe("AC-02 — default 06:00 schedule", () => {
 				})();
 				// The Checker receives messages within 1 minute of the tick.
 				const checkAt = new Date(at.getTime() + 60_000);
+				// SQS message ids are unique across ticks.
 				const records = sentEntries().map((e) => ({
-					messageId: e.Id,
+					messageId: `${at.toISOString()}-${e.Id}`,
 					body: e.MessageBody,
 				}));
 				const checker = createChecker({
@@ -195,7 +196,7 @@ describe("AC-02 — default 06:00 schedule", () => {
 				});
 				await checker({ Records: records } as SQSEvent);
 				for (const r of records) {
-					for (const id of (JSON.parse(r.body) as CheckJob).linkIds) {
+					for (const id of (JSON.parse(r.body) as ScheduledJob).linkIds) {
 						checks[id] = [...(checks[id] ?? []), checkAt.toISOString()];
 					}
 				}

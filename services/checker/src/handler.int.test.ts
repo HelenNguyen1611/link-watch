@@ -264,8 +264,8 @@ describe("Checker handler — incidents (5.2)", () => {
 			id: link.id,
 		}).go();
 		expect(data?.status).toBe("dead");
-		// 5.2 step 3: recheck after 10 minutes
-		expect(data?.nextRunAt).toBe("2026-09-29T23:14:00.000Z");
+		// 5.2 step 3: recheck after 10 minutes (23:14); next_run_at is the Dispatcher fallback 5 minutes later (PLAN Q2).
+		expect(data?.nextRunAt).toBe("2026-09-29T23:19:00.000Z");
 
 		// A third failure keeps the same incident.
 		await checkAt(link.domain, link.id, at("2026-09-29T23:14:00.000Z"));

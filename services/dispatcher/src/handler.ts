@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { SendMessageBatchCommand, type SQSClient } from "@aws-sdk/client-sqs";
-import { type CheckJob, MAX_LINKS_PER_JOB } from "@linkwatch/core";
+import { MAX_LINKS_PER_JOB, type ScheduledJob } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
 import pLimit from "p-limit";
 
@@ -97,7 +97,7 @@ export function createHandler(deps: DispatcherDeps) {
 					domain,
 					linkIds: part.map((l) => l.id),
 					dispatchedAt,
-				} satisfies CheckJob,
+				} satisfies ScheduledJob,
 				links: part,
 			})),
 		);
