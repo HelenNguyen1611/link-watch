@@ -16,7 +16,13 @@ export class CicdStack extends cdk.Stack {
       clientIdList: ['sts.amazonaws.com'],
     });
 
-    const { owner, repo, branch } = config.github;
+    const { owner, repo, branch, ownerId, repoId } = config.github;
+    // GitHub hiện gửi "sub" dạng có ID bất biến: repo:owner@id/repo@id:ref:...
+    // Chấp nhận cả dạng cũ (không ID) để không hỏng nếu GitHub/cấu hình thay đổi.
+    const allowedSubs = [
+      `repo:${owner}@${ownerId}/${repo}@${repoId}:ref:refs/heads/${branch}`,
+      `repo:${owner}/${repo}:ref:refs/heads/${branch}`,
+    ];
     const role = new iam.Role(this, 'GithubDeployRole', {
       roleName: 'linkwatch-github-deploy',
       description: `GitHub Actions deploy cho ${owner}/${repo}@${branch}`,
@@ -24,7 +30,7 @@ export class CicdStack extends cdk.Stack {
       assumedBy: new iam.WebIdentityPrincipal(provider.attrArn, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': `repo:${owner}/${repo}:ref:refs/heads/${branch}`,
+          'token.actions.githubusercontent.com:sub': allowedSubs,
         },
       }),
     });
