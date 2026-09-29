@@ -44,6 +44,8 @@ export default defineConfig({
 					include: ["**/*.int.test.ts"],
 					exclude,
 					passWithNoTests: true,
+					// Every int file shares one DynamoDB Local; under parallel load a single test can exceed 5 s.
+					testTimeout: 20_000,
 				},
 			},
 		],
