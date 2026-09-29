@@ -3,7 +3,9 @@
 		"title": "LinkWatch",
 		"tagline": "Monitor dead links and site outages"
 	},
-	"nav": { "links": "Links" },
+	"nav": {
+		"links": "Links"
+	},
 	"apiKey": {
 		"title": "Enter API key",
 		"description": "This preview uses a temporary API key. It is stored in this browser only.",
@@ -15,5 +17,54 @@
 	"home": {
 		"intro": "Add links to monitor and see their latest check status.",
 		"open": "Open link list"
+	},
+	"status": {
+		"pending": "Pending",
+		"up": "Up",
+		"slow": "Slow",
+		"dead": "Dead link",
+		"down": "Site down",
+		"suspect": "Suspect"
+	},
+	"errorType": {
+		"dns": "DNS error",
+		"timeout": "Timeout",
+		"connection_refused": "Connection refused",
+		"ssl": "SSL error",
+		"network": "Network error",
+		"http_5xx": "Server error (5xx)",
+		"http_4xx": "4xx error",
+		"unexpected_status": "Unexpected HTTP status",
+		"too_many_redirects": "More than 10 redirects",
+		"keyword_missing": "Keyword missing",
+		"blocked_private_address": "Private address blocked"
+	},
+	"links": {
+		"title": "Links",
+		"empty": "No links yet. Add your first link above.",
+		"loadError": "Could not load links.",
+		"refreshNote": "Refreshes every 30 seconds. New links are checked within 5 minutes.",
+		"delete": "Delete",
+		"confirmDelete": "Confirm delete",
+		"col": {
+			"url": "URL",
+			"domain": "Domain",
+			"status": "Status",
+			"http": "HTTP",
+			"responseTime": "Response",
+			"lastChecked": "Last checked"
+		}
+	},
+	"linkForm": {
+		"url": "URL",
+		"name": "Display name",
+		"add": "Add",
+		"errors": {
+			"invalid_url": "Invalid URL",
+			"unsupported_scheme": "Only http:// and https:// are supported",
+			"too_long": "URL is longer than 2,048 characters",
+			"duplicate": "This link is already in the list",
+			"unknown": "Could not add the link. Please try again."
+		}
 	}
 }

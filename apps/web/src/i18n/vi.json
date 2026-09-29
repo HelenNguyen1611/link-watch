@@ -1,6 +1,11 @@
 {
-	"app": { "title": "LinkWatch", "tagline": "Theo dõi link chết và site down" },
-	"nav": { "links": "Link" },
+	"app": {
+		"title": "LinkWatch",
+		"tagline": "Theo dõi link chết và site down"
+	},
+	"nav": {
+		"links": "Link"
+	},
 	"apiKey": {
 		"title": "Nhập khóa API",
 		"description": "Bản chạy thử dùng khóa API tạm. Khóa chỉ lưu trên trình duyệt này.",
@@ -12,5 +17,54 @@
 	"home": {
 		"intro": "Thêm link cần theo dõi và xem trạng thái kiểm tra gần nhất.",
 		"open": "Mở danh sách link"
+	},
+	"status": {
+		"pending": "Chờ kiểm tra",
+		"up": "Hoạt động",
+		"slow": "Chậm",
+		"dead": "Link chết",
+		"down": "Site down",
+		"suspect": "Nghi ngờ"
+	},
+	"errorType": {
+		"dns": "Lỗi DNS",
+		"timeout": "Quá thời gian chờ",
+		"connection_refused": "Từ chối kết nối",
+		"ssl": "Lỗi SSL",
+		"network": "Lỗi mạng",
+		"http_5xx": "Lỗi máy chủ (5xx)",
+		"http_4xx": "Lỗi 4xx",
+		"unexpected_status": "Mã HTTP không mong đợi",
+		"too_many_redirects": "Quá 10 lần chuyển hướng",
+		"keyword_missing": "Thiếu từ khóa",
+		"blocked_private_address": "Địa chỉ nội bộ bị chặn"
+	},
+	"links": {
+		"title": "Link",
+		"empty": "Chưa có link nào. Thêm link đầu tiên ở trên.",
+		"loadError": "Không tải được danh sách link.",
+		"refreshNote": "Tự làm mới mỗi 30 giây. Link mới được kiểm tra trong vòng 5 phút.",
+		"delete": "Xóa",
+		"confirmDelete": "Xác nhận xóa",
+		"col": {
+			"url": "URL",
+			"domain": "Domain",
+			"status": "Trạng thái",
+			"http": "Mã HTTP",
+			"responseTime": "Phản hồi",
+			"lastChecked": "Kiểm tra lần cuối"
+		}
+	},
+	"linkForm": {
+		"url": "URL",
+		"name": "Tên hiển thị",
+		"add": "Thêm",
+		"errors": {
+			"invalid_url": "URL không hợp lệ",
+			"unsupported_scheme": "Chỉ hỗ trợ http:// và https://",
+			"too_long": "URL dài quá 2.048 ký tự",
+			"duplicate": "Link này đã có trong danh sách",
+			"unknown": "Không thêm được link. Hãy thử lại."
+		}
 	}
 }
