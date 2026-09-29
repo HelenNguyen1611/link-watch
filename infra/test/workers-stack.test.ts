@@ -10,7 +10,7 @@ type Fn = { Properties: Record<string, unknown> };
 describe("LinkWatch-Workers", () => {
 	let template: Template;
 	let fns: Record<string, Fn>;
-	const fn = (name: "dispatcher" | "checker") =>
+	const fn = (name: "dispatcher" | "checker" | "alert") =>
 		Object.entries(fns).find(([id]) =>
 			id.toLowerCase().startsWith(name),
 		)?.[1] as Fn;
@@ -28,8 +28,8 @@ describe("LinkWatch-Workers", () => {
 		fns = template.findResources("AWS::Lambda::Function") as Record<string, Fn>;
 	});
 
-	it("2 Lambdas, Dispatcher + Checker: arm64, Node 22, outside a VPC (SRS 3.4)", () => {
-		expect(Object.keys(fns)).toHaveLength(2);
+	it("3 Lambdas, Dispatcher + Checker + Alert: arm64, Node 22, outside a VPC (SRS 3.4)", () => {
+		expect(Object.keys(fns)).toHaveLength(3);
 		for (const f of Object.values(fns)) {
 			expect(f.Properties.Architectures).toEqual(["arm64"]);
 			expect(f.Properties.Runtime).toBe("nodejs22.x");
@@ -39,8 +39,8 @@ describe("LinkWatch-Workers", () => {
 		template.resourceCountIs("AWS::EC2::VPC", 0);
 	});
 
-	it("both functions keep logs for 14 days", () => {
-		template.resourceCountIs("AWS::Logs::LogGroup", 2);
+	it("every function keeps logs for 14 days", () => {
+		template.resourceCountIs("AWS::Logs::LogGroup", 3);
 		template.allResourcesProperties("AWS::Logs::LogGroup", {
 			RetentionInDays: 14,
 		});
@@ -71,20 +71,109 @@ describe("LinkWatch-Workers", () => {
 		});
 	});
 
-	it("NFR-04: jobs failing 3 times go to a FIFO DLQ kept for 14 days", () => {
-		const queues = Object.values(template.findResources("AWS::SQS::Queue"));
-		expect(queues).toHaveLength(2);
-		const dlq = queues.find((q) => !(q as Fn).Properties.RedrivePolicy) as Fn;
-		expect(dlq.Properties).toMatchObject({
-			FifoQueue: true,
-			MessageRetentionPeriod: 14 * 86400,
+	it("NFR-04: every queue sends messages failing 3 times to a DLQ kept for 14 days (FIFO for the check queue)", () => {
+		const queues = template.findResources("AWS::SQS::Queue") as Record<
+			string,
+			Fn
+		>;
+		expect(Object.keys(queues).sort()).toEqual(
+			expect.arrayContaining([
+				expect.stringMatching(/^CheckQueue/),
+				expect.stringMatching(/^CheckDlq/),
+				expect.stringMatching(/^PriorityQueue/),
+				expect.stringMatching(/^PriorityDlq/),
+				expect.stringMatching(/^AlertQueue/),
+				expect.stringMatching(/^AlertDlq/),
+			]),
+		);
+		expect(Object.keys(queues)).toHaveLength(6);
+		const dlqs = Object.entries(queues).filter(([id]) => /Dlq/.test(id));
+		for (const [id, q] of dlqs) {
+			expect(q.Properties.MessageRetentionPeriod).toBe(14 * 86400);
+			expect(Boolean(q.Properties.FifoQueue)).toBe(id.startsWith("CheckDlq"));
+		}
+		for (const [id, q] of Object.entries(queues).filter(
+			([i]) => !/Dlq/.test(i),
+		))
+			expect(q.Properties.RedrivePolicy, id).toMatchObject({
+				maxReceiveCount: 3,
+			});
+	});
+
+	it("PLAN Q2: priority Standard queue (per-message delay) feeds the Checker, which can also send to it", () => {
+		const queues = template.findResources("AWS::SQS::Queue") as Record<
+			string,
+			Fn
+		>;
+		const [, priority] = Object.entries(queues).find(([id]) =>
+			id.startsWith("PriorityQueue"),
+		) as [string, Fn];
+		expect(priority.Properties).not.toHaveProperty("FifoQueue");
+		expect(priority.Properties.VisibilityTimeout).toBe(900);
+		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
+			BatchSize: 5,
+			ScalingConfig: { MaximumConcurrency: 2 },
+			FunctionResponseTypes: ["ReportBatchItemFailures"],
+		});
+		const env = (
+			fn("checker").Properties.Environment as {
+				Variables: Record<string, unknown>;
+			}
+		).Variables;
+		expect(env).toHaveProperty("PRIORITY_QUEUE_URL");
+	});
+
+	it("FR-21 / PLAN Q3: Alert reads DynamoDB Streams filtered to incident items, with a DLQ", () => {
+		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
+			StartingPosition: "LATEST",
+			FunctionResponseTypes: ["ReportBatchItemFailures"],
+			BisectBatchOnFunctionError: true,
+			MaximumRetryAttempts: 5,
+			DestinationConfig: { OnFailure: { Destination: Match.anyValue() } },
+			FilterCriteria: {
+				Filters: [
+					{
+						Pattern: JSON.stringify({
+							eventName: ["INSERT", "MODIFY"],
+							dynamodb: { NewImage: { __edb_e__: { S: ["incident"] } } },
+						}),
+					},
+				],
+			},
 		});
 	});
 
-	it("Checker takes 1 message per invocation and reports per-message failures (batchItemFailures)", () => {
+	it("FR-20 / FR-26: Alert environment comes from config (SES identity, sender, admin, app URL)", () => {
+		const env = (
+			fn("alert").Properties.Environment as {
+				Variables: Record<string, unknown>;
+			}
+		).Variables;
+		expect(env).toMatchObject({
+			APP_URL: `https://${config.domainName}`,
+			SES_IDENTITY: config.sesIdentity,
+			SENDER_EMAIL: "noreply@watch.hueai.net",
+			DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
+		});
+		expect(Object.keys(env)).toEqual(
+			expect.arrayContaining(["TABLE_NAME", "ALERT_QUEUE_URL"]),
+		);
+	});
+
+	it("FR-23: EventBridge Scheduler runs reminders every 15 minutes", () => {
+		template.hasResourceProperties("AWS::Scheduler::Schedule", {
+			ScheduleExpression: "rate(15 minutes)",
+			Target: Match.objectLike({
+				Input: JSON.stringify({ kind: "reminders" }),
+			}),
+		});
+	});
+
+	it("Checker takes 1 FIFO message per invocation and reports per-message failures (batchItemFailures)", () => {
 		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
 			BatchSize: 1,
 			FunctionResponseTypes: ["ReportBatchItemFailures"],
+			ScalingConfig: { MaximumConcurrency: 5 },
 		});
 	});
 

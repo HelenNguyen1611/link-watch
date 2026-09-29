@@ -6,6 +6,15 @@ export const config = {
 	/** ACM certificate in us-east-1 (required by CloudFront), issued 29/09/2026 */
 	certificateArn:
 		"arn:aws:acm:us-east-1:131746731277:certificate/2a904427-bfec-4ac1-9970-34b8d41cf26f",
+	/**
+	 * FR-26: SES domain identity created manually (DKIM, MAIL FROM mail.watch.hueai.net).
+	 * CDK only references it — never creates AWS::SES::EmailIdentity.
+	 */
+	sesIdentity: "watch.hueai.net",
+	/** FR-26: default sender until the admin changes it on the Settings screen. */
+	senderEmail: "noreply@watch.hueai.net",
+	/** FR-20: default admin email; must be verified in SES while the account is in the sandbox. */
+	defaultAdminEmail: "helen@wootech.co",
 	/** Repo + branch allowed to deploy via GitHub Actions OIDC */
 	github: {
 		owner: "HelenNguyen1611",

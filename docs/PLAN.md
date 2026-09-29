@@ -271,7 +271,8 @@
 ### Bước 31a — SCR-08 Cài đặt email
 - **FR/AC:** FR-20 (email admin mặc định), FR-23 (chu kỳ nhắc lại), FR-26 (gửi email thử). **Phụ thuộc:** 20a, 23b
 
-### Bước 36b — Workers: hàng đợi ưu tiên, Alert
+### Bước 36b — Workers: hàng đợi ưu tiên, Alert ✅
+- ✅ đã làm (30/09/2026): `PriorityQueue` Standard (+DLQ, visibility 15 phút) → Checker (batch 5, maxConcurrency 2), Checker có quyền gửi vào đó; `AlertQueue` Standard (+DLQ) → Alert (batch 5, maxConcurrency 2); Streams → Alert có filter `eventName ∈ {INSERT, MODIFY}` và `NewImage.__edb_e__ = incident`, bisect + retry 5 lần + DLQ; Scheduler 15 phút gửi `{"kind":"reminders"}`. `config.ts` thêm `sesIdentity`, `senderEmail`, `defaultAdminEmail` (dùng làm env của Alert). Logical ID cũ giữ nguyên (chỉ thêm tài nguyên). **Lưu ý concurrency:** tối đa Checker 5 + 2, Alert 1/shard + 2, cộng API/Dispatcher có thể vượt quota tài khoản 10 khi tải cao → Lambda bị throttle và SQS/Streams tự thử lại (không mất việc; API có thể trả 429 lúc cao điểm).
 - Mở rộng `LinkWatch-Workers`: hàng đợi ưu tiên Standard (Q2), NodejsFunction Alert, event source mapping Streams có filter, IAM tối thiểu.
 - **FR/AC:** NFR-04, NFR-06. **Phụ thuộc:** 36a, 17a
 
