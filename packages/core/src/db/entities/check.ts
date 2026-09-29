@@ -2,15 +2,15 @@ import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Entity } from "electrodb";
 import { CheckErrorType, CheckResultKind } from "../../schema/enums";
 
-/** NFR-08: chi tiết check giữ 90 ngày (DynamoDB TTL xóa tự động). */
+/** NFR-08: check details are kept for 90 days (deleted automatically by DynamoDB TTL). */
 export const CHECK_TTL_DAYS = 90;
 
-/** Epoch giây mà DynamoDB TTL xóa bản ghi check. */
+/** Epoch seconds at which DynamoDB TTL deletes the check record. */
 export function checkTtl(checkedAt: string): number {
 	return Math.floor(Date.parse(checkedAt) / 1000) + CHECK_TTL_DAYS * 86_400;
 }
 
-/** SRS 6.2 / FR-17: Kết quả check — PK LINK#<id>, SK CHECK#<thời điểm>. */
+/** SRS 6.2 / FR-17: check result — PK LINK#<id>, SK CHECK#<timestamp>. */
 export function checkEntity(client: DynamoDBDocumentClient, table: string) {
 	return new Entity(
 		{

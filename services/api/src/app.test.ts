@@ -10,7 +10,7 @@ const app = () => {
 		c.json(LinkInput.parse(await c.req.json())),
 	);
 	a.get("/_test/boom", () => {
-		throw new Error("chi tiết nội bộ");
+		throw new Error("internal detail");
 	});
 	return a;
 };
@@ -19,19 +19,19 @@ const withKey = (key = SECRET): RequestInit => ({
 });
 
 describe("API khung", () => {
-	it("GET /api/health không cần khóa", async () => {
+	it("GET /api/health needs no key", async () => {
 		const res = await app().request("/api/health");
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({ ok: true });
 	});
 
-	it("NFR-07 (tạm): thiếu header khóa → 401", async () => {
+	it("NFR-07 (temporary): missing key header → 401", async () => {
 		const res = await app().request("/api/_test/boom");
 		expect(res.status).toBe(401);
 		expect(await res.json()).toEqual({ error: "unauthorized" });
 	});
 
-	it("NFR-07 (tạm): sai khóa → 401, kể cả khác độ dài", async () => {
+	it("NFR-07 (temporary): wrong key → 401, including different length", async () => {
 		expect(
 			(await app().request("/api/_test/boom", withKey("sai"))).status,
 		).toBe(401);
@@ -40,7 +40,7 @@ describe("API khung", () => {
 		).toBe(401);
 	});
 
-	it("NFR-07 (tạm): chưa cấu hình khóa (rỗng) thì từ chối mọi request, không mở toang", async () => {
+	it("NFR-07 (temporary): unconfigured (empty) key rejects every request instead of failing open", async () => {
 		const a = createApp({ db: {} as Db, getApiKey: async () => "" });
 		a.get("/_test/ok", (c) => c.text("ok"));
 		const res = await a.request("/api/_test/ok", {
@@ -49,7 +49,7 @@ describe("API khung", () => {
 		expect(res.status).toBe(401);
 	});
 
-	it("FR-01: lỗi Zod → 400 kèm chi tiết từng trường", async () => {
+	it("FR-01: Zod error → 400 with per-field details", async () => {
 		const res = await app().request("/api/_test/zod", {
 			method: "POST",
 			headers: { [API_KEY_HEADER]: SECRET, "content-type": "application/json" },
@@ -64,33 +64,33 @@ describe("API khung", () => {
 		});
 	});
 
-	it("body không phải JSON → 400", async () => {
+	it("non-JSON body → 400", async () => {
 		const res = await app().request("/api/_test/zod", {
 			method: "POST",
 			headers: { [API_KEY_HEADER]: SECRET, "content-type": "application/json" },
-			body: "{không phải json",
+			body: "{not json",
 		});
 		expect(res.status).toBe(400);
 		expect((await res.json()).error).toBe("invalid_json");
 	});
 
-	it("lỗi không lường trước → 500, không lộ chi tiết nội bộ", async () => {
+	it("unexpected error → 500 without leaking internal details", async () => {
 		const res = await app().request("/api/_test/boom", withKey());
 		expect(res.status).toBe(500);
 		const text = await res.text();
-		expect(text).not.toContain("chi tiết nội bộ");
+		expect(text).not.toContain("internal detail");
 		expect(JSON.parse(text)).toEqual({ error: "internal" });
 	});
 
-	it("route không tồn tại → 404 JSON", async () => {
-		const res = await app().request("/api/khong-co", withKey());
+	it("unknown route → 404 JSON", async () => {
+		const res = await app().request("/api/does-not-exist", withKey());
 		expect(res.status).toBe(404);
 		expect(await res.json()).toEqual({ error: "not_found" });
 	});
 });
 
-describe("CORS (chỉ khi chạy local)", () => {
-	it("bật corsOrigins: preflight OPTIONS qua được khi chưa có khóa, cho phép header khóa", async () => {
+describe("CORS (local development only)", () => {
+	it("with corsOrigins: OPTIONS preflight passes without a key and allows the key header", async () => {
 		const a = createApp({
 			db: {} as Db,
 			getApiKey: async () => SECRET,
@@ -113,7 +113,7 @@ describe("CORS (chỉ khi chạy local)", () => {
 		).toContain(API_KEY_HEADER);
 	});
 
-	it("mặc định (production, cùng origin qua CloudFront) không trả header CORS", async () => {
+	it("by default (production, same origin via CloudFront) no CORS headers are sent", async () => {
 		const res = await app().request("/api/health", {
 			headers: { origin: "https://evil.example" },
 		});

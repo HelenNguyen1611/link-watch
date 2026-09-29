@@ -40,7 +40,7 @@ function DeleteButton({ id }: { id: string }) {
 	);
 }
 
-/** FR-17: trạng thái, mã HTTP, thời gian phản hồi, lần check gần nhất của từng link. */
+/** FR-17: status, HTTP code, response time and last check of each link. */
 export function LinkTable({ links }: { links: LinkView[] }) {
 	const { t } = useTranslation();
 	if (links.length === 0) return <Text c="dimmed">{t("links.empty")}</Text>;

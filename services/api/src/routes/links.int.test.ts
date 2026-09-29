@@ -24,7 +24,7 @@ const post = (body: unknown) =>
 	call("/api/links", { method: "POST", body: JSON.stringify(body) });
 
 describe("POST /api/links", () => {
-	it("FR-01, FR-02, FR-07: thêm link → 201, URL chuẩn hóa, domain chính, trạng thái chờ check", async () => {
+	it("FR-01, FR-02, FR-07: adding a link → 201, normalized URL, root domain, pending status", async () => {
 		const res = await post({
 			url: " HTTPS://Shop.ABC.com/a#x ",
 			name: "Trang A",
@@ -45,7 +45,7 @@ describe("POST /api/links", () => {
 		expect(link).not.toHaveProperty("deletedAt");
 	});
 
-	it("FR-02: trùng URL → 409 kèm id link đã có", async () => {
+	it("FR-02: duplicate URL → 409 with the existing link id", async () => {
 		const res = await post({ url: "https://shop.abc.com/a" });
 		expect(res.status).toBe(409);
 		const body = await res.json();
@@ -53,7 +53,7 @@ describe("POST /api/links", () => {
 		expect(body.existingId).toMatch(/^[0-9A-Z]{26}$/);
 	});
 
-	it("FR-01: dữ liệu sai → 400 kèm lỗi theo trường", async () => {
+	it("FR-01: invalid data → 400 with per-field errors", async () => {
 		const res = await post({ url: "ftp://abc.com/x", timeoutS: 999 });
 		expect(res.status).toBe(400);
 		const body = await res.json();
@@ -64,7 +64,7 @@ describe("POST /api/links", () => {
 });
 
 describe("GET /api/links", () => {
-	it("liệt kê link theo trang (limit, cursor)", async () => {
+	it("lists links page by page (limit, cursor)", async () => {
 		await post({ url: "https://xyz.vn/1" });
 		await post({ url: "https://xyz.vn/2" });
 		const all = await (await call("/api/links")).json();
@@ -79,14 +79,14 @@ describe("GET /api/links", () => {
 		expect(rest.cursor).toBeNull();
 	});
 
-	it("limit ngoài 1–100 → 400", async () => {
+	it("limit outside 1–100 → 400", async () => {
 		expect((await call("/api/links?limit=0")).status).toBe(400);
 		expect((await call("/api/links?limit=101")).status).toBe(400);
 	});
 });
 
 describe("DELETE /api/links/:id", () => {
-	it("FR-04: xóa mềm → 204, không còn trong danh sách; xóa lại → 404", async () => {
+	it("FR-04: soft delete → 204, gone from the list; deleting again → 404", async () => {
 		const created = (await (
 			await post({ url: "https://del.vn/x" })
 		).json()) as LinkView;

@@ -1,10 +1,10 @@
 import { parse } from "tldts";
 
 /**
- * FR-07: domain chính (eTLD+1 theo Public Suffix List) của một URL đã chuẩn hóa.
- * Bật cả phần "private" của PSL để site trên nền tảng dùng chung (abc.github.io,
- * shop.vercel.app) được tách theo chủ thay vì gộp vào github.io.
- * Host là IP, localhost hoặc chính là public suffix (gov.vn) thì dùng nguyên host.
+ * FR-07: root domain (eTLD+1 from the Public Suffix List) of a normalized URL.
+ * Also enables the "private" part of the PSL so sites on shared platforms (abc.github.io,
+ * shop.vercel.app) are split per owner instead of being merged into github.io.
+ * An IP, localhost or a bare public suffix (gov.vn) keeps the full host.
  */
 export function rootDomainOf(url: string): string {
 	const { hostname } = new URL(url);

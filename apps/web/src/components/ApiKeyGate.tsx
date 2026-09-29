@@ -5,7 +5,7 @@ import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getApiKey, setApiKey } from "@/lib/api-key";
 
-/** TẠM THỜI (xóa ở Bước 23b): chưa có khóa API thì hiện form nhập khóa. */
+/** TEMPORARY (removed in step 23b): shows the API key form until a key is stored. */
 export function ApiKeyGate({ children }: { children: ReactNode }) {
 	const { t } = useTranslation();
 	const [hasKey, setHasKey] = useState<boolean | null>(null);

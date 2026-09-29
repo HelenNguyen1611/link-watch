@@ -6,7 +6,7 @@ const now = () => new Date().toISOString();
 
 /**
  * SRS 6.2: Link — PK DOMAIN#<domain>, SK LINK#<id>.
- * Quy ước: link tạm dừng hoặc đã xóa KHÔNG có `nextRunAt` → tự rời GSI1 (không cần điều kiện index).
+ * Convention: a paused or deleted link has NO `nextRunAt` → it drops out of GSI1 by itself (no index condition needed).
  */
 export function linkEntity(client: DynamoDBDocumentClient, table: string) {
 	return new Entity(

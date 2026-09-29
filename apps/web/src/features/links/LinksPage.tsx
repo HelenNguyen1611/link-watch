@@ -11,11 +11,11 @@ import { useApi } from "@/lib/api-context";
 import { AddLinkForm } from "./AddLinkForm";
 import { LinkTable } from "./LinkTable";
 
-/** Tự làm mới để thấy kết quả check mới (Dispatcher chạy mỗi 5 phút). */
+/** Auto-refresh to pick up new check results (the Dispatcher runs every 5 minutes). */
 export const REFRESH_MS = 30_000;
 const MAX_PAGES = 20;
 
-/** Mốc 1: danh sách link + form thêm (rút gọn từ SCR-03/SCR-04). */
+/** Milestone 1: link list + add form (reduced from SCR-03/SCR-04). */
 export function LinksPage() {
 	const { t } = useTranslation();
 	const api = useApi();

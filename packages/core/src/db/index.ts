@@ -15,10 +15,10 @@ export * from "./table";
 
 export type DbOptions = ClientOptions & { table?: string };
 
-/** Tạo các entity ElectroDB dùng chung một bảng. Gọi 1 lần mỗi cold start. */
+/** Creates the ElectroDB entities sharing one table. Call once per cold start. */
 export function createDb(opts: DbOptions = {}) {
 	const table = opts.table ?? process.env.TABLE_NAME;
-	if (!table) throw new Error("Thiếu tên bảng DynamoDB (TABLE_NAME)");
+	if (!table) throw new Error("Missing DynamoDB table name (TABLE_NAME)");
 	const client = createDocumentClient(createRawClient(opts));
 	const entities = {
 		Domain: domainEntity(client, table),

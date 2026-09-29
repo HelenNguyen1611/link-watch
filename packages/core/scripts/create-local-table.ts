@@ -1,4 +1,4 @@
-/** Tạo bảng "linkwatch" trên DynamoDB Local để chạy API/worker ở máy: `pnpm db:init`. */
+/** Creates the "linkwatch" table on DynamoDB Local for running the API/workers locally: `pnpm db:init`. */
 import {
 	CreateTableCommand,
 	ResourceInUseException,
@@ -10,8 +10,9 @@ const endpoint = process.env.DYNAMODB_ENDPOINT ?? "http://localhost:8000";
 const raw = createRawClient({ endpoint, region: "local" });
 try {
 	await raw.send(new CreateTableCommand(tableDefinition(table)));
-	console.log(`Đã tạo bảng ${table} trên ${endpoint}`);
+	console.log(`Created table ${table} on ${endpoint}`);
 } catch (err) {
-	if (err instanceof ResourceInUseException) console.log(`Bảng ${table} đã có`);
+	if (err instanceof ResourceInUseException)
+		console.log(`Table ${table} already exists`);
 	else throw err;
 }

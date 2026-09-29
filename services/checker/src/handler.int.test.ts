@@ -26,7 +26,7 @@ afterAll(async () => {
 	await t?.drop();
 });
 
-const now = new Date("2026-09-29T23:02:00.000Z"); // 06:02 giờ VN
+const now = new Date("2026-09-29T23:02:00.000Z"); // 06:02 Vietnam time
 const record = (body: unknown, id = Math.random().toString(36)): SQSRecord =>
 	({
 		messageId: id,
@@ -47,7 +47,7 @@ const handler = () =>
 	});
 
 describe("Checker handler", () => {
-	it("FR-17: link 404 → Link chết, ghi 1 bản ghi check có ttl, cập nhật lần check gần nhất", async () => {
+	it("FR-17: link 404 → dead link, writes 1 check record with ttl, updates the latest check", async () => {
 		const link = await createLink(t.db, { url: `${base}/404` }, { now });
 		const res = await handler()(event(record(job(link.domain, [link.id]))));
 		expect(res.batchItemFailures).toEqual([]);
@@ -73,7 +73,7 @@ describe("Checker handler", () => {
 		});
 	});
 
-	it("FR-11: sau khi check, next_run_at = 06:00 hôm sau + jitter (lịch mặc định)", async () => {
+	it("FR-11: after a check, next_run_at = 06:00 next day + jitter (default schedule)", async () => {
 		const link = await createLink(t.db, { url: `${base}/200` }, { now });
 		await handler()(event(record(job(link.domain, [link.id]))));
 		const { data } = await t.db.Link.get({
@@ -87,7 +87,7 @@ describe("Checker handler", () => {
 		expect(next).toBeLessThan(Date.parse("2026-09-30T23:05:00.000Z"));
 	});
 
-	it("FR-17: link từng lỗi rồi OK thì xóa loại lỗi cũ", async () => {
+	it("FR-17: a link that failed and then recovers clears the old error type", async () => {
 		const link = await createLink(t.db, { url: `${base}/503` }, { now });
 		await handler()(event(record(job(link.domain, [link.id]))));
 		await t.db.Link.patch({ domain: link.domain, id: link.id })
@@ -102,7 +102,7 @@ describe("Checker handler", () => {
 		expect(data?.lastErrorType).toBeUndefined();
 	});
 
-	it("FR-04: link đã xóa hoặc tạm dừng thì bỏ qua, không ghi check", async () => {
+	it("FR-04: deleted or paused links are skipped and no check is written", async () => {
 		const del = await createLink(t.db, { url: `${base}/200?del` }, { now });
 		await deleteLink(t.db, del.id, { now });
 		const paused = await createLink(
@@ -131,7 +131,7 @@ describe("Checker handler", () => {
 		expect(data?.nextRunAt).toBeUndefined();
 	});
 
-	it("FR-14 / NFR-09: tối đa 2 request đồng thời trên mỗi domain", async () => {
+	it("FR-14 / NFR-09: at most 2 concurrent requests per domain", async () => {
 		const ids: string[] = [];
 		for (let i = 0; i < 6; i++)
 			ids.push(
@@ -161,13 +161,13 @@ describe("Checker handler", () => {
 		expect(peak).toBe(2);
 	});
 
-	it("NFR-04: message lỗi và mọi message sau nó (cùng batch FIFO) được trả lại để retry → DLQ", async () => {
+	it("NFR-04: a failed message and every message after it (same FIFO batch) are returned for retry → DLQ", async () => {
 		const a = await createLink(t.db, { url: `${base}/200?a` }, { now });
 		const b = await createLink(t.db, { url: `${base}/200?b` }, { now });
 		const res = await handler()(
 			event(
 				record(job(a.domain, [a.id]), "m1"),
-				record("{không phải json", "m2"),
+				record("{not json", "m2"),
 				record(job(b.domain, [b.id]), "m3"),
 			),
 		);
@@ -183,7 +183,7 @@ describe("Checker handler", () => {
 		).toHaveLength(0);
 	});
 
-	it("NFR-07: mặc định chặn link trỏ vào địa chỉ nội bộ → Link chết (blocked_private_address)", async () => {
+	it("NFR-07: links pointing at private addresses are blocked by default → dead link (blocked_private_address)", async () => {
 		const link = await createLink(t.db, { url: `${base}/200?ssrf` }, { now });
 		await createHandler({ db: t.db, now: () => now })(
 			event(record(job(link.domain, [link.id]))),
@@ -200,7 +200,7 @@ describe("Checker handler", () => {
 });
 
 describe("Checker handler — retry", () => {
-	it("NFR-04: SQS giao lại cùng message (cùng thời điểm) không làm message lỗi", async () => {
+	it("NFR-04: SQS redelivering the same message (same timestamp) does not fail it", async () => {
 		const link = await createLink(t.db, { url: `${base}/200?retry` }, { now });
 		const h = handler();
 		expect(

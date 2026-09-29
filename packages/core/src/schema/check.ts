@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CheckErrorType, CheckResultKind } from "./enums";
 
-/** FR-17: một lần check. Thời điểm là ISO 8601 UTC. */
+/** FR-17: one check. Timestamps are ISO 8601 UTC. */
 export const CheckResult = z.object({
 	linkId: z.string().min(1),
 	checkedAt: z.iso.datetime(),

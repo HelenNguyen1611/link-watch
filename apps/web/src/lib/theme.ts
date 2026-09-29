@@ -1,6 +1,6 @@
 import { createTheme, type MantineColorsTuple } from "@mantine/core";
 
-/** Xanh ngọc theo logo (Logo.tsx, #0F766E = shade 7). */
+/** Teal from the logo (Logo.tsx, #0F766E = shade 7). */
 const brand: MantineColorsTuple = [
 	"#f0fdfa",
 	"#ccfbf1",
@@ -15,8 +15,8 @@ const brand: MantineColorsTuple = [
 ];
 
 /**
- * Phong cách tối giản (tham khảo woogroup.com.au): nền trắng, chữ đen, một màu nhấn,
- * đường kẻ mảnh, không đổ bóng, tiêu đề lớn đậm vừa, chữ hơi khít.
+ * Minimal style (inspired by woogroup.com.au): white background, black text, one accent colour,
+ * hairlines, no shadows, large medium-weight headings, slightly tight tracking.
  */
 export const theme = createTheme({
 	primaryColor: "brand",

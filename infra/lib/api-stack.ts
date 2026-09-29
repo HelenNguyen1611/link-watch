@@ -7,8 +7,8 @@ import type { Construct } from "constructs";
 import { LinkWatchFunction } from "./lambda";
 
 /**
- * TẠM THỜI (Mốc 1, bỏ ở Bước 37b khi có Cognito): SSM SecureString chứa khóa API.
- * CloudFormation không tạo được SecureString nên tạo tay (docs/RUNBOOK.md mục 2).
+ * TEMPORARY (milestone 1, removed in step 37b with Cognito): SSM SecureString holding the API key.
+ * CloudFormation cannot create SecureStrings, so it is created manually (docs/RUNBOOK.md §2).
  */
 export const API_KEY_PARAM = "/linkwatch/api-shared-secret";
 
@@ -16,9 +16,9 @@ export interface ApiStackProps extends cdk.StackProps {
 	table: dynamodb.ITable;
 }
 
-/** SRS 3.5: một Lambda Hono sau API Gateway HTTP API; web gọi qua CloudFront /api/*. */
+/** SRS 3.5: a single Hono Lambda behind an API Gateway HTTP API; the web app calls it via CloudFront /api/*. */
 export class ApiStack extends cdk.Stack {
-	/** Domain execute-api cho origin CloudFront, vd. abc123.execute-api.ap-southeast-1.amazonaws.com */
+	/** execute-api domain for the CloudFront origin, e.g. abc123.execute-api.ap-southeast-1.amazonaws.com */
 	readonly apiDomainName: string;
 
 	constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -40,7 +40,8 @@ export class ApiStack extends cdk.Stack {
 		);
 
 		const httpApi = new apigw.HttpApi(this, "HttpApi", {
-			description: "LinkWatch API (Mốc 1: khóa API tạm, chưa có Cognito)",
+			description:
+				"LinkWatch API (milestone 1: temporary API key, no Cognito yet)",
 			createDefaultStage: false,
 		});
 		new apigw.HttpStage(this, "DefaultStage", {

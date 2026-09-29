@@ -16,7 +16,7 @@ describe("LinkWatch-Workers", () => {
 		)?.[1] as Fn;
 
 	beforeAll(() => {
-		// Không đóng gói Lambda trong test (nhanh); pnpm synth vẫn đóng gói thật.
+		// Skip Lambda bundling in tests (fast); pnpm synth still bundles for real.
 		const app = new cdk.App({ context: { "aws:cdk:bundling-stacks": [] } });
 		const env = { account: config.account, region: config.region };
 		const data = new DataStack(app, "LinkWatch-Data", { env });
@@ -28,7 +28,7 @@ describe("LinkWatch-Workers", () => {
 		fns = template.findResources("AWS::Lambda::Function") as Record<string, Fn>;
 	});
 
-	it("2 Lambda Dispatcher + Checker: arm64, Node 22, ngoài VPC (SRS 3.4)", () => {
+	it("2 Lambdas, Dispatcher + Checker: arm64, Node 22, outside a VPC (SRS 3.4)", () => {
 		expect(Object.keys(fns)).toHaveLength(2);
 		for (const f of Object.values(fns)) {
 			expect(f.Properties.Architectures).toEqual(["arm64"]);
@@ -39,27 +39,27 @@ describe("LinkWatch-Workers", () => {
 		template.resourceCountIs("AWS::EC2::VPC", 0);
 	});
 
-	it("log giữ 14 ngày cho cả 2 hàm", () => {
+	it("both functions keep logs for 14 days", () => {
 		template.resourceCountIs("AWS::Logs::LogGroup", 2);
 		template.allResourcesProperties("AWS::Logs::LogGroup", {
 			RetentionInDays: 14,
 		});
 	});
 
-	it("NFR-06: Checker giới hạn 5 lần gọi đồng thời trên event source SQS, timeout đủ cho 20 link", () => {
+	it("NFR-06: Checker is capped at 5 concurrent invocations on the SQS event source, timeout fits 20 links", () => {
 		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
 			ScalingConfig: { MaximumConcurrency: 5 },
 		});
 		expect(fn("checker").Properties.Timeout).toBe(420);
 	});
 
-	it("không dùng reserved concurrency (không phụ thuộc hạn mức concurrency của tài khoản)", () => {
+	it("uses no reserved concurrency (independent of the account concurrency quota)", () => {
 		for (const f of Object.values(fns)) {
 			expect(f.Properties).not.toHaveProperty("ReservedConcurrentExecutions");
 		}
 	});
 
-	it("SRS 3.4: SQS FIFO (MessageGroupId = domain, dedup id do Dispatcher đặt)", () => {
+	it("SRS 3.4: SQS FIFO (MessageGroupId = domain, dedup id set by the Dispatcher)", () => {
 		template.hasResourceProperties("AWS::SQS::Queue", {
 			FifoQueue: true,
 			VisibilityTimeout: 900,
@@ -71,7 +71,7 @@ describe("LinkWatch-Workers", () => {
 		});
 	});
 
-	it("NFR-04: job lỗi 3 lần vào DLQ FIFO, giữ 14 ngày", () => {
+	it("NFR-04: jobs failing 3 times go to a FIFO DLQ kept for 14 days", () => {
 		const queues = Object.values(template.findResources("AWS::SQS::Queue"));
 		expect(queues).toHaveLength(2);
 		const dlq = queues.find((q) => !(q as Fn).Properties.RedrivePolicy) as Fn;
@@ -81,14 +81,14 @@ describe("LinkWatch-Workers", () => {
 		});
 	});
 
-	it("Checker nhận 1 message/lần, báo lỗi từng message (batchItemFailures)", () => {
+	it("Checker takes 1 message per invocation and reports per-message failures (batchItemFailures)", () => {
 		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
 			BatchSize: 1,
 			FunctionResponseTypes: ["ReportBatchItemFailures"],
 		});
 	});
 
-	it("FR-11 / NFR-04: EventBridge Scheduler gọi Dispatcher mỗi 5 phút", () => {
+	it("FR-11 / NFR-04: EventBridge Scheduler invokes the Dispatcher every 5 minutes", () => {
 		template.hasResourceProperties("AWS::Scheduler::Schedule", {
 			ScheduleExpression: "rate(5 minutes)",
 			State: "ENABLED",
@@ -96,7 +96,7 @@ describe("LinkWatch-Workers", () => {
 		});
 	});
 
-	it("biến môi trường: TABLE_NAME cho cả 2, CHECK_QUEUE_URL cho Dispatcher", () => {
+	it("environment: TABLE_NAME for both, CHECK_QUEUE_URL for the Dispatcher", () => {
 		const envOf = (f: Fn) =>
 			(f.Properties.Environment as { Variables: Record<string, unknown> })
 				.Variables;
@@ -107,7 +107,7 @@ describe("LinkWatch-Workers", () => {
 		expect(Object.keys(envOf(fn("checker")))).not.toContain("CHECK_QUEUE_URL");
 	});
 
-	it("IAM tối thiểu: Dispatcher gửi được vào hàng đợi; không ai có quyền xóa bảng", () => {
+	it("least-privilege IAM: the Dispatcher can send to the queue; nobody can delete the table", () => {
 		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
 		expect(policies).toContain("sqs:SendMessage");
 		expect(policies).not.toContain("dynamodb:DeleteTable");

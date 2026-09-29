@@ -1,6 +1,6 @@
 /**
- * NFR-07: nhận diện địa chỉ nội bộ/đặc biệt để Checker không gọi vào mạng nội bộ (SSRF).
- * Viết bằng JS thuần (không dùng node:net) vì core được dùng chung với web.
+ * NFR-07: detects private/special addresses so the Checker never calls into internal networks (SSRF).
+ * Plain JS (no node:net) because core is shared with the web app.
  */
 
 export type ParsedIp =
@@ -24,16 +24,16 @@ const PRIVATE_V4: V4Range[] = [
 	[198, 51, 100, 0, 24], // TEST-NET-2
 	[203, 0, 113, 0, 24], // TEST-NET-3
 	[224, 0, 0, 0, 4], // multicast
-	[240, 0, 0, 0, 4], // dự trữ + broadcast
+	[240, 0, 0, 0, 4], // reserved + broadcast
 ];
 
 const PRIVATE_V6: V6Range[] = [
 	[[0, 0, 0, 0, 0, 0, 0, 0], 128], // ::
 	[[0, 0, 0, 0, 0, 0, 0, 1], 128], // ::1
-	[[0xfc00], 7], // unique local (gồm fd00:ec2::254 của EC2)
+	[[0xfc00], 7], // unique local (includes EC2's fd00:ec2::254)
 	[[0xfe80], 10], // link-local
 	[[0xff00], 8], // multicast
-	[[0x2001, 0x0db8], 32], // tài liệu
+	[[0x2001, 0x0db8], 32], // documentation
 ];
 
 function parseV4(s: string): number[] | null {
@@ -51,7 +51,7 @@ function parseV4(s: string): number[] | null {
 
 function parseV6(input: string): number[] | null {
 	let s = input;
-	// IPv4 nhúng ở cuối (vd. ::ffff:127.0.0.1) → đổi thành 2 nhóm hex
+	// Trailing embedded IPv4 (e.g. ::ffff:127.0.0.1) → convert to 2 hex groups
 	const lastColon = s.lastIndexOf(":");
 	if (s.includes(".", lastColon)) {
 		const v4 = parseV4(s.slice(lastColon + 1));
@@ -74,7 +74,7 @@ function parseV6(input: string): number[] | null {
 	);
 }
 
-/** Parse IPv4 hoặc IPv6 (chấp nhận ngoặc vuông như trong URL); không phải IP → null. */
+/** Parses IPv4 or IPv6 (brackets accepted as in a URL); not an IP → null. */
 export function parseIp(input: string): ParsedIp | null {
 	const s =
 		input.startsWith("[") && input.endsWith("]") ? input.slice(1, -1) : input;
@@ -106,14 +106,14 @@ function isPrivateV4(bytes: number[]): boolean {
 	return PRIVATE_V4.some((r) => inV4(bytes, r));
 }
 
-/** NFR-07: true nếu IP thuộc dải nội bộ/đặc biệt. Ném lỗi nếu chuỗi không phải IP. */
+/** NFR-07: true if the IP is in a private/special range. Throws if the string is not an IP. */
 export function isPrivateIp(input: string): boolean {
 	const ip = parseIp(input);
-	if (!ip) throw new Error(`Không phải địa chỉ IP: ${input}`);
+	if (!ip) throw new Error(`Not an IP address: ${input}`);
 	if (ip.version === 4) return isPrivateV4(ip.bytes);
 	const w = ip.words;
 	const embeddedV4 = [w[6] >> 8, w[6] & 0xff, w[7] >> 8, w[7] & 0xff];
-	// ::ffff:a.b.c.d (IPv4-mapped) và 64:ff9b::a.b.c.d (NAT64) → xét IPv4 bên trong
+	// ::ffff:a.b.c.d (IPv4-mapped) and 64:ff9b::a.b.c.d (NAT64) → check the embedded IPv4
 	if (w.slice(0, 5).every((x) => x === 0) && w[5] === 0xffff) {
 		return isPrivateV4(embeddedV4);
 	}
@@ -125,7 +125,7 @@ export function isPrivateIp(input: string): boolean {
 
 const FORBIDDEN_SUFFIXES = [".localhost", ".local", ".internal"];
 
-/** NFR-07: chặn theo hostname trước khi phân giải DNS (localhost, *.internal, IP nội bộ). */
+/** NFR-07: blocks by hostname before DNS resolution (localhost, *.internal, private IPs). */
 export function isForbiddenHostname(hostname: string): boolean {
 	const host = hostname.toLowerCase();
 	if (parseIp(host)) return isPrivateIp(host);

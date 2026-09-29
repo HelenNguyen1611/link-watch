@@ -1,4 +1,4 @@
-/** FR-01: độ dài tối đa của URL, tính sau khi chuẩn hóa. */
+/** FR-01: maximum URL length, measured after normalization. */
 export const MAX_URL_LENGTH = 2048;
 
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
@@ -10,15 +10,15 @@ export class InvalidUrlError extends Error {
 		readonly code: InvalidUrlCode,
 		readonly input: string,
 	) {
-		super(`URL không hợp lệ (${code}): ${input.slice(0, 100)}`);
+		super(`Invalid URL (${code}): ${input.slice(0, 100)}`);
 		this.name = "InvalidUrlError";
 	}
 }
 
 /**
- * FR-02: chuẩn hóa URL trước khi lưu; kết quả dùng luôn làm khóa chống trùng.
- * Bỏ khoảng trắng đầu/cuối, hạ chữ thường scheme + host (IDN → punycode),
- * bỏ cổng mặc định và `#fragment`; path và query giữ nguyên.
+ * FR-02: normalizes a URL before storing; the result doubles as the dedupe key.
+ * Trims whitespace, lowercases scheme + host (IDN → punycode),
+ * drops the default port and `#fragment`; path and query are kept as is.
  */
 export function normalizeUrl(input: string): string {
 	const trimmed = input.trim();

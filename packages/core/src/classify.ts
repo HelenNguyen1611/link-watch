@@ -1,19 +1,19 @@
 import type { CheckErrorType, CheckResultKind } from "./schema/enums";
 import type { HttpCodeRange } from "./schema/link";
 
-/** SRS 5.1: ngưỡng Chậm mặc định. */
+/** SRS 5.1: default Slow threshold. */
 export const SLOW_THRESHOLD_MS = 5000;
 
-/** Kết quả thô từ Checker (Bước 11), chưa phân loại. */
+/** Raw result from the Checker (step 11), not yet classified. */
 export type ProbeResult = {
 	httpCode?: number;
 	responseMs: number;
 	finalUrl?: string;
 	redirectCount: number;
-	/** undefined khi link không có từ khóa bắt buộc. */
+	/** undefined when the link has no required keyword. */
 	keywordFound?: boolean;
 	sslExpiresAt?: string;
-	/** Có khi không nhận được phản hồi HTTP dùng được. */
+	/** Set when no usable HTTP response was received. */
 	error?: { code: string; message: string };
 };
 
@@ -44,7 +44,7 @@ const TIMEOUT_CODES = new Set([
 const SSL_CODE =
 	/^(CERT_|ERR_TLS_|ERR_SSL_|DEPTH_ZERO_SELF_SIGNED_CERT$|SELF_SIGNED_CERT_IN_CHAIN$|UNABLE_TO_(VERIFY|GET)_)/;
 
-/** Lỗi không có phản hồi HTTP → loại lỗi và kết quả theo SRS 5.1. */
+/** Error without an HTTP response → error type and result per SRS 5.1. */
 function errorTypeOf(code: string): {
 	result: CheckResultKind;
 	errorType: CheckErrorType;
@@ -66,8 +66,8 @@ const isExpected = (code: number, ranges: HttpCodeRange[]) =>
 	ranges.some((r) => code >= r.from && code <= r.to);
 
 /**
- * SRS 5.1: phân loại một lần check thành Hoạt động / Chậm / Link chết / Site down.
- * Mã trong danh sách mong đợi luôn được ưu tiên (người dùng khai báo rõ, vd. chờ 503 khi bảo trì).
+ * SRS 5.1: classifies one check as Up / Slow / Dead link / Site down.
+ * Expected status codes always take precedence (explicitly declared by the user, e.g. expecting 503 during maintenance).
  */
 export function classify(
 	probe: ProbeResult,
@@ -82,7 +82,7 @@ export function classify(
 	if (probe.error || probe.httpCode === undefined) {
 		const error = probe.error ?? {
 			code: "NO_RESPONSE",
-			message: "Không có phản hồi",
+			message: "No response",
 		};
 		return { ...base, ...errorTypeOf(error.code), errorMessage: error.message };
 	}
@@ -102,7 +102,7 @@ export function classify(
 			...base,
 			result: "dead",
 			errorType: "keyword_missing",
-			errorMessage: `Thiếu từ khóa "${config.keyword}"`,
+			errorMessage: `Missing keyword "${config.keyword}"`,
 		};
 	}
 	const slow = probe.responseMs > (config.slowThresholdMs ?? SLOW_THRESHOLD_MS);

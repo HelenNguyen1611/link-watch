@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRawClient } from "./client";
 
 describe("createRawClient", () => {
-	it("endpoint local → region 'local' để API, worker, db:init cùng thấy một bảng", async () => {
+	it("local endpoint → region 'local' so the API, workers and db:init see the same table", async () => {
 		expect(
 			await createRawClient({
 				endpoint: "http://localhost:8000",
@@ -10,7 +10,7 @@ describe("createRawClient", () => {
 		).toBe("local");
 	});
 
-	it("không có endpoint → region AWS", async () => {
+	it("no endpoint → AWS region", async () => {
 		expect(
 			await createRawClient({ region: "ap-southeast-1" }).config.region(),
 		).toBe("ap-southeast-1");

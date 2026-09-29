@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LinkInput } from "./link";
 
 describe("LinkInput", () => {
-	it("FR-01: chỉ cần URL, các trường khác lấy giá trị mặc định", () => {
+	it("FR-01: only the URL is required, other fields get defaults", () => {
 		expect(LinkInput.parse({ url: "https://abc.com/x" })).toEqual({
 			url: "https://abc.com/x",
 			tags: [],
@@ -12,16 +12,16 @@ describe("LinkInput", () => {
 		});
 	});
 
-	it("FR-01: URL là bắt buộc", () => {
+	it("FR-01: URL is required", () => {
 		expect(LinkInput.safeParse({}).success).toBe(false);
 	});
 
-	it("FR-02: URL được chuẩn hóa khi parse", () => {
+	it("FR-02: URL is normalized when parsed", () => {
 		const link = LinkInput.parse({ url: "  HTTPS://Shop.ABC.com/a#x " });
 		expect(link.url).toBe("https://shop.abc.com/a");
 	});
 
-	it("FR-01: URL sai trả lỗi ở trường url kèm mã lỗi", () => {
+	it("FR-01: an invalid URL reports an error on the url field with an error code", () => {
 		const r = LinkInput.safeParse({ url: "ftp://abc.com" });
 		expect(r.success).toBe(false);
 		expect(r.error?.issues[0]).toMatchObject({
@@ -30,7 +30,7 @@ describe("LinkInput", () => {
 		});
 	});
 
-	it("FR-01: nhận đủ các trường tùy chọn", () => {
+	it("FR-01: accepts every optional field", () => {
 		const link = LinkInput.parse({
 			url: "https://abc.com/x",
 			name: "  Trang chủ  ",
@@ -56,7 +56,7 @@ describe("LinkInput", () => {
 		});
 	});
 
-	it("FR-01: tên và từ khóa rỗng coi như không nhập", () => {
+	it("FR-01: empty name and keyword are treated as not provided", () => {
 		const link = LinkInput.parse({
 			url: "https://abc.com/",
 			name: "   ",
@@ -66,7 +66,7 @@ describe("LinkInput", () => {
 		expect(link.keyword).toBeUndefined();
 	});
 
-	it("FR-01: tag bị trùng hoặc rỗng được loại bỏ", () => {
+	it("FR-01: duplicate or empty tags are removed", () => {
 		const link = LinkInput.parse({
 			url: "https://abc.com/",
 			tags: ["seo", " seo ", "", "SEO"],
@@ -74,7 +74,7 @@ describe("LinkInput", () => {
 		expect(link.tags).toEqual(["seo", "SEO"]);
 	});
 
-	it("FR-01: phương thức chỉ GET hoặc HEAD", () => {
+	it("FR-01: method is GET or HEAD only", () => {
 		expect(
 			LinkInput.safeParse({ url: "https://abc.com/", method: "POST" }).success,
 		).toBe(false);
@@ -86,14 +86,14 @@ describe("LinkInput", () => {
 		[[{ from: 200, to: 600 }]],
 		[[{ from: 300, to: 200 }]],
 		[[{ from: 200.5, to: 299 }]],
-	])("FR-01: mã HTTP mong đợi không hợp lệ: %j", (expectedCodes) => {
+	])("FR-01: invalid expected HTTP codes: %j", (expectedCodes) => {
 		expect(
 			LinkInput.safeParse({ url: "https://abc.com/", expectedCodes }).success,
 		).toBe(false);
 	});
 
 	it.each([[0], [61], [2.5]])(
-		"FR-01: timeout ngoài 1–60 giây hoặc không nguyên bị từ chối: %d",
+		"FR-01: timeout outside 1–60 seconds or non-integer is rejected: %d",
 		(timeoutS) => {
 			expect(
 				LinkInput.safeParse({ url: "https://abc.com/", timeoutS }).success,

@@ -13,15 +13,15 @@ import {
 type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
 export type NavItem = {
-	/** Khóa i18n trong nav.* */
+	/** i18n key under nav.* */
 	key: string;
 	href: string;
 	icon: IconComponent;
-	/** Màn hình trong SRS/wireframe. */
+	/** Screen in the SRS/wireframe. */
 	screen: string;
 };
 
-/** Menu chính (SRS 4, wireframe SCR-01 … SCR-07). */
+/** Main menu (SRS 4, wireframe SCR-01 … SCR-07). */
 export const MAIN_NAV: NavItem[] = [
 	{ key: "overview", href: "/", icon: IconOverview, screen: "SCR-01" },
 	{ key: "domains", href: "/domains/", icon: IconGlobe, screen: "SCR-02" },
@@ -35,7 +35,7 @@ export const MAIN_NAV: NavItem[] = [
 	{ key: "incidents", href: "/incidents/", icon: IconAlert, screen: "SCR-07" },
 ];
 
-/** Nhóm Cài đặt (SCR-08/09 + khóa API tạm của Mốc 1). */
+/** Settings group (SCR-08/09 + the temporary milestone-1 API key). */
 export const SETTINGS_NAV: NavItem[] = [
 	{
 		key: "settingsEmail",
@@ -57,7 +57,7 @@ export const SETTINGS_NAV: NavItem[] = [
 	},
 ];
 
-/** Mục đang mở: "/" chỉ khớp đúng trang chủ, mục khác khớp theo tiền tố. */
+/** Current item: "/" matches only the home page, other items match by prefix. */
 export function isActive(href: string, pathname: string): boolean {
 	const path = pathname.endsWith("/") ? pathname : `${pathname}/`;
 	return href === "/" ? path === "/" : path.startsWith(href);

@@ -4,8 +4,8 @@ import type { Construct } from "constructs";
 import { config } from "./config";
 
 /**
- * Cầu nối GitHub Actions ↔ AWS bằng OIDC (không cần access key).
- * Role chỉ được assume các role mà "cdk bootstrap" đã tạo, và chỉ từ nhánh main của repo.
+ * GitHub Actions ↔ AWS bridge via OIDC (no access keys).
+ * The role can only assume the roles created by "cdk bootstrap", and only from the repo's main branch.
  */
 export class CicdStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -17,15 +17,15 @@ export class CicdStack extends cdk.Stack {
 		});
 
 		const { owner, repo, branch, ownerId, repoId } = config.github;
-		// GitHub hiện gửi "sub" dạng có ID bất biến: repo:owner@id/repo@id:ref:...
-		// Chấp nhận cả dạng cũ (không ID) để không hỏng nếu GitHub/cấu hình thay đổi.
+		// GitHub now sends "sub" with immutable IDs: repo:owner@id/repo@id:ref:...
+		// Also accept the old form (without IDs) so it keeps working if GitHub or the settings change.
 		const allowedSubs = [
 			`repo:${owner}@${ownerId}/${repo}@${repoId}:ref:refs/heads/${branch}`,
 			`repo:${owner}/${repo}:ref:refs/heads/${branch}`,
 		];
 		const role = new iam.Role(this, "GithubDeployRole", {
 			roleName: "linkwatch-github-deploy",
-			description: `GitHub Actions deploy cho ${owner}/${repo}@${branch}`,
+			description: `GitHub Actions deploy for ${owner}/${repo}@${branch}`,
 			maxSessionDuration: cdk.Duration.hours(1),
 			assumedBy: new iam.WebIdentityPrincipal(provider.attrArn, {
 				StringEquals: {

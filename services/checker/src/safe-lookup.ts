@@ -2,11 +2,11 @@ import dns from "node:dns";
 import type { LookupFunction } from "node:net";
 import { isForbiddenHostname, isPrivateIp } from "@linkwatch/core";
 
-/** NFR-07: tùy chọn chặn SSRF. Mặc định chặn mọi địa chỉ nội bộ. */
+/** NFR-07: SSRF blocking options. All private addresses are blocked by default. */
 export type SsrfOptions = {
-	/** Admin cho phép check địa chỉ nội bộ (toàn cục). */
+	/** Admin allows checking private addresses (globally). */
 	allowPrivate?: boolean;
-	/** Admin cho phép riêng các host này. */
+	/** Admin allows these specific hosts. */
 	allowHosts?: string[];
 };
 
@@ -15,8 +15,8 @@ export class BlockedAddressError extends Error {
 	constructor(host: string, address?: string) {
 		super(
 			address
-				? `${host} → ${address} là địa chỉ nội bộ`
-				: `${host} là địa chỉ nội bộ`,
+				? `${host} → ${address} is a private address`
+				: `${host} is a private address`,
 		);
 		this.name = "BlockedAddressError";
 	}
@@ -26,15 +26,15 @@ export const isHostAllowed = (host: string, opts: SsrfOptions) =>
 	opts.allowPrivate === true ||
 	(opts.allowHosts ?? []).includes(host.toLowerCase());
 
-/** Chặn trước khi phân giải DNS: IP nội bộ viết thẳng, localhost, *.internal… */
+/** Block before DNS resolution: literal private IPs, localhost, *.internal… */
 export function assertHostAllowed(host: string, opts: SsrfOptions): void {
 	if (!isHostAllowed(host, opts) && isForbiddenHostname(host))
 		throw new BlockedAddressError(host);
 }
 
 /**
- * Chặn sau khi phân giải DNS, ngay trong lúc kết nối (tránh DNS rebinding):
- * dùng làm `lookup` cho net/tls/undici.
+ * Block after DNS resolution, at connect time (prevents DNS rebinding):
+ * used as the `lookup` for net/tls/undici.
  */
 export function createSafeLookup(opts: SsrfOptions): LookupFunction {
 	return ((

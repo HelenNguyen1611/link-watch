@@ -20,7 +20,7 @@ const view = (over: Partial<LinkView>): LinkView => ({
 	...over,
 });
 
-/** API giả giữ danh sách trong bộ nhớ. */
+/** Fake API keeping the list in memory. */
 function fakeApi(initial: LinkView[] = []) {
 	let links = [...initial];
 	const api = {
@@ -45,7 +45,7 @@ function fakeApi(initial: LinkView[] = []) {
 }
 
 describe("LinksPage", () => {
-	it("hiển thị 4 trạng thái Hoạt động / Chậm / Link chết / Site down kèm mã HTTP và thời gian phản hồi", async () => {
+	it("shows the 4 statuses Up / Slow / Dead link / Site down with HTTP code and response time", async () => {
 		renderWithApi(
 			<LinksPage />,
 			fakeApi([
@@ -82,83 +82,83 @@ describe("LinksPage", () => {
 		);
 		const row = async (url: string) =>
 			within((await screen.findByText(url)).closest("tr") as HTMLElement);
-		expect((await row("https://a.vn/")).getByText("Hoạt động")).toBeTruthy();
+		expect((await row("https://a.vn/")).getByText("Up")).toBeTruthy();
 		expect((await row("https://a.vn/")).getByText("120 ms")).toBeTruthy();
 		expect(
 			(await row("https://a.vn/")).getByText("30/09/2026 06:01"),
 		).toBeTruthy();
-		expect((await row("https://b.vn/")).getByText("Chậm")).toBeTruthy();
-		expect((await row("https://b.vn/")).getByText("7.200 ms")).toBeTruthy();
-		expect((await row("https://c.vn/")).getByText("Link chết")).toBeTruthy();
+		expect((await row("https://b.vn/")).getByText("Slow")).toBeTruthy();
+		expect((await row("https://b.vn/")).getByText("7,200 ms")).toBeTruthy();
+		expect((await row("https://c.vn/")).getByText("Dead link")).toBeTruthy();
 		expect((await row("https://c.vn/")).getByText("404")).toBeTruthy();
 		expect((await row("https://d.vn/")).getByText("Site down")).toBeTruthy();
-		expect((await row("https://d.vn/")).getByText("Lỗi DNS")).toBeTruthy();
-		expect((await row("https://e.vn/")).getByText("Chờ kiểm tra")).toBeTruthy();
+		expect((await row("https://d.vn/")).getByText("DNS error")).toBeTruthy();
+		expect((await row("https://e.vn/")).getByText("Pending")).toBeTruthy();
 	});
 
-	it("FR-01: URL sai → báo lỗi dưới ô URL, không gọi API", async () => {
+	it("FR-01: invalid URL → error under the URL field, API not called", async () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		await userEvent.type(await screen.findByLabelText(/URL/), "ftp://abc.com");
-		await userEvent.click(screen.getByRole("button", { name: "Thêm" }));
+		await userEvent.click(screen.getByRole("button", { name: "Add" }));
 		expect(
-			await screen.findByText("Chỉ hỗ trợ http:// và https://"),
+			await screen.findByText("Only http:// and https:// are supported"),
 		).toBeTruthy();
 		expect(api.createLink).not.toHaveBeenCalled();
 	});
 
-	it("FR-01, FR-02: thêm link → gọi API với URL đã chuẩn hóa, link hiện ngay trong bảng, ô nhập được xóa", async () => {
+	it("FR-01, FR-02: adding a link calls the API with the normalised URL, shows it in the table and clears the input", async () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		const input = await screen.findByLabelText(/URL/);
 		await userEvent.type(input, "  HTTPS://Moi.ABC.com/x#top ");
-		await userEvent.type(screen.getByLabelText(/Tên hiển thị/), "Trang mới");
-		await userEvent.click(screen.getByRole("button", { name: "Thêm" }));
+		await userEvent.type(screen.getByLabelText(/Display name/), "New page");
+		await userEvent.click(screen.getByRole("button", { name: "Add" }));
 		await waitFor(() => expect(api.createLink).toHaveBeenCalledTimes(1));
 		expect(api.createLink.mock.calls[0][0]).toMatchObject({
 			url: "https://moi.abc.com/x",
-			name: "Trang mới",
+			name: "New page",
 		});
 		expect(await screen.findByText("https://moi.abc.com/x")).toBeTruthy();
 		expect((input as HTMLInputElement).value).toBe("");
 	});
 
-	it("FR-02: trùng URL (409) → báo link đã có", async () => {
+	it("FR-02: duplicate URL (409) → says the link already exists", async () => {
 		const api = fakeApi([view({ url: "https://abc.com/" })]);
 		renderWithApi(<LinksPage />, api);
 		await userEvent.type(
 			await screen.findByLabelText(/URL/),
 			"https://abc.com",
 		);
-		await userEvent.click(screen.getByRole("button", { name: "Thêm" }));
+		await userEvent.click(screen.getByRole("button", { name: "Add" }));
 		expect(
-			await screen.findByText("Link này đã có trong danh sách"),
+			await screen.findByText("This link is already in the list"),
 		).toBeTruthy();
 	});
 
-	it("FR-04: xóa cần bấm xác nhận lần 2, sau đó link biến mất", async () => {
+	it("FR-04: delete needs a second confirming click, then the link disappears", async () => {
 		const api = fakeApi([view({ id: "x", url: "https://xoa.vn/" })]);
 		renderWithApi(<LinksPage />, api);
 		const row = within(
 			(await screen.findByText("https://xoa.vn/")).closest("tr") as HTMLElement,
 		);
-		await userEvent.click(row.getByRole("button", { name: "Xóa" }));
+		await userEvent.click(row.getByRole("button", { name: "Delete" }));
 		expect(api.deleteLink).not.toHaveBeenCalled();
-		await userEvent.click(row.getByRole("button", { name: "Xác nhận xóa" }));
+		await userEvent.click(row.getByRole("button", { name: "Confirm delete" }));
 		await waitFor(() => expect(api.deleteLink).toHaveBeenCalledWith("x"));
 		await waitFor(() =>
 			expect(screen.queryByText("https://xoa.vn/")).toBeNull(),
 		);
 	});
 
-	it("danh sách trống → hướng dẫn thêm link đầu tiên", async () => {
+	it("empty list → prompts to add the first link", async () => {
 		renderWithApi(<LinksPage />, fakeApi());
 		expect(
-			await screen.findByText("Chưa có link nào. Thêm link đầu tiên ở trên."),
+			await screen.findByText("No links yet. Add your first link above."),
 		).toBeTruthy();
 	});
 
-	it("khóa API sai (401) → yêu cầu nhập lại khóa", async () => {
+	it("wrong API key (401) → asks for the key again", async () => {
 		const api = fakeApi();
 		api.listLinks.mockRejectedValue(
 			new ApiError(401, { error: "unauthorized" }),

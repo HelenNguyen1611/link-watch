@@ -43,7 +43,7 @@ describe("LinkWatch-Data", () => {
 		)[0] as typeof table;
 	});
 
-	it("SRS 6.2: đúng 1 bảng single-table, khóa pk/sk", () => {
+	it("SRS 6.2: exactly one single-table table with pk/sk keys", () => {
 		template.resourceCountIs("AWS::DynamoDB::Table", 1);
 		expect(table.Properties.KeySchema).toEqual([
 			{ AttributeName: "pk", KeyType: "HASH" },
@@ -51,7 +51,7 @@ describe("LinkWatch-Data", () => {
 		]);
 	});
 
-	it("SRS 6.2: khóa và GSI khớp đúng định nghĩa bảng của core (ElectroDB dùng)", () => {
+	it("SRS 6.2: keys and GSIs match the core table definition used by ElectroDB", () => {
 		const expected = tableDefinition("x");
 		expect(
 			new Set(
@@ -74,7 +74,7 @@ describe("LinkWatch-Data", () => {
 		);
 	});
 
-	it("SRS 3.4: provisioned, tổng RCU và WCU của bảng + mọi GSI ≤ 25 (hạn mức miễn phí)", () => {
+	it("SRS 3.4: provisioned, total RCU and WCU of the table + all GSIs ≤ 25 (free tier)", () => {
 		const all = [
 			table.Properties.ProvisionedThroughput,
 			...table.Properties.GlobalSecondaryIndexes.map(
@@ -92,19 +92,19 @@ describe("LinkWatch-Data", () => {
 		template.resourceCountIs("AWS::ApplicationAutoScaling::ScalableTarget", 0);
 	});
 
-	it("NFR-08: TTL theo thuộc tính ttl", () => {
+	it("NFR-08: TTL on the ttl attribute", () => {
 		template.hasResourceProperties("AWS::DynamoDB::Table", {
 			TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
 		});
 	});
 
-	it("Alert (Mốc 2) cần DynamoDB Streams NEW_AND_OLD_IMAGES — bật ngay để không phải cập nhật bảng sau", () => {
+	it("Alert (milestone 2) needs DynamoDB Streams NEW_AND_OLD_IMAGES — enabled now to avoid a later table update", () => {
 		template.hasResourceProperties("AWS::DynamoDB::Table", {
 			StreamSpecification: { StreamViewType: "NEW_AND_OLD_IMAGES" },
 		});
 	});
 
-	it("dữ liệu thật: giữ bảng khi xóa/thay stack, bật chống xóa", () => {
+	it("real data: table retained on stack delete/replace, deletion protection on", () => {
 		expect(table.DeletionPolicy).toBe("Retain");
 		expect(table.UpdateReplacePolicy).toBe("Retain");
 		template.hasResourceProperties("AWS::DynamoDB::Table", {
@@ -112,7 +112,7 @@ describe("LinkWatch-Data", () => {
 		});
 	});
 
-	it("SSM Standard (miễn phí) lưu tên bảng cho script và công cụ vận hành", () => {
+	it("SSM Standard parameter (free) stores the table name for scripts and ops tools", () => {
 		expect(TABLE_NAME_PARAM).toBe("/linkwatch/table-name");
 		template.hasResourceProperties("AWS::SSM::Parameter", {
 			Name: TABLE_NAME_PARAM,
@@ -122,7 +122,7 @@ describe("LinkWatch-Data", () => {
 		});
 	});
 
-	it("không tạo tài nguyên tốn phí theo giờ (NAT, EC2, RDS)", () => {
+	it("creates no hourly-billed resources (NAT, EC2, RDS)", () => {
 		for (const type of [
 			"AWS::EC2::NatGateway",
 			"AWS::EC2::Instance",

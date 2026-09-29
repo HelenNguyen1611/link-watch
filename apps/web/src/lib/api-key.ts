@@ -1,7 +1,7 @@
 /**
- * TẠM THỜI (Mốc 1, xóa ở Bước 23b khi có đăng nhập Cognito):
- * khóa API do người dùng nhập, lưu trong localStorage của trình duyệt.
- * Không nhúng khóa vào bundle vì file tĩnh trên CloudFront ai cũng tải được.
+ * TEMPORARY (milestone 1, removed in step 23b with Cognito sign-in):
+ * API key entered by the user and stored in browser localStorage.
+ * Never baked into the bundle: static files on CloudFront are public.
  */
 const STORAGE_KEY = "linkwatch.apiKey";
 

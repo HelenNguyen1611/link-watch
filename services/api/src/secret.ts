@@ -1,9 +1,9 @@
 import { GetParameterCommand, type SSMClient } from "@aws-sdk/client-ssm";
 
-/** Đọc lại khóa sau 5 phút để đổi khóa trên SSM không cần deploy. */
+/** Re-read the key after 5 minutes so rotating it in SSM needs no deploy. */
 export const SECRET_TTL_MS = 5 * 60_000;
 
-/** TẠM THỜI (xóa ở Bước 18b): đọc khóa API từ SSM SecureString, cache trong bộ nhớ Lambda. */
+/** TEMPORARY (removed in step 18b): reads the API key from an SSM SecureString, cached in Lambda memory. */
 export function createSecretLoader(opts: {
 	ssm: SSMClient;
 	name: string;

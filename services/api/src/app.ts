@@ -8,14 +8,14 @@ import { linkRoutes } from "./routes/links";
 
 export type AppDeps = {
 	db: Db;
-	/** TẠM THỜI (Bước 18b thay bằng Cognito). */
+	/** TEMPORARY (replaced by Cognito in step 18b). */
 	getApiKey: () => Promise<string>;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
-	/** Chỉ đặt khi chạy local (web :3000 → API :8787); production cùng origin qua CloudFront. */
+	/** Set only for local development (web :3000 → API :8787); production is same-origin via CloudFront. */
 	corsOrigins?: string[];
 };
 
-/** API Hono dưới /api (CloudFront chuyển /api/* sang API Gateway). */
+/** Hono API under /api (CloudFront routes /api/* to API Gateway). */
 export function createApp(deps: AppDeps) {
 	const log = deps.log ?? (() => {});
 	const app = new Hono().basePath("/api");

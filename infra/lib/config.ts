@@ -1,24 +1,24 @@
-/** Cấu hình cố định của môi trường LinkWatch (không chứa bí mật). */
+/** Fixed configuration of the LinkWatch environment (no secrets). */
 export const config = {
 	account: "131746731277",
 	region: "ap-southeast-1",
 	domainName: "watch.hueai.net",
-	/** Chứng chỉ ACM ở us-east-1 (bắt buộc cho CloudFront), đã Issued 29/09/2026 */
+	/** ACM certificate in us-east-1 (required by CloudFront), issued 29/09/2026 */
 	certificateArn:
 		"arn:aws:acm:us-east-1:131746731277:certificate/2a904427-bfec-4ac1-9970-34b8d41cf26f",
-	/** Repo + nhánh được phép deploy qua GitHub Actions OIDC */
+	/** Repo + branch allowed to deploy via GitHub Actions OIDC */
 	github: {
 		owner: "HelenNguyen1611",
 		repo: "link-watch",
 		branch: "main",
-		/** ID bất biến GitHub gắn vào claim "sub" (lấy từ CloudTrail 29/09/2026) */
+		/** Immutable GitHub IDs included in the "sub" claim (taken from CloudTrail 29/09/2026) */
 		ownerId: "126633948",
 		repoId: "1394505495",
 	},
 	/**
-	 * DynamoDB provisioned (PLAN Bước 35, phương án c). Hạn mức miễn phí 25 RCU / 25 WCU
-	 * dùng chung cho bảng và mọi GSI; test chặn tổng vượt 25.
-	 * GSI1 ghi nhiều vì mỗi lần giữ chỗ / cập nhật next_run_at đều ghi vào GSI1.
+	 * DynamoDB provisioned capacity (PLAN step 35, option c). The free tier of 25 RCU / 25 WCU
+	 * is shared by the table and all GSIs; a test fails if the total exceeds 25.
+	 * GSI1 is write-heavy because every lease / next_run_at update also writes to GSI1.
 	 */
 	dynamodb: {
 		table: { read: 10, write: 15 },

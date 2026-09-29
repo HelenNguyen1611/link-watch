@@ -2,9 +2,9 @@ import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Entity } from "electrodb";
 
 /**
- * FR-02: khóa chống trùng URL — PK URL#<sha256(url)>, SK META.
- * Ghi cùng Link trong 1 transaction; xóa khi link bị xóa mềm để thêm lại được.
- * Dùng sha256 vì khóa phân vùng DynamoDB tối đa 2.048 byte.
+ * FR-02: URL uniqueness lock — PK URL#<sha256(url)>, SK META.
+ * Written with the Link in one transaction; removed when the link is soft-deleted so it can be re-added.
+ * sha256 because a DynamoDB partition key is at most 2,048 bytes.
  */
 export function urlLockEntity(client: DynamoDBDocumentClient, table: string) {
 	return new Entity(

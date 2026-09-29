@@ -1,25 +1,25 @@
-/** Asia/Saigon không có giờ mùa hè → offset cố định +07:00 (PLAN: quyết định kỹ thuật). */
+/** Asia/Saigon has no daylight saving → fixed +07:00 offset (PLAN: technical decision). */
 export const TZ_OFFSET_MS = 7 * 60 * 60_000;
 const DAY_MS = 24 * 60 * 60_000;
 
-/** FR-14: độ lệch tối đa khi dàn đều các check cùng mốc giờ. */
+/** FR-14: maximum offset when spreading checks scheduled for the same time. */
 export const JITTER_MAX_MS = 5 * 60_000;
 
-/** Lịch giờ cố định hàng ngày, `at` = "HH:mm" giờ Asia/Saigon. Các kiểu khác thêm ở Bước 3b. */
+/** Fixed daily schedule, `at` = "HH:mm" in Asia/Saigon time. Other kinds are added in step 3b. */
 export type DailySchedule = { kind: "daily"; at: string };
 export type Schedule = DailySchedule;
 
-/** FR-11: lịch mặc định toàn hệ thống. */
+/** FR-11: system-wide default schedule. */
 export const DEFAULT_SCHEDULE: Schedule = { kind: "daily", at: "06:00" };
 
 function parseHHmm(at: string): number {
 	const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(at);
 	if (!m)
-		throw new Error(`Giờ không hợp lệ (cần HH:mm): ${JSON.stringify(at)}`);
+		throw new Error(`Invalid time (expected HH:mm): ${JSON.stringify(at)}`);
 	return (Number(m[1]) * 60 + Number(m[2])) * 60_000;
 }
 
-/** Lượt kế tiếp của lịch, luôn sau `after` (không tính jitter). */
+/** Next run of the schedule, always after `after` (jitter not included). */
 export function computeNextRun(schedule: Schedule, after: Date): Date {
 	const timeOfDay = parseHHmm(schedule.at);
 	const localNow = after.getTime() + TZ_OFFSET_MS;
@@ -29,7 +29,7 @@ export function computeNextRun(schedule: Schedule, after: Date): Date {
 	return new Date(next);
 }
 
-/** FNV-1a 32 bit + fmix32 (MurmurHash3): ổn định giữa các lần chạy, phân bố đều cả khi id gần giống nhau. */
+/** FNV-1a 32 bit + fmix32 (MurmurHash3): stable across runs, evenly distributed even for near-identical ids. */
 function hash32(s: string): number {
 	let h = 0x811c9dc5;
 	for (let i = 0; i < s.length; i++) {
@@ -44,13 +44,13 @@ function hash32(s: string): number {
 	return h >>> 0;
 }
 
-/** FR-14: lệch cố định theo link id trong [0, 5 phút) để dàn đều các check cùng mốc giờ. */
+/** FR-14: fixed per-link-id offset in [0, 5 min) to spread checks scheduled for the same time. */
 export function applyJitter(base: Date, linkId: string): Date {
 	const offset = Math.floor((hash32(linkId) / 2 ** 32) * JITTER_MAX_MS);
 	return new Date(base.getTime() + offset);
 }
 
-/** `next_run_at` của link: lượt kế tiếp theo lịch + jitter. */
+/** A link's `next_run_at`: next scheduled run + jitter. */
 export function nextRunAt(schedule: Schedule, linkId: string, now: Date): Date {
 	return applyJitter(computeNextRun(schedule, now), linkId);
 }

@@ -23,7 +23,7 @@ const rawKeys = async (pk: string, sk: string) => {
 };
 
 describe("Domain entity", () => {
-	it("SRS 6.2: khóa DOMAIN#<tên> / META, đọc lại đủ trường FR-08", async () => {
+	it("SRS 6.2: key DOMAIN#<name> / META, reads back every FR-08 field", async () => {
 		await db.Domain.create({
 			name: "abc.com.vn",
 			displayName: "ABC",
@@ -44,7 +44,7 @@ describe("Domain entity", () => {
 		expect(data?.createdAt).toMatch(/^\d{4}-\d\d-\d\dT/);
 	});
 
-	it("FR-08: tạo trùng domain bị từ chối", async () => {
+	it("FR-08: creating a duplicate domain is rejected", async () => {
 		await expect(
 			db.Domain.create({ name: "abc.com.vn" }).go(),
 		).rejects.toThrow();
@@ -60,7 +60,7 @@ describe("Link entity", () => {
 		tags: [],
 	};
 
-	it("SRS 6.2: khóa DOMAIN#<domain> / LINK#<id>, giá trị mặc định", async () => {
+	it("SRS 6.2: key DOMAIN#<domain> / LINK#<id>, default values", async () => {
 		await db.Link.create({ ...base, id: "L1", url: "https://xyz.vn/a" }).go();
 		expect(await rawKeys("DOMAIN#xyz.vn", "LINK#L1")).toBeDefined();
 		const { data } = await db.Link.get({ domain: "xyz.vn", id: "L1" }).go();
@@ -71,7 +71,7 @@ describe("Link entity", () => {
 		});
 	});
 
-	it("SRS 6.2 GSI1: lấy link đến hạn (next_run_at ≤ hiện tại), sắp theo thời gian", async () => {
+	it("SRS 6.2 GSI1: fetches due links (next_run_at ≤ now) ordered by time", async () => {
 		await db.Link.create({
 			...base,
 			id: "D1",
@@ -97,7 +97,7 @@ describe("Link entity", () => {
 		expect(data.map((l) => l.id)).toEqual(["D2", "D1"]);
 	});
 
-	it("FR-04 + GSI1: link tạm dừng (không có next_run_at) không nằm trong danh sách đến hạn", async () => {
+	it("FR-04 + GSI1: a paused link (no next_run_at) is not in the due list", async () => {
 		await db.Link.patch({ domain: "xyz.vn", id: "D1" })
 			.set({ paused: true })
 			.remove(["nextRunAt"])
@@ -117,7 +117,7 @@ describe("Link entity", () => {
 		expect(again.data.map((l) => l.id)).toEqual(["D2", "D1"]);
 	});
 
-	it("GSI3: tra link theo id không cần biết domain", async () => {
+	it("GSI3: looks up a link by id without knowing its domain", async () => {
 		const { data } = await db.Link.query.byId({ id: "L1" }).go();
 		expect(data).toHaveLength(1);
 		expect(data[0]).toMatchObject({
@@ -126,7 +126,7 @@ describe("Link entity", () => {
 		});
 	});
 
-	it("GSI3: liệt kê mọi link và mọi domain theo trang", async () => {
+	it("GSI3: lists every link and every domain page by page", async () => {
 		const links = await db.Link.query.byId({}).go({ pages: "all" });
 		expect(links.data.map((l) => l.id).sort()).toEqual([
 			"D1",
@@ -141,7 +141,7 @@ describe("Link entity", () => {
 		expect(domains.data.map((d) => d.name)).toEqual(["abc.com.vn"]);
 	});
 
-	it("FR-01: lưu mã mong đợi dạng danh sách khoảng, tag, keyword", async () => {
+	it("FR-01: stores expected codes as a list of ranges, tags, keyword", async () => {
 		await db.Link.create({
 			...base,
 			id: "K1",

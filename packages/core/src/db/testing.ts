@@ -15,7 +15,7 @@ export type TestDb = {
 	drop: () => Promise<void>;
 };
 
-/** Int test: tạo bảng riêng trên DynamoDB Local (`pnpm db:local`) cho mỗi file test. */
+/** Integration tests: creates a separate table on DynamoDB Local (`pnpm db:local`) per test file. */
 export async function createTestDb(): Promise<TestDb> {
 	const table = `lw-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	const raw = createRawClient({ endpoint: LOCAL_ENDPOINT, region: "local" });
@@ -23,7 +23,7 @@ export async function createTestDb(): Promise<TestDb> {
 		await raw.send(new CreateTableCommand(tableDefinition(table)));
 	} catch (err) {
 		throw new Error(
-			`Không tạo được bảng trên ${LOCAL_ENDPOINT} — đã chạy "pnpm db:local" chưa? (${String(err)})`,
+			`Could not create a table on ${LOCAL_ENDPOINT} — is "pnpm db:local" running? (${String(err)})`,
 		);
 	}
 	const db = createDb({ endpoint: LOCAL_ENDPOINT, region: "local", table });

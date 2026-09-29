@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { clearApiKey, getApiKey } from "@/lib/api-key";
 
-/** Chỉ hiện 4 ký tự cuối của khóa. */
+/** Shows only the last 4 characters of the key. */
 export const maskKey = (key: string) => `••••${key.slice(-4)}`;
 
-/** TẠM THỜI (Mốc 1, bỏ ở Bước 23b khi có Cognito): xem và đổi khóa API lưu trên trình duyệt. */
+/** TEMPORARY (milestone 1, removed in step 23b with Cognito): view and change the API key stored in the browser. */
 export function ApiKeySettings() {
 	const { t } = useTranslation();
 	const [key, setKey] = useState<string | null>(null);

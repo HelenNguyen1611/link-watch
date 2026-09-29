@@ -9,13 +9,13 @@ import {
 
 const utc = (s: string) => new Date(s);
 
-describe("computeNextRun — lịch hàng ngày", () => {
-	it("FR-11: lịch mặc định là 06:00 hàng ngày giờ Asia/Saigon", () => {
+describe("computeNextRun — daily schedule", () => {
+	it("FR-11: the default schedule is daily at 06:00 Asia/Saigon", () => {
 		expect(DEFAULT_SCHEDULE).toEqual({ kind: "daily", at: "06:00" });
 	});
 
-	it("FR-11: trước 06:00 → 06:00 cùng ngày (06:00 +07:00 = 23:00 UTC hôm trước)", () => {
-		// 05:30 ngày 30/09 giờ VN
+	it("FR-11: before 06:00 → 06:00 the same day (06:00 +07:00 = 23:00 UTC the day before)", () => {
+		// 05:30 on 30/09, Vietnam time
 		expect(
 			computeNextRun(
 				DEFAULT_SCHEDULE,
@@ -24,8 +24,8 @@ describe("computeNextRun — lịch hàng ngày", () => {
 		).toBe("2026-09-29T23:00:00.000Z");
 	});
 
-	it("FR-11: sau 06:00 → 06:00 ngày hôm sau (qua ngày)", () => {
-		// 07:00 ngày 30/09 giờ VN
+	it("FR-11: after 06:00 → 06:00 the next day (day rollover)", () => {
+		// 07:00 on 30/09, Vietnam time
 		expect(
 			computeNextRun(
 				DEFAULT_SCHEDULE,
@@ -34,7 +34,7 @@ describe("computeNextRun — lịch hàng ngày", () => {
 		).toBe("2026-09-30T23:00:00.000Z");
 	});
 
-	it("FR-11: đúng 06:00 → lượt kế tiếp là ngày hôm sau (luôn sau thời điểm hiện tại)", () => {
+	it("FR-11: exactly 06:00 → the next run is the next day (always after now)", () => {
 		expect(
 			computeNextRun(
 				DEFAULT_SCHEDULE,
@@ -43,15 +43,15 @@ describe("computeNextRun — lịch hàng ngày", () => {
 		).toBe("2026-09-30T23:00:00.000Z");
 	});
 
-	it("FR-11: qua tháng và qua năm", () => {
-		// 23:59 ngày 30/09 giờ VN → 06:00 ngày 01/10
+	it("FR-11: month and year rollover", () => {
+		// 23:59 on 30/09 Vietnam time → 06:00 on 01/10
 		expect(
 			computeNextRun(
 				DEFAULT_SCHEDULE,
 				utc("2026-09-30T16:59:00Z"),
 			).toISOString(),
 		).toBe("2026-09-30T23:00:00.000Z");
-		// 12:00 ngày 31/12 giờ VN → 06:00 ngày 01/01 năm sau
+		// 12:00 on 31/12 Vietnam time → 06:00 on 01/01 next year
 		expect(
 			computeNextRun(
 				DEFAULT_SCHEDULE,
@@ -60,7 +60,7 @@ describe("computeNextRun — lịch hàng ngày", () => {
 		).toBe("2026-12-31T23:00:00.000Z");
 	});
 
-	it("FR-11: Admin đổi giờ mặc định (vd. 07:30) thì tính theo giờ mới", () => {
+	it("FR-11: when the Admin changes the default time (e.g. 07:30) the new time is used", () => {
 		expect(
 			computeNextRun(
 				{ kind: "daily", at: "07:30" },
@@ -70,7 +70,7 @@ describe("computeNextRun — lịch hàng ngày", () => {
 	});
 
 	it.each(["6:00", "24:00", "06:60", "0600", ""])(
-		"FR-11: giờ không hợp lệ bị từ chối: %j",
+		"FR-11: invalid time is rejected: %j",
 		(at) => {
 			expect(() => computeNextRun({ kind: "daily", at }, new Date())).toThrow();
 		},
@@ -80,7 +80,7 @@ describe("computeNextRun — lịch hàng ngày", () => {
 describe("applyJitter", () => {
 	const base = utc("2026-09-29T23:00:00Z");
 
-	it("FR-14: lệch trong [0, 5 phút)", () => {
+	it("FR-14: offset within [0, 5 min)", () => {
 		for (let i = 0; i < 500; i++) {
 			const d = applyJitter(base, `link_${i}`).getTime() - base.getTime();
 			expect(d).toBeGreaterThanOrEqual(0);
@@ -89,7 +89,7 @@ describe("applyJitter", () => {
 		expect(JITTER_MAX_MS).toBe(5 * 60_000);
 	});
 
-	it("FR-14: cùng link id luôn cùng độ lệch (không đổi giữa các lượt)", () => {
+	it("FR-14: the same link id always gets the same offset (stable across runs)", () => {
 		expect(applyJitter(base, "abc").getTime()).toBe(
 			applyJitter(base, "abc").getTime(),
 		);
@@ -99,7 +99,7 @@ describe("applyJitter", () => {
 		);
 	});
 
-	it("FR-14: dàn đều các link cùng mốc giờ (mỗi phút trong 5 phút có 15–25% số link)", () => {
+	it("FR-14: spreads links scheduled for the same time (each of the 5 minutes gets 15–25% of links)", () => {
 		const buckets = [0, 0, 0, 0, 0];
 		const n = 5000;
 		for (let i = 0; i < n; i++) {
@@ -116,9 +116,9 @@ describe("applyJitter", () => {
 });
 
 describe("nextRunAt", () => {
-	it("AC-02: link không có lịch riêng, domain không có lịch riêng → lượt kế tiếp trong 06:00–06:05", () => {
-		// Dispatcher chạy mỗi 5 phút nên link được lấy ra trước 06:10, Checker xong trước 06:15.
-		const now = utc("2026-09-29T10:00:00Z"); // 17:00 giờ VN
+	it("AC-02: link and domain without their own schedule → next run within 06:00–06:05", () => {
+		// The Dispatcher runs every 5 minutes, so the link is picked up before 06:10 and checked before 06:15.
+		const now = utc("2026-09-29T10:00:00Z"); // 17:00 Vietnam time
 		for (const id of ["a", "b", "c", "01JABCDEF", "link-9999"]) {
 			const t = nextRunAt(DEFAULT_SCHEDULE, id, now).getTime();
 			const six = utc("2026-09-29T23:00:00Z").getTime();
@@ -127,7 +127,7 @@ describe("nextRunAt", () => {
 		}
 	});
 
-	it("AC-02: link vừa check lúc 06:03 (đã có jitter) → lượt kế tiếp là sáng hôm sau", () => {
+	it("AC-02: link just checked at 06:03 (with jitter) → next run is the next morning", () => {
 		const checkedAt = utc("2026-09-29T23:03:00Z");
 		const t = nextRunAt(DEFAULT_SCHEDULE, "a", checkedAt);
 		expect(t.getTime()).toBeGreaterThanOrEqual(

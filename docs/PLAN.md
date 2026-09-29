@@ -28,6 +28,8 @@
 
 **Đã chốt 29/09/2026 (sau Mốc 1 phần local):**
 
+- **Ngôn ngữ (đổi so với SRS NFR-10):** giao diện **chỉ tiếng Anh** (bỏ tiếng Việt khỏi UI). Toàn bộ code (tên, comment, tên test, thông điệp lỗi/log, message commit) viết tiếng Anh; tài liệu `docs/` giữ tiếng Việt.
+
 - Domain chính dùng cả phần private của PSL: `abc.github.io`, `shop.vercel.app` là domain riêng.
 - Link trỏ vào địa chỉ nội bộ bị chặn (NFR-07) → Link chết (`blocked_private_address`).
 - Mã HTTP trong danh sách mong đợi luôn được ưu tiên, kể cả 4xx/5xx do người dùng khai báo.
@@ -136,7 +138,7 @@
 - **Phụ thuộc:** 18a
 
 ### Bước 23a — Nền tảng web (rút gọn)
-- **File:** `src/app/providers.tsx` (Mantine, TanStack Query, Notifications), `src/i18n/{vi,en}.json`, `src/lib/api.ts` (client có kiểu từ schema core, gắn header `x-linkwatch-key` từ `localStorage`), layout + menu, ô nhập khóa API, bỏ file mẫu Next.
+- **File:** `src/app/providers.tsx` (Mantine, TanStack Query, Notifications), `src/i18n/en.json` (ban đầu vi + en; từ 29/09/2026 chỉ tiếng Anh), `src/lib/api.ts` (client có kiểu từ schema core, gắn header `x-linkwatch-key` từ `localStorage`), layout + menu, ô nhập khóa API, bỏ file mẫu Next.
 - **FR/AC:** NFR-10.
 - **Xong khi:** build ra `out/`; `pnpm dev:web` + API local hiển thị layout.
 - **Phụ thuộc:** 18a

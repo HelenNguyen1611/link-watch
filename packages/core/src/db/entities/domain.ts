@@ -4,7 +4,7 @@ import { DomainStatus } from "../../schema/enums";
 
 const now = () => new Date().toISOString();
 
-/** SRS 6.2: Domain — PK DOMAIN#<tên>, SK META (FR-08). */
+/** SRS 6.2: Domain — PK DOMAIN#<name>, SK META (FR-08). */
 export function domainEntity(client: DynamoDBDocumentClient, table: string) {
 	return new Entity(
 		{
@@ -18,7 +18,7 @@ export function domainEntity(client: DynamoDBDocumentClient, table: string) {
 				enabled: { type: "boolean", default: true },
 				slowAlert: { type: "boolean", default: false },
 				ignoreWaf403: { type: "boolean", default: false },
-				/** FR-09: trạng thái tổng hợp. */
+				/** FR-09: aggregate status. */
 				status: { type: DomainStatus.options, default: "normal" },
 				createdAt: { type: "string", readOnly: true, default: now },
 				updatedAt: { type: "string", watch: "*", set: now, default: now },

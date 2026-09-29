@@ -1,11 +1,11 @@
 import type { CreateTableCommandInput } from "@aws-sdk/client-dynamodb";
 
 /**
- * SRS 6.2: một bảng DynamoDB (single-table).
- * - gsi1 "due": pk = "DUE", sk = next_run_at — Dispatcher lấy link đến hạn (thưa: link tạm dừng/xóa không có next_run_at).
- * - gsi2: pk = state, sk = opened_at — incident đang mở (Bước 9b).
- * - gsi3 "byType": pk = loại thực thể, sk = id — tra link theo id và liệt kê mọi link/domain.
- * CDK (Bước 35) phải khai báo đúng các tên này.
+ * SRS 6.2: one DynamoDB table (single-table design).
+ * - gsi1 "due": pk = "DUE", sk = next_run_at — the Dispatcher fetches due links (sparse: paused/deleted links have no next_run_at).
+ * - gsi2: pk = state, sk = opened_at — open incidents (step 9b).
+ * - gsi3 "byType": pk = entity type, sk = id — look up a link by id and list every link/domain.
+ * CDK (step 35) must declare exactly these names.
  */
 export const KEY_ATTRIBUTES = [
 	"pk",

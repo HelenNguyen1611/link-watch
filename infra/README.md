@@ -1,12 +1,12 @@
 # @linkwatch/infra
 
-AWS CDK v2 cho LinkWatch. Stack đang chạy: `LinkWatch-Web`, `LinkWatch-Cicd` (xem `CLAUDE.md` ở gốc repo).
-Cấu hình cố định (account, region, domain, chứng chỉ, GitHub OIDC) nằm ở `lib/config.ts`.
+AWS CDK v2 for LinkWatch. Deployed stacks: `LinkWatch-Cicd`, `LinkWatch-Data`, `LinkWatch-Workers`, `LinkWatch-Api`, `LinkWatch-Web` (see `CLAUDE.md` at the repo root).
+Fixed configuration (account, region, domain, certificate, GitHub OIDC, DynamoDB capacity) lives in `lib/config.ts`.
 
 ```bash
-pnpm test                  # ở gốc repo: Vitest + CDK assertions (infra/test)
-pnpm synth                 # ở gốc repo: cần apps/web/out (pnpm --filter @linkwatch/web build)
+pnpm test                  # from the repo root: Vitest + CDK assertions (infra/test)
+pnpm synth                 # from the repo root: needs apps/web/out (pnpm --filter @linkwatch/web build)
 pnpm --filter @linkwatch/infra exec cdk diff
 ```
 
-Deploy chạy tự động khi push `main` (`.github/workflows/deploy.yml`). Không chạy `cdk deploy` từ máy khi chưa thống nhất.
+Deploys run automatically on push to `main` (`.github/workflows/deploy.yml`). Do not run `cdk deploy` locally unless agreed.

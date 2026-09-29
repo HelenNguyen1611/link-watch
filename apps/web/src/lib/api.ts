@@ -11,19 +11,19 @@ export class ApiError extends Error {
 		readonly status: number,
 		readonly body: { error?: string; message?: string; [k: string]: unknown },
 	) {
-		super(`API ${status}: ${body.error ?? "lỗi"}`);
+		super(`API ${status}: ${body.error ?? "error"}`);
 		this.name = "ApiError";
 	}
 }
 
 export type ApiOptions = {
-	/** "" = cùng origin (production qua CloudFront /api/*). Local: NEXT_PUBLIC_API_BASE=http://localhost:8787. */
+	/** "" = same origin (production via CloudFront /api/*). Local: NEXT_PUBLIC_API_BASE=http://localhost:8787. */
 	baseUrl: string;
 	getApiKey: () => string | null;
 	fetch?: typeof fetch;
 };
 
-/** Client API có kiểu, dùng chung schema với backend (@linkwatch/core). */
+/** Typed API client sharing schemas with the backend (@linkwatch/core). */
 export function createApi(opts: ApiOptions) {
 	const doFetch =
 		opts.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));

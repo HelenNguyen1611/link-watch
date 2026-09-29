@@ -15,7 +15,7 @@ describe("LinkWatch-Cicd", () => {
 		template = Template.fromStack(stack);
 	});
 
-	it("giữ nguyên logical ID của tài nguyên đã deploy", () => {
+	it("keeps the logical IDs of deployed resources", () => {
 		const ids = Object.keys(template.toJSON().Resources);
 		expect(ids).toEqual(
 			expect.arrayContaining([
@@ -26,14 +26,14 @@ describe("LinkWatch-Cicd", () => {
 		);
 	});
 
-	it("OIDC provider của GitHub với audience STS", () => {
+	it("GitHub OIDC provider with the STS audience", () => {
 		template.hasResourceProperties("AWS::IAM::OIDCProvider", {
 			Url: "https://token.actions.githubusercontent.com",
 			ClientIdList: ["sts.amazonaws.com"],
 		});
 	});
 
-	it("role chỉ cho nhánh main của đúng repo assume", () => {
+	it("role can only be assumed from the main branch of this repo", () => {
 		const { owner, repo, branch, ownerId, repoId } = config.github;
 		template.hasResourceProperties("AWS::IAM::Role", {
 			RoleName: "linkwatch-github-deploy",
@@ -57,7 +57,7 @@ describe("LinkWatch-Cicd", () => {
 		});
 	});
 
-	it("role chỉ được assume các role của cdk bootstrap", () => {
+	it("role can only assume the cdk bootstrap roles", () => {
 		template.hasResourceProperties("AWS::IAM::Policy", {
 			PolicyDocument: {
 				Statement: [

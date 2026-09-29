@@ -7,8 +7,8 @@ import {
 } from "./safe-lookup";
 
 /**
- * FR-17: hạn chứng chỉ SSL của host. Chỉ đọc chứng chỉ (không xác thực) nên đọc được cả khi chứng chỉ lỗi.
- * Không kết nối được thì trả undefined.
+ * FR-17: SSL certificate expiry of a host. Only reads the certificate (no validation), so it works even for broken certificates.
+ * Returns undefined when it cannot connect.
  */
 export function getCertExpiry(
 	host: string,

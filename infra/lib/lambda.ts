@@ -8,7 +8,7 @@ import type { Construct } from "constructs";
 const REPO_ROOT = path.join(__dirname, "../..");
 
 export type LinkWatchFunctionProps = {
-	/** Đường dẫn entry tính từ gốc repo, vd. services/checker/src/index.ts */
+	/** Entry path relative to the repo root, e.g. services/checker/src/index.ts */
 	entry: string;
 	timeout: cdk.Duration;
 	memorySize?: number;
@@ -17,8 +17,8 @@ export type LinkWatchFunctionProps = {
 };
 
 /**
- * Lambda chuẩn của LinkWatch (SRS 3.4–3.5): Node.js 22, arm64, ngoài VPC (không NAT),
- * đóng gói esbuild từ monorepo pnpm, log giữ 14 ngày.
+ * Standard LinkWatch Lambda (SRS 3.4–3.5): Node.js 22, arm64, outside a VPC (no NAT),
+ * bundled with esbuild from the pnpm monorepo, logs kept for 14 days.
  */
 export class LinkWatchFunction extends nodejs.NodejsFunction {
 	constructor(scope: Construct, id: string, props: LinkWatchFunctionProps) {
@@ -44,7 +44,7 @@ export class LinkWatchFunction extends nodejs.NodejsFunction {
 				target: "node22",
 				minify: true,
 				sourceMap: true,
-				// AWS SDK v3 có sẵn trong runtime Node 22.
+				// AWS SDK v3 ships with the Node 22 runtime.
 				externalModules: ["@aws-sdk/*"],
 			},
 		});

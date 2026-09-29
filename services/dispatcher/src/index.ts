@@ -5,9 +5,9 @@ import { createHandler } from "./handler";
 
 const logger = new Logger({ serviceName: "dispatcher" });
 const queueUrl = process.env.CHECK_QUEUE_URL;
-if (!queueUrl) throw new Error("Thiếu CHECK_QUEUE_URL");
+if (!queueUrl) throw new Error("Missing CHECK_QUEUE_URL");
 
-/** Lambda entry: EventBridge Scheduler mỗi 5 phút. */
+/** Lambda entry: EventBridge Scheduler every 5 minutes. */
 export const handler = createHandler({
 	db: createDb(),
 	sqs: new SQSClient({}),

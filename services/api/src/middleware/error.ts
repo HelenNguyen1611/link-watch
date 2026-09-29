@@ -4,7 +4,7 @@ type ZodLikeError = Error & { issues: unknown[] };
 const isZodError = (err: Error): err is ZodLikeError =>
 	err.name === "ZodError" && Array.isArray((err as ZodLikeError).issues);
 
-/** Map lỗi → HTTP: Zod 400, JSON sai 400, lỗi nghiệp vụ theo `code`, còn lại 500 không lộ chi tiết. */
+/** Map errors → HTTP: Zod 400, bad JSON 400, domain errors by `code`, anything else 500 without details. */
 export function onError(
 	log: (message: string, extra?: Record<string, unknown>) => void,
 ) {
@@ -25,7 +25,7 @@ export function onError(
 			);
 		if (code === "not_found")
 			return c.json({ error: "not_found", message: err.message }, 404);
-		log("Lỗi không lường trước", { error: String(err), stack: err.stack });
+		log("Unexpected error", { error: String(err), stack: err.stack });
 		return c.json({ error: "internal" }, 500);
 	};
 }

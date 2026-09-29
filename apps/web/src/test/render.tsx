@@ -8,7 +8,7 @@ import type { Api } from "@/lib/api";
 import { ApiContext } from "@/lib/api-context";
 import { theme } from "@/lib/theme";
 
-/** Render với đủ provider như app thật, API giả. */
+/** Renders with the same providers as the app, using a fake API. */
 export function renderWithApi(ui: ReactElement, api: Api) {
 	const client = new QueryClient({
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

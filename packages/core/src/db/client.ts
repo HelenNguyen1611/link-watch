@@ -2,16 +2,16 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 export type ClientOptions = {
-	/** Đặt khi chạy DynamoDB Local, vd. http://localhost:8000. */
+	/** Set when running DynamoDB Local, e.g. http://localhost:8000. */
 	endpoint?: string;
 	region?: string;
 };
 
-/** Client thô (quản lý bảng) — endpoint Local dùng credentials giả. */
+/** Low-level client (table management) — the local endpoint uses dummy credentials. */
 export function createRawClient(opts: ClientOptions = {}): DynamoDBClient {
 	const endpoint = opts.endpoint ?? process.env.DYNAMODB_ENDPOINT;
 	return new DynamoDBClient({
-		// DynamoDB Local tách dữ liệu theo region: mọi công cụ local dùng chung region "local".
+		// DynamoDB Local partitions data by region: every local tool shares the "local" region.
 		region:
 			opts.region ??
 			(endpoint ? "local" : (process.env.AWS_REGION ?? "ap-southeast-1")),

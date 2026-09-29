@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-/** Bộ icon nét (24×24, stroke = currentColor) dùng cho sidebar và nút. */
+/** Stroke icon set (24×24, stroke = currentColor) for the sidebar and buttons. */
 function Icon({
 	children,
 	size = 20,

@@ -5,8 +5,8 @@ import type { MiddlewareHandler } from "hono";
 const digest = (s: string) => createHash("sha256").update(s).digest();
 
 /**
- * TẠM THỜI (Mốc 1, xóa ở Bước 18b khi có Cognito): mọi route đòi header khóa API.
- * So sánh bản băm bằng timingSafeEqual (không lộ độ dài/thời gian); khóa rỗng = từ chối hết.
+ * TEMPORARY (milestone 1, removed in step 18b with Cognito): every route requires the API key header.
+ * Compares hashes with timingSafeEqual (leaks neither length nor timing); an empty key rejects everything.
  */
 export function sharedSecret(
 	getApiKey: () => Promise<string>,

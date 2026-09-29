@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { DomainInput, DomainName } from "./domain";
 
 describe("DomainName", () => {
-	it("FR-07: nhận domain chính đã chuẩn hóa, hạ chữ thường", () => {
+	it("FR-07: accepts a normalized, lowercased root domain", () => {
 		expect(DomainName.parse(" ABC.com.VN ")).toBe("abc.com.vn");
 		expect(DomainName.parse("abc.github.io")).toBe("abc.github.io");
 	});
 
 	it.each(["", "https://abc.com", "abc.com/x", "a b.com"])(
-		"FR-07: từ chối chuỗi không phải domain: %j",
+		"FR-07: rejects strings that are not domains: %j",
 		(value) => {
 			expect(DomainName.safeParse(value).success).toBe(false);
 		},
@@ -16,7 +16,7 @@ describe("DomainName", () => {
 });
 
 describe("DomainInput", () => {
-	it("FR-08: mặc định bật, không cảnh báo chậm, không bỏ qua 403", () => {
+	it("FR-08: defaults to enabled, no slow alerts, no 403 ignore", () => {
 		expect(DomainInput.parse({})).toEqual({
 			enabled: true,
 			slowAlert: false,
@@ -25,7 +25,7 @@ describe("DomainInput", () => {
 		});
 	});
 
-	it("FR-08: nhận tên hiển thị, mô tả, người phụ trách, lịch riêng", () => {
+	it("FR-08: accepts display name, description, owner, own schedule", () => {
 		const d = DomainInput.parse({
 			displayName: "  ABC Shop ",
 			description: "Site bán hàng",
@@ -42,7 +42,7 @@ describe("DomainInput", () => {
 		});
 	});
 
-	it("FR-08: danh sách người nhận là email hợp lệ, hạ chữ thường, loại trùng", () => {
+	it("FR-08: recipients are valid, lowercased, de-duplicated emails", () => {
 		const d = DomainInput.parse({
 			recipients: ["A@abc.com", "a@abc.com ", "b@abc.com"],
 		});

@@ -1,6 +1,6 @@
 import { Group, Text } from "@mantine/core";
 
-// Cùng hình với favicon (src/app/icon.svg): nhịp tim trắng trên nền xanh ngọc.
+// Same mark as the favicon (src/app/icon.svg): white heartbeat on teal.
 export const BRAND_COLOR = "#0F766E";
 
 export function LogoMark({ size = 28 }: { size?: number }) {

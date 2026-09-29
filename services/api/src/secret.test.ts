@@ -10,7 +10,7 @@ beforeEach(() => {
 });
 
 describe("createSecretLoader", () => {
-	it("NFR-07 (tạm): đọc SecureString có giải mã", async () => {
+	it("NFR-07 (temporary): reads the SecureString with decryption", async () => {
 		const load = createSecretLoader({
 			ssm: new SSMClient({}),
 			name: "/linkwatch/api-shared-secret",
@@ -22,7 +22,7 @@ describe("createSecretLoader", () => {
 		});
 	});
 
-	it("cache 5 phút rồi đọc lại (đổi khóa không cần deploy)", async () => {
+	it("caches for 5 minutes then re-reads (rotating the key needs no deploy)", async () => {
 		expect(SECRET_TTL_MS).toBe(5 * 60_000);
 		let now = 0;
 		const load = createSecretLoader({
@@ -41,7 +41,7 @@ describe("createSecretLoader", () => {
 		expect(await load()).toBe("khoa-2");
 	});
 
-	it("đọc SSM lỗi thì ném lỗi (API trả 500, không cho qua)", async () => {
+	it("throws when SSM fails (API returns 500, never lets requests through)", async () => {
 		ssmMock.on(GetParameterCommand).rejects(new Error("AccessDenied"));
 		const load = createSecretLoader({ ssm: new SSMClient({}), name: "n" });
 		await expect(load()).rejects.toThrow("AccessDenied");

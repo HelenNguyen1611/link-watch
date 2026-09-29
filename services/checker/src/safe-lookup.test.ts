@@ -8,7 +8,7 @@ const lookup = (
 ) =>
 	new Promise<{ err: NodeJS.ErrnoException | null; address: unknown }>(
 		(resolve) => {
-			// biome-ignore lint/suspicious/noExplicitAny: gọi như net.connect gọi lookup
+			// biome-ignore lint/suspicious/noExplicitAny: called the way net.connect calls lookup
 			(createSafeLookup(opts) as any)(
 				host,
 				{ all },
@@ -19,12 +19,12 @@ const lookup = (
 	);
 
 describe("createSafeLookup", () => {
-	it("NFR-07: hostname phân giải ra IP nội bộ bị chặn lúc kết nối (chống DNS rebinding)", async () => {
+	it("NFR-07: a hostname resolving to a private IP is blocked at connect time (DNS rebinding protection)", async () => {
 		const { err } = await lookup("localhost", {});
 		expect(err?.code).toBe("BLOCKED_PRIVATE_ADDRESS");
 	});
 
-	it("NFR-07: Admin cho phép host thì trả địa chỉ như dns.lookup (cả dạng all)", async () => {
+	it("NFR-07: an admin-allowed host returns addresses like dns.lookup (including all)", async () => {
 		const one = await lookup("localhost", { allowHosts: ["localhost"] });
 		expect(one.err).toBeNull();
 		expect(typeof one.address).toBe("string");
@@ -32,8 +32,8 @@ describe("createSafeLookup", () => {
 		expect(Array.isArray(all.address)).toBe(true);
 	});
 
-	it("lỗi DNS được chuyển tiếp nguyên mã", async () => {
-		const { err } = await lookup("khong-ton-tai.invalid", {});
+	it("DNS errors are passed through with their code", async () => {
+		const { err } = await lookup("does-not-exist.invalid", {});
 		expect(err?.code).toBe("ENOTFOUND");
 	});
 });

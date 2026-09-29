@@ -4,15 +4,15 @@ import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
 import { config } from "./config";
 
-/** Tên bảng cho script/công cụ vận hành (SSM Standard, miễn phí). */
+/** Table name for scripts and ops tools (SSM Standard, free). */
 export const TABLE_NAME_PARAM = "/linkwatch/table-name";
 
 const S = dynamodb.AttributeType.STRING;
 
 /**
- * SRS 6.2: một bảng DynamoDB single-table. Tên key/GSI phải khớp
- * packages/core/src/db/table.ts (test infra/test/data-stack.test.ts kiểm tra).
- * Tạo đủ GSI1–3 và bật Streams ngay vì mỗi lần cập nhật bảng chỉ thêm được 1 GSI.
+ * SRS 6.2: one single-table DynamoDB table. Key/GSI names must match
+ * packages/core/src/db/table.ts (checked by infra/test/data-stack.test.ts).
+ * All of GSI1–3 and Streams are created up front because each table update can add only one GSI.
  */
 export class DataStack extends cdk.Stack {
 	readonly table: dynamodb.Table;
@@ -47,7 +47,7 @@ export class DataStack extends cdk.Stack {
 		new ssm.StringParameter(this, "TableNameParam", {
 			parameterName: TABLE_NAME_PARAM,
 			stringValue: this.table.tableName,
-			description: "Tên bảng DynamoDB của LinkWatch",
+			description: "LinkWatch DynamoDB table name",
 		});
 
 		new cdk.CfnOutput(this, "TableName", { value: this.table.tableName });

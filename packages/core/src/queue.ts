@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-/** Checker check tối đa 20 link mỗi message (SRS 3.4). */
+/** The Checker checks at most 20 links per message (SRS 3.4). */
 export const MAX_LINKS_PER_JOB = 20;
 
 /**
- * Message SQS từ Dispatcher → Checker. Một message chỉ chứa link của một domain
- * (`MessageGroupId = domain`, FR-14). Loại ưu tiên (recheck, xác minh, Check now) thêm ở Bước 14.
+ * SQS message from Dispatcher → Checker. A message only holds links of one domain
+ * (`MessageGroupId = domain`, FR-14). Priority kinds (recheck, verification, Check now) are added in step 14.
  */
 export const CheckJob = z.object({
 	kind: z.literal("scheduled"),

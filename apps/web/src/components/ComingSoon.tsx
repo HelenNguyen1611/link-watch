@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "./PageHeader";
 
-/** Trang giữ chỗ cho màn hình chưa làm, để menu không dẫn tới 404. */
+/** Placeholder for screens not built yet, so the menu never leads to a 404. */
 export function ComingSoon({
 	navKey,
 	screen,

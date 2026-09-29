@@ -23,7 +23,7 @@ describe("isPrivateIp", () => {
 		"224.0.0.1",
 		"240.0.0.1",
 		"255.255.255.255",
-	])("NFR-07: chặn IPv4 nội bộ/đặc biệt %s", (ip) => {
+	])("NFR-07: blocks private/special IPv4 %s", (ip) => {
 		expect(isPrivateIp(ip)).toBe(true);
 	});
 
@@ -36,7 +36,7 @@ describe("isPrivateIp", () => {
 		"100.128.0.1",
 		"169.253.255.255",
 		"13.228.1.1",
-	])("NFR-07: cho phép IPv4 công khai %s", (ip) => {
+	])("NFR-07: allows public IPv4 %s", (ip) => {
 		expect(isPrivateIp(ip)).toBe(false);
 	});
 
@@ -54,7 +54,7 @@ describe("isPrivateIp", () => {
 		"::ffff:169.254.169.254",
 		"64:ff9b::a9fe:a9fe",
 		"fd00:ec2::254",
-	])("NFR-07: chặn IPv6 nội bộ/đặc biệt %s", (ip) => {
+	])("NFR-07: blocks private/special IPv6 %s", (ip) => {
 		expect(isPrivateIp(ip)).toBe(true);
 	});
 
@@ -63,15 +63,15 @@ describe("isPrivateIp", () => {
 		"2001:4860:4860::8888",
 		"::ffff:8.8.8.8",
 		"2404:6800:4003:c00::64",
-	])("NFR-07: cho phép IPv6 công khai %s", (ip) => {
+	])("NFR-07: allows public IPv6 %s", (ip) => {
 		expect(isPrivateIp(ip)).toBe(false);
 	});
 
-	it("NFR-07: nhận IPv6 trong ngoặc vuông như trong URL", () => {
+	it("NFR-07: accepts bracketed IPv6 as in a URL", () => {
 		expect(isPrivateIp("[::1]")).toBe(true);
 	});
 
-	it("chuỗi không phải IP thì trả null khi parse và ném lỗi khi kiểm tra", () => {
+	it("non-IP strings parse to null and throw when checked", () => {
 		expect(parseIp("abc.com")).toBeNull();
 		expect(parseIp("256.1.1.1")).toBeNull();
 		expect(parseIp("1.2.3")).toBeNull();
@@ -91,7 +91,7 @@ describe("isForbiddenHostname", () => {
 		"127.0.0.1",
 		"[::1]",
 		"10.1.2.3",
-	])("NFR-07: chặn hostname nội bộ %s", (host) => {
+	])("NFR-07: blocks internal hostname %s", (host) => {
 		expect(isForbiddenHostname(host)).toBe(true);
 	});
 
@@ -100,7 +100,7 @@ describe("isForbiddenHostname", () => {
 		"localhost.abc.com",
 		"8.8.8.8",
 		"[2606:4700:4700::1111]",
-	])("NFR-07: cho phép hostname công khai %s", (host) => {
+	])("NFR-07: allows public hostname %s", (host) => {
 		expect(isForbiddenHostname(host)).toBe(false);
 	});
 });

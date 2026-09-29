@@ -20,7 +20,7 @@ const api = (key: string | null = "k", base = "") =>
 	});
 
 describe("createApi", () => {
-	it("gắn header khóa API tạm và gọi /api cùng origin khi không đặt base URL", async () => {
+	it("sends the temporary API key header and calls same-origin /api when no base URL is set", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api().listLinks();
 		const [url, init] = fetchMock.mock.calls[0];
@@ -28,7 +28,7 @@ describe("createApi", () => {
 		expect(new Headers(init.headers).get(API_KEY_HEADER)).toBe("k");
 	});
 
-	it("dùng base URL (chạy local: web :3000 → API :8787)", async () => {
+	it("uses the base URL (local: web :3000 → API :8787)", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api("k", "http://localhost:8787").listLinks({ cursor: "abc=" });
 		expect(fetchMock.mock.calls[0][0]).toBe(
@@ -36,7 +36,7 @@ describe("createApi", () => {
 		);
 	});
 
-	it("FR-01: thêm link gửi JSON, trả link đã chuẩn hóa", async () => {
+	it("FR-01: adding a link sends JSON and returns the normalised link", async () => {
 		fetchMock.mockResolvedValue(
 			json(201, { id: "L1", url: "https://abc.com/" }),
 		);
@@ -50,14 +50,14 @@ describe("createApi", () => {
 		expect(link.id).toBe("L1");
 	});
 
-	it("FR-04: xóa link → DELETE, 204 không có body", async () => {
+	it("FR-04: deleting a link → DELETE, 204 without body", async () => {
 		fetchMock.mockResolvedValue(json(204, null));
 		await expect(api().deleteLink("L 1")).resolves.toBeUndefined();
 		expect(fetchMock.mock.calls[0][0]).toBe("/api/links/L%201");
 		expect(fetchMock.mock.calls[0][1].method).toBe("DELETE");
 	});
 
-	it("lỗi HTTP → ApiError có status và body (409 trùng, 401 sai khóa)", async () => {
+	it("HTTP errors → ApiError with status and body (409 duplicate, 401 wrong key)", async () => {
 		fetchMock.mockResolvedValue(
 			json(409, { error: "duplicate", existingId: "L0" }),
 		);
@@ -78,7 +78,7 @@ describe("createApi", () => {
 		).toBe(401);
 	});
 
-	it("chưa nhập khóa thì không gửi header", async () => {
+	it("sends no header when no key is entered", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api(null).listLinks();
 		expect(

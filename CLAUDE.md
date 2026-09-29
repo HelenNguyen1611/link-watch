@@ -11,7 +11,7 @@ Nguồn yêu cầu: `docs/SRS.md` (mã HLR/FR/NFR/AC). Kế hoạch build: `docs
 ## Kiến trúc và công nghệ đã chốt (SRS 3.4–3.5) — không tự ý thay
 
 - TypeScript strict toàn bộ, Node.js 22, monorepo pnpm workspaces.
-- `apps/web`: Next.js 16 App Router, **static export** (`output: "export"`). Không dùng Server Actions, Route Handlers, middleware, ISR, route động `[param]`. Trang có tham số dùng query string: `/domains/?d=…`, `/links/detail/?id=…`, `/confirm/?token=…`. Dữ liệu lấy phía client qua TanStack Query. UI: Mantine, form: React Hook Form + Zod, biểu đồ: Recharts, i18n: react-i18next (vi mặc định, en). Đọc `apps/web/AGENTS.md` trước khi sửa web.
+- `apps/web`: Next.js 16 App Router, **static export** (`output: "export"`). Không dùng Server Actions, Route Handlers, middleware, ISR, route động `[param]`. Trang có tham số dùng query string: `/domains/?d=…`, `/links/detail/?id=…`, `/confirm/?token=…`. Dữ liệu lấy phía client qua TanStack Query. UI: Mantine, form: React Hook Form + Zod, biểu đồ: Recharts, i18n: react-i18next, **giao diện chỉ tiếng Anh** (`en.json`, chốt 29/09/2026). Đọc `apps/web/AGENTS.md` trước khi sửa web.
 - `services/api`: một Lambda Hono sau API Gateway HTTP API (JWT authorizer Cognito).
 - `services/dispatcher`: EventBridge Scheduler mỗi 5 phút → lấy link đến hạn (GSI `next_run_at`) → SQS.
 - `services/checker`: SQS → check tối đa 20 link/lần gọi bằng `undici` + `p-limit` → ghi kết quả, mở/đóng sự cố.
@@ -28,7 +28,8 @@ Nguồn yêu cầu: `docs/SRS.md` (mã HLR/FR/NFR/AC). Kế hoạch build: `docs
 - **Schema Zod dùng chung FE/BE**, export từ `@linkwatch/core`; kiểu TypeScript suy ra từ schema (`z.infer`), không khai báo trùng.
 - Thời gian lưu dạng ISO 8601 UTC; chỉ đổi sang Asia/Saigon khi tính lịch và hiển thị. Hàm cần "bây giờ" nhận `now` làm tham số để test được.
 - Lint + format bằng **Biome** (tab, nháy kép). Không thêm ESLint/Prettier/Jest.
-- **Tên test chứa mã FR/AC/NFR trong SRS**, ví dụ: `it("FR-02: bỏ #fragment và hạ chữ thường host")`, `it("AC-05: lỗi 1 lần rồi OK thì không mở incident")`.
+- **Code luôn viết bằng tiếng Anh**: tên biến/hàm/file, comment, JSDoc, tên test, thông điệp lỗi/log, message commit. Chữ hiển thị cho người dùng không viết cứng trong code mà đặt trong `apps/web/src/i18n/en.json`. Tài liệu trong `docs/` (SRS, PLAN, RUNBOOK) và `CLAUDE.md` giữ tiếng Việt.
+- **Tên test chứa mã FR/AC/NFR trong SRS**, ví dụ: `it("FR-02: strips #fragment and lowercases the host")`, `it("AC-05: one failure then OK does not open an incident")`.
 - Test gọi AWS: dùng `aws-sdk-client-mock` hoặc DynamoDB Local (`pnpm db:local`); không gọi AWS thật trong test.
 - Mỗi bước trong `docs/PLAN.md` = một commit riêng, message dạng `feat(core): … (FR-xx)`.
 

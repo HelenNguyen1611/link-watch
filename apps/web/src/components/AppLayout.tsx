@@ -12,7 +12,7 @@ import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, Sidebar } from "./Sidebar";
 
 export const SIDEBAR_STORAGE_KEY = "linkwatch.sidebarCollapsed";
 
-/** Khung trang: header mảnh, sidebar trái thu gọn được, nội dung giữa rộng tối đa 1152 px. */
+/** Page shell: slim header, collapsible left sidebar, centred content up to 1152 px wide. */
 export function AppLayout({ children }: { children: ReactNode }) {
 	const { t } = useTranslation();
 	const pathname = usePathname() ?? "/";

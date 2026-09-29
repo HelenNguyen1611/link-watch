@@ -10,14 +10,14 @@ import type { Construct } from "constructs";
 import { config } from "./config";
 
 /**
- * Giao diện web: S3 (private) + CloudFront (HTTPS, watch.hueai.net).
- * Next.js static export (apps/web/out) được upload lên S3 mỗi lần deploy.
- * Sau này sẽ thêm behavior /api/* → API Gateway vào distribution này.
+ * Web UI: S3 (private) + CloudFront (HTTPS, watch.hueai.net).
+ * The Next.js static export (apps/web/out) is uploaded to S3 on every deploy.
+ * /api/* is routed to API Gateway on the same distribution (step 37a).
  */
 export interface WebStackProps extends cdk.StackProps {
-	/** Thư mục site tĩnh; mặc định apps/web/out. Test truyền thư mục mẫu để không cần build web. */
+	/** Static site directory; defaults to apps/web/out. Tests pass a fixture so no web build is needed. */
 	siteDir?: string;
-	/** Domain execute-api của LinkWatch-Api; có thì thêm behavior /api/* (Bước 37a). */
+	/** execute-api domain of LinkWatch-Api; when set, adds the /api/* behavior (step 37a). */
 	apiOriginDomain?: string;
 }
 
@@ -29,7 +29,7 @@ export class WebStack extends cdk.Stack {
 			props?.siteDir ?? path.join(__dirname, "../../apps/web/out");
 		if (!fs.existsSync(siteDir)) {
 			throw new Error(
-				`Chưa có ${siteDir}. Hãy chạy "pnpm build" ở thư mục gốc trước khi deploy.`,
+				`Missing ${siteDir}. Run "pnpm build" at the repo root before deploying.`,
 			);
 		}
 
@@ -40,7 +40,7 @@ export class WebStack extends cdk.Stack {
 			removalPolicy: cdk.RemovalPolicy.RETAIN,
 		});
 
-		// Static export dùng trailingSlash: /links/ → /links/index.html
+		// Static export uses trailingSlash: /links/ → /links/index.html
 		const rewrite = new cloudfront.Function(this, "IndexRewrite", {
 			runtime: cloudfront.FunctionRuntime.JS_2_0,
 			code: cloudfront.FunctionCode.fromInline(`
@@ -63,7 +63,7 @@ function handler(event) {
 			domainNames: [config.domainName],
 			certificate,
 			defaultRootObject: "index.html",
-			priceClass: cloudfront.PriceClass.PRICE_CLASS_200, // có edge châu Á
+			priceClass: cloudfront.PriceClass.PRICE_CLASS_200, // includes Asian edge locations
 			minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
 			httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
 			defaultBehavior: {
@@ -95,8 +95,8 @@ function handler(event) {
 			],
 		});
 
-		// /api/* → API Gateway: cùng origin với web nên không cần CORS. Không cache, chuyển mọi
-		// header trừ Host (API Gateway cần Host của chính nó) để header khóa API tới được Lambda.
+		// /api/* → API Gateway: same origin as the web app, so no CORS. No caching; forward every
+		// header except Host (API Gateway needs its own Host) so the API key header reaches Lambda.
 		if (props?.apiOriginDomain) {
 			distribution.addBehavior(
 				"/api/*",
@@ -124,7 +124,7 @@ function handler(event) {
 
 		new cdk.CfnOutput(this, "DistributionDomainName", {
 			value: distribution.distributionDomainName,
-			description: `Tạo CNAME "watch" → giá trị này trên Cloudflare (DNS only)`,
+			description: `Create CNAME "watch" → this value on Cloudflare (DNS only)`,
 		});
 		new cdk.CfnOutput(this, "SiteUrl", {
 			value: `https://${config.domainName}`,

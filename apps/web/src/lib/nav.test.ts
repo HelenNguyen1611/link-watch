@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isActive, MAIN_NAV, SETTINGS_NAV } from "./nav";
 
 describe("nav", () => {
-	it("đủ mục chính SCR-01, 02, 03, 06, 07 và nhóm Cài đặt SCR-08, 09 + khóa API", () => {
+	it("has main items SCR-01, 02, 03, 06, 07 and the Settings group SCR-08, 09 + API key", () => {
 		expect(MAIN_NAV.map((i) => i.screen)).toEqual([
 			"SCR-01",
 			"SCR-02",
@@ -17,12 +17,12 @@ describe("nav", () => {
 		]);
 	});
 
-	it("mọi href kết thúc bằng / (static export trailingSlash)", () => {
+	it("every href ends with / (static export trailingSlash)", () => {
 		for (const i of [...MAIN_NAV, ...SETTINGS_NAV])
 			expect(i.href.endsWith("/")).toBe(true);
 	});
 
-	it("'/' chỉ khớp trang chủ, mục khác khớp theo tiền tố, có hoặc không dấu / cuối", () => {
+	it("'/' matches only the home page; other items match by prefix, with or without a trailing /", () => {
 		expect(isActive("/", "/")).toBe(true);
 		expect(isActive("/", "/links/")).toBe(false);
 		expect(isActive("/links/", "/links")).toBe(true);

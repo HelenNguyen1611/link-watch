@@ -1,6 +1,6 @@
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32
 
-/** Id dạng ULID (26 ký tự): 10 ký tự thời gian + 16 ký tự ngẫu nhiên → sắp theo thời gian tạo. */
+/** ULID-style id (26 chars): 10 time chars + 16 random chars → sortable by creation time. */
 export function newId(now: Date = new Date()): string {
 	let time = now.getTime();
 	let head = "";

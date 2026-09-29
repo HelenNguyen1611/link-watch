@@ -1,8 +1,8 @@
 const fold = (s: string) => s.normalize("NFC").toLocaleLowerCase("vi");
 
 /**
- * FR-01: trang có chứa từ khóa bắt buộc không. Không phân biệt hoa/thường và cách mã hóa
- * Unicode (NFC/NFD) để người dùng không bị báo Link chết oan; vẫn phân biệt dấu tiếng Việt.
+ * FR-01: whether the page contains the required keyword. Case-insensitive and independent of
+ * Unicode normalization (NFC/NFD) so users are not wrongly told the link is dead; still distinguishes Vietnamese diacritics.
  */
 export function containsKeyword(text: string, keyword: string): boolean {
 	return fold(text).includes(fold(keyword));

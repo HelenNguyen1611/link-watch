@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CheckErrorType, HttpMethod, LinkStatus } from "./enums";
 import { HttpCodeRange } from "./link";
 
-/** Link trả về cho web (API ↔ web dùng chung kiểu). */
+/** Link as returned to the web (type shared by API ↔ web). */
 export const LinkView = z.object({
 	id: z.string(),
 	domain: z.string(),
@@ -28,7 +28,7 @@ export type LinkPage = { items: LinkView[]; cursor: string | null };
 
 const KEYS = Object.keys(LinkView.shape) as (keyof LinkView)[];
 
-/** Bỏ trường nội bộ (deletedAt, updatedAt, …) trước khi trả cho web. */
+/** Drops internal fields (deletedAt, updatedAt, …) before returning to the web. */
 export function toLinkView(
 	link: Partial<Record<keyof LinkView | string, unknown>>,
 ): LinkView {

@@ -1,7 +1,7 @@
 import { Stack, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
 
-/** Tiêu đề trang lớn + mô tả xám (phong cách tối giản). */
+/** Large page title + grey description (minimal style). */
 export function PageHeader({
 	title,
 	description,

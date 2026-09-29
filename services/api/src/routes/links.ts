@@ -9,7 +9,7 @@ const ListQuery = z.object({
 	cursor: z.string().min(1).optional(),
 });
 
-/** Mốc 1: thêm, liệt kê, xóa link (FR-01, FR-02, FR-04). Sửa/tạm dừng/lọc ở Bước 19b. */
+/** Milestone 1: add, list, delete links (FR-01, FR-02, FR-04). Edit/pause/filter come in step 19b. */
 export function linkRoutes(db: Db) {
 	return new Hono()
 		.post("/", async (c) => {

@@ -8,22 +8,22 @@ import { ApiKeySettings, maskKey } from "./ApiKeySettings";
 
 beforeEach(() => localStorage.clear());
 
-describe("ApiKeySettings (tạm thời)", () => {
-	it("chỉ hiện 4 ký tự cuối của khóa", async () => {
+describe("ApiKeySettings (temporary)", () => {
+	it("shows only the last 4 characters of the key", async () => {
 		expect(maskKey("abcdefgh1234")).toBe("••••1234");
-		localStorage.setItem("linkwatch.apiKey", "khoa-bi-mat-WXYZ");
+		localStorage.setItem("linkwatch.apiKey", "secret-key-WXYZ");
 		renderWithApi(<ApiKeySettings />, {} as Api);
 		expect(await screen.findByText("••••WXYZ")).toBeTruthy();
-		expect(screen.queryByText(/khoa-bi-mat/)).toBeNull();
+		expect(screen.queryByText(/secret-key/)).toBeNull();
 	});
 
-	it("Đổi khóa: xóa khóa đã lưu và mở lại ô nhập khóa", async () => {
+	it("Change key: clears the stored key and reopens the key form", async () => {
 		localStorage.setItem("linkwatch.apiKey", "k1234");
 		const onInvalid = vi.fn();
 		window.addEventListener("linkwatch:api-key-invalid", onInvalid);
 		renderWithApi(<ApiKeySettings />, {} as Api);
 		await userEvent.click(
-			await screen.findByRole("button", { name: /Đổi khóa/ }),
+			await screen.findByRole("button", { name: /Change key/ }),
 		);
 		expect(getApiKey()).toBeNull();
 		expect(onInvalid).toHaveBeenCalled();

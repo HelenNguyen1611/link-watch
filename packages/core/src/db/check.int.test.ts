@@ -10,7 +10,7 @@ beforeAll(async () => {
 afterAll(() => t?.drop());
 
 describe("CheckResult entity", () => {
-	it("FR-17: khóa LINK#<id> / CHECK#<thời điểm>, lưu đủ trường", async () => {
+	it("FR-17: key LINK#<id> / CHECK#<timestamp>, stores every field", async () => {
 		await t.db.Check.create({
 			linkId: "L1",
 			checkedAt: "2026-09-29T23:01:02.000Z",
@@ -32,7 +32,7 @@ describe("CheckResult entity", () => {
 		expect(raw.Item?.result?.S).toBe("slow");
 	});
 
-	it("FR-17 / NFR-08: ttl = thời điểm check + 90 ngày (epoch giây)", async () => {
+	it("FR-17 / NFR-08: ttl = check time + 90 days (epoch seconds)", async () => {
 		expect(CHECK_TTL_DAYS).toBe(90);
 		const { data } = await t.db.Check.get({
 			linkId: "L1",
@@ -44,7 +44,7 @@ describe("CheckResult entity", () => {
 		expect(checkTtl("2026-09-29T23:01:02.000Z")).toBe(expected);
 	});
 
-	it("FR-18: lấy các lần check gần nhất trước, giới hạn số lượng", async () => {
+	it("FR-18: returns the most recent checks first, with a limit", async () => {
 		for (const [ts, result] of [
 			["2026-09-30T23:01:00.000Z", "up"],
 			["2026-10-01T23:01:00.000Z", "dead"],

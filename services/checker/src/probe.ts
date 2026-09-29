@@ -12,9 +12,9 @@ import {
 import { getCertExpiry } from "./ssl";
 
 export const USER_AGENT = "LinkWatch/1.0";
-/** SRS 5.1: vượt 10 lần redirect → Link chết. */
+/** SRS 5.1: more than 10 redirects → dead link. */
 export const MAX_REDIRECTS = 10;
-/** NFR-09: chỉ đọc tối đa 1 MB nội dung khi tìm từ khóa. */
+/** NFR-09: read at most 1 MB of the body when searching for the keyword. */
 export const MAX_BODY_BYTES = 1024 * 1024;
 
 export type ProbeTarget = {
@@ -34,7 +34,7 @@ class ProbeError extends Error {
 	}
 }
 
-/** Lấy mã lỗi có nghĩa nhất (ENOTFOUND, ECONNREFUSED, mã TLS…) từ lỗi của undici/net. */
+/** Pick the most meaningful error code (ENOTFOUND, ECONNREFUSED, TLS codes…) from an undici/net error. */
 function errorCodeOf(err: unknown): string {
 	const codes: string[] = [];
 	let e = err as { code?: unknown; name?: string; cause?: unknown } | undefined;
@@ -65,9 +65,9 @@ async function readUpTo(
 }
 
 /**
- * Gửi request tới link và trả kết quả thô (SRS 5.1, FR-17); phân loại ở `classify` của core.
- * Theo redirect thủ công (đếm lượt, kiểm tra SSRF từng bước), HEAD → GET khi 405,
- * chỉ đọc nội dung khi có từ khóa bắt buộc.
+ * Send a request to the link and return the raw result (SRS 5.1, FR-17); core's `classify` classifies it.
+ * Follows redirects manually (counting hops, SSRF-checking each one), HEAD → GET on 405,
+ * and reads the body only when a required keyword is set.
  */
 export async function probe(
 	target: ProbeTarget,
@@ -118,14 +118,14 @@ export async function probe(
 				if (redirectCount > MAX_REDIRECTS) {
 					throw new ProbeError(
 						"TOO_MANY_REDIRECTS",
-						`Vượt ${MAX_REDIRECTS} lần redirect`,
+						`More than ${MAX_REDIRECTS} redirects`,
 					);
 				}
 				const next = new URL(String(location), url);
 				if (next.protocol !== "http:" && next.protocol !== "https:") {
 					throw new ProbeError(
 						"UNSUPPORTED_REDIRECT",
-						`Redirect sang ${next.protocol}`,
+						`Redirect to ${next.protocol}`,
 					);
 				}
 				url = next.href;

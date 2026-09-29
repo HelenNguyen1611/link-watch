@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { config } from "../lib/config";
 import { WebStack } from "../lib/web-stack";
 
-// Stack đang chạy thật: logical ID đổi = CloudFormation xóa và tạo lại tài nguyên.
+// Live stack: a changed logical ID makes CloudFormation delete and recreate the resource.
 const DEPLOYED_LOGICAL_IDS = [
 	"SiteBucket397A1860",
 	"SiteBucketPolicy3AC1D0F8",
@@ -27,12 +27,12 @@ describe("LinkWatch-Web", () => {
 		template = Template.fromStack(stack);
 	});
 
-	it("giữ nguyên logical ID của tài nguyên đã deploy", () => {
+	it("keeps the logical IDs of deployed resources", () => {
 		const ids = Object.keys(template.toJSON().Resources);
 		expect(ids).toEqual(expect.arrayContaining(DEPLOYED_LOGICAL_IDS));
 	});
 
-	it("bucket private, mã hóa, giữ lại khi xóa stack", () => {
+	it("bucket is private, encrypted and retained when the stack is deleted", () => {
 		template.hasResource("AWS::S3::Bucket", {
 			DeletionPolicy: "Retain",
 			Properties: {
@@ -51,7 +51,7 @@ describe("LinkWatch-Web", () => {
 		});
 	});
 
-	it("CloudFront dùng domain, chứng chỉ có sẵn và OAC", () => {
+	it("CloudFront uses the domain, the existing certificate and OAC", () => {
 		template.resourceCountIs("AWS::CloudFront::OriginAccessControl", 1);
 		template.hasResourceProperties("AWS::CloudFront::Distribution", {
 			DistributionConfig: Match.objectLike({
@@ -77,39 +77,39 @@ describe("LinkWatch-Web", () => {
 		});
 	});
 
-	it("không tạo chứng chỉ ACM hay SES (tạo tay trên console)", () => {
+	it("creates no ACM certificate or SES identity (managed manually in the console)", () => {
 		template.resourceCountIs("AWS::CertificateManager::Certificate", 0);
 		template.resourceCountIs("AWS::SES::EmailIdentity", 0);
 	});
 
-	it("CloudFront Function rewrite thư mục sang index.html", () => {
+	it("CloudFront Function rewrites directories to index.html", () => {
 		template.hasResourceProperties("AWS::CloudFront::Function", {
 			FunctionConfig: Match.objectLike({ Runtime: "cloudfront-js-2.0" }),
 			FunctionCode: Match.stringLikeRegexp("index\\.html"),
 		});
 	});
 
-	it("BucketDeployment prune và invalidate toàn bộ", () => {
+	it("BucketDeployment prunes and invalidates everything", () => {
 		template.hasResourceProperties("Custom::CDKBucketDeployment", {
 			Prune: true,
 			DistributionPaths: ["/*"],
 		});
 	});
 
-	it("chưa truyền API thì không có behavior /api/* (template như trước)", () => {
+	it("without an API origin there is no /api/* behavior (template unchanged)", () => {
 		template.hasResourceProperties("AWS::CloudFront::Distribution", {
 			DistributionConfig: Match.objectLike({ CacheBehaviors: Match.absent() }),
 		});
 	});
 
-	it("báo lỗi rõ khi chưa build web", () => {
+	it("fails clearly when the web app has not been built", () => {
 		const app = new cdk.App();
 		expect(
 			() =>
 				new WebStack(app, "Missing", {
 					siteDir: path.join(__dirname, "fixtures/khong-ton-tai"),
 				}),
-		).toThrow(/Chưa có/);
+		).toThrow(/Missing .*Run "pnpm build"/);
 	});
 });
 
@@ -127,18 +127,18 @@ describe("LinkWatch-Web + behavior /api/*", () => {
 		template = Template.fromStack(stack);
 	});
 
-	it("vẫn giữ nguyên logical ID của tài nguyên đã deploy", () => {
+	it("still keeps the logical IDs of deployed resources", () => {
 		const ids = Object.keys(template.toJSON().Resources);
 		expect(ids).toEqual(expect.arrayContaining(DEPLOYED_LOGICAL_IDS));
 	});
 
-	it("/api/* → API Gateway: không cache, mọi phương thức, chuyển header trừ Host, HTTPS", () => {
+	it("/api/* → API Gateway: no caching, all methods, forwards headers except Host, HTTPS", () => {
 		template.hasResourceProperties("AWS::CloudFront::Distribution", {
 			DistributionConfig: Match.objectLike({
 				CacheBehaviors: [
 					Match.objectLike({
 						PathPattern: "/api/*",
-						// Managed-CachingDisabled và Managed-AllViewerExceptHostHeader
+						// Managed-CachingDisabled and Managed-AllViewerExceptHostHeader
 						CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
 						OriginRequestPolicyId: "b689b0a8-53d0-40ab-baf2-68738e2966ac",
 						AllowedMethods: [
@@ -166,7 +166,7 @@ describe("LinkWatch-Web + behavior /api/*", () => {
 		});
 	});
 
-	it("behavior mặc định (web tĩnh) không đổi: vẫn cache và rewrite index.html", () => {
+	it("default behavior (static web) is unchanged: still cached and rewritten to index.html", () => {
 		template.hasResourceProperties("AWS::CloudFront::Distribution", {
 			DistributionConfig: Match.objectLike({
 				DefaultCacheBehavior: Match.objectLike({

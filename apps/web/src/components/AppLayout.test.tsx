@@ -25,21 +25,21 @@ beforeEach(() => {
 });
 
 describe("AppLayout", () => {
-	it("có logo, sidebar và nội dung trang", async () => {
-		renderWithApi(<AppLayout>nội dung</AppLayout>, {} as Api);
-		expect(await screen.findByText("nội dung")).toBeTruthy();
+	it("renders the logo, sidebar and page content", async () => {
+		renderWithApi(<AppLayout>page content</AppLayout>, {} as Api);
+		expect(await screen.findByText("page content")).toBeTruthy();
 		expect(screen.getByRole("navigation", { name: "Menu" })).toBeTruthy();
 		expect(screen.getAllByText("LinkWatch").length).toBeGreaterThan(0);
 	});
 
-	it("nhớ trạng thái thu gọn sidebar trên trình duyệt", async () => {
+	it("remembers the collapsed sidebar in the browser", async () => {
 		const { unmount } = renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
 		await userEvent.click(
-			await screen.findByRole("button", { name: "Thu gọn" }),
+			await screen.findByRole("button", { name: "Collapse" }),
 		);
 		expect(localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe("true");
 		unmount();
 		renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
-		expect(await screen.findByRole("button", { name: "Mở rộng" })).toBeTruthy();
+		expect(await screen.findByRole("button", { name: "Expand" })).toBeTruthy();
 	});
 });

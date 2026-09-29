@@ -36,9 +36,9 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 		case "/ok":
 			return send(200, "<h1>Xin chào</h1><a href='/lien-he'>Liên hệ</a>");
 		case "/404":
-			return send(404, "không có");
+			return send(404, "not found");
 		case "/503":
-			return send(503, "bảo trì");
+			return send(503, "maintenance");
 		case "/redirect":
 			return send(301, "", { location: "/ok" });
 		case "/loop": {
@@ -49,7 +49,7 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 			const left = Number(url.searchParams.get("left"));
 			return left > 0
 				? send(302, "", { location: `/redirect-n?left=${left - 1}` })
-				: send(200, "cuối");
+				: send(200, "final");
 		}
 		case "/to-private":
 			return send(302, "", {
@@ -58,16 +58,16 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 		case "/to-ftp":
 			return send(302, "", { location: "ftp://abc.com/file" });
 		case "/head405":
-			return req.method === "HEAD" ? send(405) : send(200, "chỉ GET");
+			return req.method === "HEAD" ? send(405) : send(200, "GET only");
 		case "/slow":
-			return setTimeout(() => send(200, "chậm"), 300);
+			return setTimeout(() => send(200, "slow"), 300);
 		case "/hang":
 			hanging.push(res);
 			return;
 		case "/big":
 			res.writeHead(200, { "content-type": "text/plain" });
 			res.write("a".repeat(2 * 1024 * 1024));
-			return res.end("TỪ-KHÓA-CUỐI");
+			return res.end("END-KEYWORD");
 		default:
 			return send(404);
 	}
@@ -124,7 +124,7 @@ afterAll(async () => {
 	rmSync(certDir, { recursive: true, force: true });
 });
 
-// Server test chạy trên 127.0.0.1 nên phải bật allowPrivate (Admin cho phép, NFR-07).
+// The test server runs on 127.0.0.1, so allowPrivate must be on (admin override, NFR-07).
 const local = { allowPrivate: true };
 const link = (
 	path: string,
@@ -137,7 +137,7 @@ const link = (
 });
 
 describe("probe", () => {
-	it("FR-17: 200 → mã HTTP, thời gian phản hồi, URL cuối", async () => {
+	it("FR-17: 200 → HTTP code, response time, final URL", async () => {
 		const r = await probe(link("/ok"), local);
 		expect(r).toMatchObject({
 			httpCode: 200,
@@ -148,19 +148,19 @@ describe("probe", () => {
 		expect(r.responseMs).toBeGreaterThanOrEqual(0);
 	});
 
-	it("5.1: gửi User-Agent LinkWatch/1.0", async () => {
+	it("5.1: sends User-Agent LinkWatch/1.0", async () => {
 		seenUserAgents.length = 0;
 		await probe(link("/ok"), local);
 		expect(USER_AGENT).toBe("LinkWatch/1.0");
 		expect(seenUserAgents).toEqual(["LinkWatch/1.0"]);
 	});
 
-	it("FR-17: 404 và 503 trả mã HTTP, không phải lỗi mạng", async () => {
+	it("FR-17: 404 and 503 return HTTP codes, not network errors", async () => {
 		expect(await probe(link("/404"), local)).toMatchObject({ httpCode: 404 });
 		expect(await probe(link("/503"), local)).toMatchObject({ httpCode: 503 });
 	});
 
-	it("5.1: theo redirect 301 → 200, ghi URL cuối và số lần redirect", async () => {
+	it("5.1: follows 301 → 200, records the final URL and redirect count", async () => {
 		expect(await probe(link("/redirect"), local)).toMatchObject({
 			httpCode: 200,
 			finalUrl: `${base}/ok`,
@@ -168,7 +168,7 @@ describe("probe", () => {
 		});
 	});
 
-	it("5.1: đúng 10 redirect vẫn được, redirect vòng vượt 10 lần → TOO_MANY_REDIRECTS", async () => {
+	it("5.1: exactly 10 redirects is fine, a redirect loop beyond 10 → TOO_MANY_REDIRECTS", async () => {
 		expect(MAX_REDIRECTS).toBe(10);
 		expect(await probe(link("/redirect-n?left=10"), local)).toMatchObject({
 			httpCode: 200,
@@ -179,32 +179,32 @@ describe("probe", () => {
 		expect(r.redirectCount).toBe(11);
 	});
 
-	it("5.1: HEAD bị 405 thì tự thử lại bằng GET", async () => {
+	it("5.1: HEAD answered with 405 is retried with GET", async () => {
 		expect(
 			await probe(link("/head405", { method: "HEAD" }), local),
 		).toMatchObject({ httpCode: 200 });
 	});
 
-	it("FR-01: HEAD không bị 405 thì giữ HEAD", async () => {
+	it("FR-01: HEAD without 405 stays HEAD", async () => {
 		expect(await probe(link("/404", { method: "HEAD" }), local)).toMatchObject({
 			httpCode: 404,
 		});
 	});
 
-	it("5.1: đo thời gian phản hồi của trang chậm", async () => {
+	it("5.1: measures the response time of a slow page", async () => {
 		const r = await probe(link("/slow"), local);
 		expect(r.httpCode).toBe(200);
 		expect(r.responseMs).toBeGreaterThanOrEqual(280);
 	});
 
-	it("5.1: không phản hồi trong timeout → lỗi timeout", async () => {
+	it("5.1: no response within the timeout → timeout error", async () => {
 		const r = await probe(link("/hang", { timeoutS: 1 }), local);
 		expect(r.error?.code).toBe("TimeoutError");
 		expect(r.responseMs).toBeGreaterThanOrEqual(950);
 		expect(r.responseMs).toBeLessThan(3000);
 	});
 
-	it("5.1: từ chối kết nối → ECONNREFUSED", async () => {
+	it("5.1: connection refused → ECONNREFUSED", async () => {
 		const r = await probe(
 			{ url: "http://127.0.0.1:1/", method: "GET", timeoutS: 5 },
 			local,
@@ -212,15 +212,15 @@ describe("probe", () => {
 		expect(r.error?.code).toBe("ECONNREFUSED");
 	});
 
-	it("5.1: DNS không phân giải → ENOTFOUND", async () => {
+	it("5.1: DNS does not resolve → ENOTFOUND", async () => {
 		const r = await probe(
-			{ url: "http://khong-ton-tai.invalid/", method: "GET", timeoutS: 5 },
+			{ url: "http://does-not-exist.invalid/", method: "GET", timeoutS: 5 },
 			local,
 		);
 		expect(r.error?.code).toBe("ENOTFOUND");
 	});
 
-	it("5.1: chứng chỉ tự ký → lỗi SSL, vẫn đọc được hạn chứng chỉ", async () => {
+	it("5.1: self-signed certificate → SSL error, certificate expiry still read", async () => {
 		const r = await probe(
 			{ url: `${httpsBase}/ok`, method: "GET", timeoutS: 5 },
 			local,
@@ -229,22 +229,22 @@ describe("probe", () => {
 		expect(r.sslExpiresAt).toBe(certNotAfter.toISOString());
 	});
 
-	it("FR-01: có từ khóa bắt buộc → keywordFound", async () => {
+	it("FR-01: required keyword → keywordFound", async () => {
 		expect(
 			await probe(link("/ok", { keyword: "Liên hệ" }), local),
 		).toMatchObject({ keywordFound: true });
 		expect(
-			await probe(link("/ok", { keyword: "Không có đâu" }), local),
+			await probe(link("/ok", { keyword: "Not on the page" }), local),
 		).toMatchObject({ keywordFound: false });
 	});
 
-	it("FR-01: từ khóa không phân biệt hoa/thường (nhập 'LIÊN HỆ', trang ghi 'Liên hệ')", async () => {
+	it("FR-01: keyword matching is case-insensitive ('LIÊN HỆ' entered, page says 'Liên hệ')", async () => {
 		expect(
 			await probe(link("/ok", { keyword: "LIÊN HỆ" }), local),
 		).toMatchObject({ keywordFound: true });
 	});
 
-	it("FR-01: link HEAD có từ khóa thì dùng GET để đọc nội dung", async () => {
+	it("FR-01: a HEAD link with a keyword uses GET to read the body", async () => {
 		expect(
 			await probe(link("/ok", { method: "HEAD", keyword: "Liên hệ" }), local),
 		).toMatchObject({
@@ -252,25 +252,25 @@ describe("probe", () => {
 		});
 	});
 
-	it("NFR-09: chỉ đọc tối đa 1 MB nội dung khi tìm từ khóa", async () => {
-		const r = await probe(link("/big", { keyword: "TỪ-KHÓA-CUỐI" }), local);
+	it("NFR-09: reads at most 1 MB of the body when searching for the keyword", async () => {
+		const r = await probe(link("/big", { keyword: "END-KEYWORD" }), local);
 		expect(r).toMatchObject({ httpCode: 200, keywordFound: false });
 	});
 
-	it("FR-17: không có từ khóa thì không đặt keywordFound", async () => {
+	it("FR-17: without a keyword, keywordFound is not set", async () => {
 		expect((await probe(link("/ok"), local)).keywordFound).toBeUndefined();
 	});
 });
 
-describe("probe — chặn SSRF (NFR-07)", () => {
-	it("NFR-07: mặc định chặn IP nội bộ, không gửi request", async () => {
+describe("probe — SSRF blocking (NFR-07)", () => {
+	it("NFR-07: private IPs are blocked by default and no request is sent", async () => {
 		seenUserAgents.length = 0;
 		const r = await probe(link("/ok"));
 		expect(r.error?.code).toBe("BLOCKED_PRIVATE_ADDRESS");
 		expect(seenUserAgents).toEqual([]);
 	});
 
-	it("NFR-07: chặn hostname phân giải ra IP nội bộ (localhost)", async () => {
+	it("NFR-07: blocks hostnames resolving to private IPs (localhost)", async () => {
 		const port = new URL(base).port;
 		const r = await probe({
 			url: `http://localhost:${port}/ok`,
@@ -280,7 +280,7 @@ describe("probe — chặn SSRF (NFR-07)", () => {
 		expect(r.error?.code).toBe("BLOCKED_PRIVATE_ADDRESS");
 	});
 
-	it("NFR-07: chặn redirect sang địa chỉ metadata dù trang đầu được phép", async () => {
+	it("NFR-07: blocks a redirect to the metadata address even when the first page is allowed", async () => {
 		const r = await probe(link("/to-private"), {
 			allowPrivate: false,
 			allowHosts: ["127.0.0.1"],
@@ -289,14 +289,14 @@ describe("probe — chặn SSRF (NFR-07)", () => {
 		expect(r.redirectCount).toBe(1);
 	});
 
-	it("FR-01: redirect sang scheme khác http/https bị coi là lỗi", async () => {
+	it("FR-01: a redirect to a non-http/https scheme is an error", async () => {
 		const r = await probe(link("/to-ftp"), local);
 		expect(r.error?.code).toBe("UNSUPPORTED_REDIRECT");
 	});
 });
 
 describe("getCertExpiry", () => {
-	it("FR-17: đọc hạn chứng chỉ SSL", async () => {
+	it("FR-17: reads the SSL certificate expiry", async () => {
 		const port = Number(new URL(httpsBase).port);
 		expect(
 			(
@@ -305,7 +305,7 @@ describe("getCertExpiry", () => {
 		).toBe(certNotAfter.toISOString());
 	});
 
-	it("FR-17: không kết nối được thì trả undefined, không ném lỗi", async () => {
+	it("FR-17: returns undefined without throwing when it cannot connect", async () => {
 		expect(
 			await getCertExpiry("127.0.0.1", 1, { allowPrivate: true }),
 		).toBeUndefined();

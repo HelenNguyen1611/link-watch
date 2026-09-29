@@ -21,7 +21,7 @@ type Props = {
 	pathname: string;
 	collapsed: boolean;
 	onToggleCollapsed: () => void;
-	/** Đóng sidebar trên điện thoại sau khi chọn mục. */
+	/** Closes the sidebar on mobile after an item is chosen. */
 	onNavigate?: () => void;
 };
 
@@ -67,7 +67,7 @@ function Item({
 	);
 }
 
-/** Sidebar trái: menu chính + nhóm Cài đặt; thu gọn còn icon (desktop), mở bằng ☰ (mobile). */
+/** Left sidebar: main menu + Settings group; collapses to icons (desktop), opened with ☰ (mobile). */
 export function Sidebar({
 	pathname,
 	collapsed,

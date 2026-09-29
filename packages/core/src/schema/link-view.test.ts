@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toLinkView } from "./link-view";
 
 describe("toLinkView", () => {
-	it("chỉ giữ trường web cần, bỏ trường nội bộ", () => {
+	it("keeps only the fields the web needs, drops internal fields", () => {
 		const view = toLinkView({
 			id: "L1",
 			domain: "abc.com",

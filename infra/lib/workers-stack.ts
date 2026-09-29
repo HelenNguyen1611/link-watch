@@ -12,18 +12,18 @@ export interface WorkersStackProps extends cdk.StackProps {
 }
 
 /**
- * NFR-06: số lần gọi Checker đồng thời tối đa, giới hạn trên event source SQS (tối thiểu 2).
- * Hạn mức concurrency tài khoản hiện 10: chừa suất cho API, Dispatcher, BucketDeployment và
- * không dùng reserved concurrency (sẽ làm deploy lỗi). Khi hạn mức ≥ 100: tăng số này
- * hoặc cân nhắc reserved concurrency (docs/RUNBOOK.md mục 3).
+ * NFR-06: max concurrent Checker invocations, capped on the SQS event source (minimum 2).
+ * The account concurrency quota is currently 10: leave room for the API, Dispatcher and
+ * BucketDeployment, and do not use reserved concurrency (the deploy would fail). Once the
+ * quota is ≥ 100: raise this number or consider reserved concurrency (docs/RUNBOOK.md §3).
  */
 export const CHECKER_MAX_CONCURRENCY = 5;
-/** 20 link/message, 2 đồng thời/domain, tối đa 30 s + 5 s đọc SSL mỗi link ≈ 350 s. */
+/** 20 links/message, 2 concurrent per domain, up to 30 s + 5 s SSL read per link ≈ 350 s. */
 const CHECKER_TIMEOUT = cdk.Duration.minutes(7);
 
 /**
- * Mốc 1: EventBridge Scheduler 5 phút → Dispatcher → SQS FIFO → Checker → DynamoDB.
- * Hàng đợi ưu tiên và Alert thêm ở Bước 36b.
+ * Milestone 1: EventBridge Scheduler every 5 min → Dispatcher → SQS FIFO → Checker → DynamoDB.
+ * The priority queue and Alert are added in step 36b.
  */
 export class WorkersStack extends cdk.Stack {
 	readonly checkQueue: sqs.Queue;
@@ -38,7 +38,7 @@ export class WorkersStack extends cdk.Stack {
 		});
 		this.checkQueue = new sqs.Queue(this, "CheckQueue", {
 			fifo: true,
-			// Dispatcher tự đặt MessageDeduplicationId.
+			// The Dispatcher sets MessageDeduplicationId itself.
 			contentBasedDeduplication: false,
 			visibilityTimeout: cdk.Duration.minutes(15),
 			deadLetterQueue: { queue: dlq, maxReceiveCount: 3 },
@@ -71,7 +71,8 @@ export class WorkersStack extends cdk.Stack {
 		);
 
 		new scheduler.Schedule(this, "DispatchEvery5Min", {
-			description: "LinkWatch: lấy link đến hạn mỗi 5 phút (FR-11, NFR-04)",
+			description:
+				"LinkWatch: dispatch due links every 5 minutes (FR-11, NFR-04)",
 			schedule: scheduler.ScheduleExpression.rate(cdk.Duration.minutes(5)),
 			target: new targets.LambdaInvoke(dispatcher, { retryAttempts: 0 }),
 		});

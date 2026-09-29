@@ -8,8 +8,8 @@ const exclude = [
 	"**/out/**",
 ];
 
-// unit + web: chạy trong `pnpm test`, không cần Docker.
-// int: chạy trong `pnpm test:int`, cần DynamoDB Local (`pnpm db:local`).
+// unit + web: run by `pnpm test`, no Docker needed.
+// int: run by `pnpm test:int`, needs DynamoDB Local (`pnpm db:local`).
 export default defineConfig({
 	test: {
 		projects: [

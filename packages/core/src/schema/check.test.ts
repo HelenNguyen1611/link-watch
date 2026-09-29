@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CheckResult } from "./check";
 
 describe("CheckResult", () => {
-	it("FR-17: lưu thời điểm, mã HTTP, thời gian phản hồi, URL cuối, kết quả, hạn SSL", () => {
+	it("FR-17: stores time, HTTP status, response time, final URL, result, SSL expiry", () => {
 		const r = CheckResult.parse({
 			linkId: "01JLINK",
 			checkedAt: "2026-09-29T23:01:02.000Z",
@@ -15,7 +15,7 @@ describe("CheckResult", () => {
 		expect(r.result).toBe("up");
 	});
 
-	it("FR-17: kết quả lỗi có loại lỗi và thông điệp, không cần mã HTTP", () => {
+	it("FR-17: an error result has an error type and message, no HTTP status required", () => {
 		expect(
 			CheckResult.safeParse({
 				linkId: "01JLINK",
@@ -28,7 +28,7 @@ describe("CheckResult", () => {
 		).toBe(true);
 	});
 
-	it("FR-17: từ chối thời điểm không phải ISO 8601 UTC và loại lỗi lạ", () => {
+	it("FR-17: rejects non-ISO-8601-UTC timestamps and unknown error types", () => {
 		const base = { linkId: "x", result: "down", responseMs: 1 };
 		expect(
 			CheckResult.safeParse({ ...base, checkedAt: "29/09/2026" }).success,
@@ -37,7 +37,7 @@ describe("CheckResult", () => {
 			CheckResult.safeParse({
 				...base,
 				checkedAt: "2026-09-29T23:01:02.000Z",
-				errorType: "lạ",
+				errorType: "unknown-type",
 			}).success,
 		).toBe(false);
 	});

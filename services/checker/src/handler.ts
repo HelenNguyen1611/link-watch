@@ -18,7 +18,7 @@ import {
 	probe as realProbe,
 } from "./probe";
 
-/** FR-14 / NFR-09: tối đa 2 request đồng thời trên mỗi domain. */
+/** FR-14 / NFR-09: at most 2 concurrent requests per domain. */
 export const PER_DOMAIN_CONCURRENCY = 2;
 
 export type CheckerDeps = {
@@ -30,8 +30,8 @@ export type CheckerDeps = {
 };
 
 /**
- * SQS (FIFO, MessageGroupId = domain) → check từng link → ghi kết quả.
- * Bản Mốc 1: chưa có xác nhận 2 lần / incident (Bước 12b).
+ * SQS (FIFO, MessageGroupId = domain) → check each link → store the result.
+ * Milestone 1 version: no double confirmation / incidents yet (step 12b).
  */
 export function createHandler(deps: CheckerDeps) {
 	const now = deps.now ?? (() => new Date());
@@ -41,7 +41,7 @@ export function createHandler(deps: CheckerDeps) {
 	async function checkLink(domain: string, id: string): Promise<void> {
 		const { data: link } = await deps.db.Link.get({ domain, id }).go();
 		if (!link || link.deletedAt || link.paused) {
-			log("Bỏ qua link", {
+			log("Skipping link", {
 				domain,
 				id,
 				reason: link ? "paused/deleted" : "not_found",
@@ -63,7 +63,7 @@ export function createHandler(deps: CheckerDeps) {
 		});
 		const checkedAt = now().toISOString();
 
-		// put (không phải create): SQS retry cùng message ghi đè cùng khóa thay vì lỗi mãi.
+		// put (not create): an SQS retry of the same message overwrites the same key instead of failing forever.
 		await deps.db.Check.put({ linkId: id, checkedAt, ...checked }).go();
 
 		const cleared = (["lastHttpCode", "lastErrorType"] as const).filter(
@@ -83,7 +83,7 @@ export function createHandler(deps: CheckerDeps) {
 				nextRunAt: nextRunAt(DEFAULT_SCHEDULE, id, now()).toISOString(),
 			});
 			if (cleared.length) update = update.remove(cleared) as typeof update;
-			// Link bị xóa/tạm dừng trong lúc check thì không đặt lại next_run_at.
+			// If the link was deleted/paused during the check, do not reset next_run_at.
 			await update
 				.where(
 					({ deletedAt, paused }, { notExists, eq }) =>
@@ -95,7 +95,7 @@ export function createHandler(deps: CheckerDeps) {
 				!/ConditionalCheckFailed|conditional request failed/i.test(String(err))
 			)
 				throw err;
-			log("Link đổi trạng thái trong lúc check", { domain, id });
+			log("Link changed state during the check", { domain, id });
 		}
 	}
 
@@ -109,7 +109,7 @@ export function createHandler(deps: CheckerDeps) {
 			return created;
 		};
 		const failures: SQSBatchItemFailure[] = [];
-		// FIFO: message lỗi thì trả lại nó và mọi message sau để giữ thứ tự trong group.
+		// FIFO: return a failed message and every later one to keep ordering within the group.
 		for (const record of event.Records) {
 			if (failures.length) {
 				failures.push({ itemIdentifier: record.messageId });
@@ -122,7 +122,10 @@ export function createHandler(deps: CheckerDeps) {
 					job.linkIds.map((id) => limit(() => checkLink(job.domain, id))),
 				);
 			} catch (err) {
-				log("Message lỗi", { messageId: record.messageId, error: String(err) });
+				log("Message failed", {
+					messageId: record.messageId,
+					error: String(err),
+				});
 				failures.push({ itemIdentifier: record.messageId });
 			}
 		}

@@ -10,7 +10,7 @@ export class DuplicateLinkError extends Error {
 		readonly url: string,
 		readonly existingId?: string,
 	) {
-		super(`Link đã tồn tại: ${url}`);
+		super(`Link already exists: ${url}`);
 		this.name = "DuplicateLinkError";
 	}
 }
@@ -18,7 +18,7 @@ export class DuplicateLinkError extends Error {
 export class LinkNotFoundError extends Error {
 	readonly code = "not_found";
 	constructor(readonly id: string) {
-		super(`Không tìm thấy link ${id}`);
+		super(`Link not found: ${id}`);
 		this.name = "LinkNotFoundError";
 	}
 }
@@ -32,7 +32,7 @@ const isConditionalFailure = (err: unknown) =>
 		`${String(err)} ${String((err as { cause?: unknown })?.cause)}`,
 	);
 
-/** FR-07: tạo domain nếu chưa có; domain đã có thì giữ nguyên. */
+/** FR-07: creates the domain if missing; an existing domain is left untouched. */
 async function ensureDomain(db: Db, name: string): Promise<void> {
 	try {
 		await db.Domain.create({ name }).go();
@@ -42,8 +42,8 @@ async function ensureDomain(db: Db, name: string): Promise<void> {
 }
 
 /**
- * FR-01, FR-02, FR-07: thêm một link.
- * Chuẩn hóa → xác định domain chính → chặn trùng (transaction với khóa URL) → lượt check đầu ở tick kế tiếp.
+ * FR-01, FR-02, FR-07: adds a link.
+ * Normalize → resolve root domain → reject duplicates (transaction with the URL lock) → first check on the next tick.
  */
 export async function createLink(
 	db: Db,
@@ -85,7 +85,7 @@ export async function createLink(
 	return link;
 }
 
-/** Liệt kê link chưa xóa (GSI3), theo trang. */
+/** Lists non-deleted links (GSI3), page by page. */
 export async function listLinks(
 	db: Db,
 	{ limit = 50, cursor }: { limit?: number; cursor?: string | null } = {},
@@ -97,7 +97,7 @@ export async function listLinks(
 	return { items: page.data, cursor: page.cursor };
 }
 
-/** Tìm link chưa xóa theo id. */
+/** Finds a non-deleted link by id. */
 export async function getLink(db: Db, id: string) {
 	const { data } = await db.Link.query.byId({ id }).go();
 	const link = data[0];
@@ -105,7 +105,7 @@ export async function getLink(db: Db, id: string) {
 	return link;
 }
 
-/** FR-04: xóa mềm — ghi deletedAt, bỏ next_run_at (rời GSI1), gỡ khóa URL để thêm lại được. */
+/** FR-04: soft delete — sets deletedAt, drops next_run_at (leaves GSI1), removes the URL lock so it can be re-added. */
 export async function deleteLink(
 	db: Db,
 	id: string,

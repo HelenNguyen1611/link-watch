@@ -7,21 +7,21 @@ import type { ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Providers } from "./providers";
 
-// Inter tải lúc build và phục vụ cùng web (không gọi Google khi người dùng mở trang).
+// Inter is downloaded at build time and served with the site (no request to Google at runtime).
 const inter = Inter({
-	subsets: ["latin", "vietnamese"],
+	subsets: ["latin"],
 	variable: "--font-inter",
 	display: "swap",
 });
 
 export const metadata: Metadata = {
 	title: "LinkWatch",
-	description: "Theo dõi link chết và site down",
+	description: "Monitor dead links and site outages",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
 	return (
-		<html lang="vi" className={inter.variable} {...mantineHtmlProps}>
+		<html lang="en" className={inter.variable} {...mantineHtmlProps}>
 			<head>
 				<ColorSchemeScript />
 			</head>

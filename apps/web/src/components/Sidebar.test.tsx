@@ -44,44 +44,44 @@ function Harness({
 const render = (ui: React.ReactElement) => renderWithApi(ui, {} as Api);
 
 describe("Sidebar", () => {
-	it("có đủ menu chính và nhóm Cài đặt, đúng đường dẫn", () => {
+	it("lists the main menu and the Settings group with the right links", () => {
 		render(<Harness />);
 		const nav = screen.getByRole("navigation", { name: "Menu" });
 		const links = within(nav).getAllByRole("link");
 		expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
-			["Tổng quan", "/"],
-			["Domain", "/domains/"],
-			["Link", "/links/"],
-			["Lịch", "/schedules/"],
-			["Sự cố", "/incidents/"],
-			["Email cảnh báo", "/settings/email/"],
-			["Tài khoản", "/settings/account/"],
-			["Khóa API", "/settings/api-key/"],
+			["Overview", "/"],
+			["Domains", "/domains/"],
+			["Links", "/links/"],
+			["Schedules", "/schedules/"],
+			["Incidents", "/incidents/"],
+			["Alert email", "/settings/email/"],
+			["Account", "/settings/account/"],
+			["API key", "/settings/api-key/"],
 		]);
-		expect(within(nav).getByText("Cài đặt")).toBeTruthy();
+		expect(within(nav).getByText("Settings")).toBeTruthy();
 	});
 
-	it("đánh dấu mục đang mở (aria-current)", () => {
+	it("marks the current item (aria-current)", () => {
 		render(<Harness pathname="/settings/api-key/" />);
 		expect(
 			screen
-				.getByRole("link", { name: "Khóa API" })
+				.getByRole("link", { name: "API key" })
 				.getAttribute("aria-current"),
 		).toBe("page");
 		expect(
-			screen.getByRole("link", { name: "Link" }).getAttribute("aria-current"),
+			screen.getByRole("link", { name: "Links" }).getAttribute("aria-current"),
 		).toBeNull();
 	});
 
-	it("thu gọn: chỉ còn icon, tên mục vẫn có qua aria-label; bấm lần nữa để mở rộng", async () => {
+	it("collapsed: icons only, labels kept via aria-label; click again to expand", async () => {
 		render(<Harness />);
-		await userEvent.click(screen.getByRole("button", { name: "Thu gọn" }));
-		expect(screen.queryByText("Tổng quan")).toBeNull();
-		const overview = screen.getByRole("link", { name: "Tổng quan" });
+		await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
+		expect(screen.queryByText("Overview")).toBeNull();
+		const overview = screen.getByRole("link", { name: "Overview" });
 		expect(overview.textContent).toBe("");
-		const toggle = screen.getByRole("button", { name: "Mở rộng" });
+		const toggle = screen.getByRole("button", { name: "Expand" });
 		expect(toggle.getAttribute("aria-expanded")).toBe("false");
 		await userEvent.click(toggle);
-		expect(screen.getByText("Tổng quan")).toBeTruthy();
+		expect(screen.getByText("Overview")).toBeTruthy();
 	});
 });

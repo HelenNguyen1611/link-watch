@@ -65,7 +65,7 @@ describe("Dispatcher", () => {
 	const t0 = "2026-09-29T09:00:00.000Z";
 	const tick = new Date("2026-09-29T09:05:00.000Z");
 
-	it("FR-14: gom link đến hạn theo domain, tối đa 20 link/message, MessageGroupId = domain", async () => {
+	it("FR-14: groups due links by domain, at most 20 links/message, MessageGroupId = domain", async () => {
 		const a = await addLinks("a.com", 45, t0);
 		const b = await addLinks("b.vn", 3, t0);
 		const res = await dispatcher(tick)();
@@ -91,19 +91,19 @@ describe("Dispatcher", () => {
 		}
 	});
 
-	it("SQS: mỗi lệnh SendMessageBatch tối đa 10 message", async () => {
+	it("SQS: each SendMessageBatch call has at most 10 messages", async () => {
 		for (const c of sqsMock.commandCalls(SendMessageBatchCommand)) {
 			expect(c.args[0].input.Entries?.length).toBeLessThanOrEqual(10);
 		}
 	});
 
-	it("không gửi trùng: tick kế tiếp không lấy lại link vừa gửi (đã dời next_run_at)", async () => {
+	it("no duplicates: the next tick does not pick up links just sent (next_run_at was moved)", async () => {
 		const res = await dispatcher(new Date("2026-09-29T09:10:00.000Z"))();
 		expect(res).toMatchObject({ due: 0, messages: 0 });
 		expect(sqsMock.commandCalls(SendMessageBatchCommand)).toHaveLength(0);
 	});
 
-	it("NFR-04: Checker không xử lý xong (job vào DLQ) thì hết hạn giữ chỗ 30 phút link được gửi lại", async () => {
+	it("NFR-04: if the Checker never finishes (job in DLQ), links are resent once the 30-minute lease expires", async () => {
 		expect(LEASE_MS).toBe(30 * 60_000);
 		const later = new Date(tick.getTime() + LEASE_MS);
 		const res = await dispatcher(later)();
@@ -113,7 +113,7 @@ describe("Dispatcher", () => {
 		).toBe(true);
 	});
 
-	it("NFR-04: gửi SQS lỗi thì trả next_run_at về như cũ để tick sau thử lại", async () => {
+	it("NFR-04: on SQS send failure, next_run_at is restored so the next tick retries", async () => {
 		const [id] = await addLinks("fail.vn", 1, "2026-09-29T11:00:00.000Z");
 		sqsMock.on(SendMessageBatchCommand).callsFake((input) => ({
 			Successful: [],
@@ -131,7 +131,7 @@ describe("Dispatcher", () => {
 		expect(data?.nextRunAt).toBe("2026-09-29T11:00:00.000Z");
 	});
 
-	it("FR-04: link tạm dừng không được gửi", async () => {
+	it("FR-04: paused links are not sent", async () => {
 		const [id] = await addLinks("paused.vn", 1, "2026-09-29T12:00:00.000Z");
 		await t.db.Link.patch({ domain: "paused.vn", id })
 			.set({ paused: true })
@@ -142,11 +142,11 @@ describe("Dispatcher", () => {
 	});
 });
 
-describe("AC-02 — lịch mặc định 06:00", () => {
-	it("AC-02: link không có lịch riêng được check trong khoảng 06:00–06:15 (Dispatcher mỗi 5 phút)", async () => {
+describe("AC-02 — default 06:00 schedule", () => {
+	it("AC-02: a link without its own schedule is checked between 06:00 and 06:15 (Dispatcher every 5 minutes)", async () => {
 		const own = await createTestDb();
 		try {
-			// Thêm link lúc 17:00 ngày 29/09 giờ VN và cho Checker chạy lượt đầu ngay.
+			// Add links at 17:00 on 29/09 Vietnam time and let the Checker run the first pass right away.
 			const created = new Date("2026-09-29T10:00:00.000Z");
 			const ids: string[] = [];
 			for (let i = 0; i < 30; i++) {
@@ -182,7 +182,7 @@ describe("AC-02 — lịch mặc định 06:00", () => {
 					queueUrl: QUEUE_URL,
 					now: () => at,
 				})();
-				// Checker nhận message trong vòng 1 phút sau tick.
+				// The Checker receives messages within 1 minute of the tick.
 				const checkAt = new Date(at.getTime() + 60_000);
 				const records = sentEntries().map((e) => ({
 					messageId: e.Id,
@@ -201,9 +201,9 @@ describe("AC-02 — lịch mặc định 06:00", () => {
 				}
 			};
 
-			await runTick(new Date("2026-09-29T10:00:00.000Z")); // lượt đầu khi vừa thêm
+			await runTick(new Date("2026-09-29T10:00:00.000Z")); // first pass right after adding
 			for (const id of ids) checks[id] = [];
-			// Mô phỏng Dispatcher mỗi 5 phút từ 05:00 tới 07:00 ngày 30/09 giờ VN.
+			// Simulate the Dispatcher every 5 minutes from 05:00 to 07:00 on 30/09 Vietnam time.
 			for (let m = 0; m <= 120; m += 5)
 				await runTick(
 					new Date(Date.parse("2026-09-29T22:00:00.000Z") + m * 60_000),

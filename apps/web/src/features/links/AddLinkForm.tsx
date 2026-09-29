@@ -17,7 +17,7 @@ type Issue = {
 	params?: { code?: string };
 };
 
-/** Map lỗi Zod (của form hoặc của API 400) → lỗi theo trường, dịch theo mã lỗi URL. */
+/** Maps Zod issues (from the form or an API 400) to field errors, translated by URL error code. */
 function fieldErrors(issues: Issue[], t: (k: string) => string) {
 	const errors: Record<string, { type: string; message: string }> = {};
 	for (const issue of issues) {
@@ -32,7 +32,7 @@ function fieldErrors(issues: Issue[], t: (k: string) => string) {
 	return errors;
 }
 
-/** FR-01, FR-02: dùng chung schema Zod `LinkInput` với backend. */
+/** FR-01, FR-02: shares the `LinkInput` Zod schema with the backend. */
 export function AddLinkForm() {
 	const { t } = useTranslation();
 	const api = useApi();
@@ -95,7 +95,7 @@ export function AddLinkForm() {
 			<Group align="flex-end" wrap="wrap" gap="xl">
 				<TextInput
 					label={t("linkForm.url")}
-					placeholder="https://abc.com/trang"
+					placeholder="https://example.com/page"
 					required
 					classNames={underline}
 					style={{ flex: "2 1 320px" }}

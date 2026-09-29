@@ -1,4 +1,4 @@
-/* Ô nhập chỉ có gạch chân (phong cách tối giản). */
+/* Underline-only inputs (minimal style). */
 .input {
 	border: 0;
 	border-bottom: 1px solid var(--mantine-color-gray-3);

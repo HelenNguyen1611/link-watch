@@ -1,6 +1,6 @@
 /**
- * Chạy API ở máy: `pnpm dev:api` (cần `pnpm db:local && pnpm db:init`).
- * Khóa API tạm lấy từ LOCAL_API_KEY (mặc định "dev").
+ * Run the API locally: `pnpm dev:api` (requires `pnpm db:local && pnpm db:init`).
+ * The temporary API key comes from LOCAL_API_KEY (default "dev").
  */
 import { serve } from "@hono/node-server";
 import { createDb } from "@linkwatch/core/db";
@@ -15,9 +15,9 @@ const app = createApp({
 	db: createDb(),
 	getApiKey: async () => apiKey,
 	log: console.error,
-	// Static export không có rewrites: web :3000 gọi thẳng API :8787 nên cần CORS khi chạy local.
+	// Static export has no rewrites: web :3000 calls API :8787 directly, so local runs need CORS.
 	corsOrigins: [process.env.WEB_ORIGIN ?? "http://localhost:3000"],
 });
 serve({ fetch: app.fetch, port }, () =>
-	console.log(`API local: http://localhost:${port}/api (khóa: ${apiKey})`),
+	console.log(`API local: http://localhost:${port}/api (key: ${apiKey})`),
 );

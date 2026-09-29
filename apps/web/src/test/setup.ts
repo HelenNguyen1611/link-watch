@@ -1,7 +1,7 @@
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
-// jsdom thiếu các API mà Mantine dùng.
+// jsdom lacks some APIs that Mantine uses.
 Object.defineProperty(window, "matchMedia", {
 	writable: true,
 	value: (query: string) => ({

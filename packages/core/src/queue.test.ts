@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CheckJob, MAX_LINKS_PER_JOB } from "./queue";
 
 describe("CheckJob", () => {
-	it("FR-14: mỗi message là 1 domain, tối đa 20 link", () => {
+	it("FR-14: one domain per message, at most 20 links", () => {
 		expect(MAX_LINKS_PER_JOB).toBe(20);
 		const job = {
 			kind: "scheduled",
@@ -18,6 +18,6 @@ describe("CheckJob", () => {
 				linkIds: Array.from({ length: 21 }, (_, i) => `l${i}`),
 			}).success,
 		).toBe(false);
-		expect(CheckJob.safeParse({ ...job, kind: "khác" }).success).toBe(false);
+		expect(CheckJob.safeParse({ ...job, kind: "other" }).success).toBe(false);
 	});
 });

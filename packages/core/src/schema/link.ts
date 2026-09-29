@@ -2,7 +2,7 @@ import { z } from "zod";
 import { InvalidUrlError, normalizeUrl } from "../url";
 import { HttpMethod } from "./enums";
 
-/** URL đã chuẩn hóa (FR-01, FR-02). Lỗi mang `params.code` để UI dịch thông điệp. */
+/** Normalized URL (FR-01, FR-02). Errors carry `params.code` so the UI can translate the message. */
 export const NormalizedUrl = z.string().transform((value, ctx) => {
 	try {
 		return normalizeUrl(value);
@@ -19,13 +19,13 @@ export const NormalizedUrl = z.string().transform((value, ctx) => {
 
 const HttpCode = z.number().int().min(100).max(599);
 
-/** Khoảng mã HTTP mong đợi, gồm cả hai đầu. */
+/** Expected HTTP status range, inclusive on both ends. */
 export const HttpCodeRange = z
 	.object({ from: HttpCode, to: HttpCode })
-	.refine((r) => r.from <= r.to, { message: "from phải ≤ to" });
+	.refine((r) => r.from <= r.to, { message: "from must be ≤ to" });
 export type HttpCodeRange = z.infer<typeof HttpCodeRange>;
 
-/** Chuỗi tùy chọn: trim, rỗng → undefined. */
+/** Optional string: trimmed, empty → undefined. */
 const optionalText = (max: number) =>
 	z
 		.string()
@@ -34,7 +34,7 @@ const optionalText = (max: number) =>
 		.optional()
 		.transform((v) => (v ? v : undefined));
 
-/** FR-01: dữ liệu nhập khi thêm/sửa một link. */
+/** FR-01: input when adding/editing a link. */
 export const LinkInput = z.object({
 	url: NormalizedUrl,
 	name: optionalText(200),
@@ -53,5 +53,5 @@ export const LinkInput = z.object({
 	keyword: optionalText(200),
 });
 export type LinkInput = z.infer<typeof LinkInput>;
-/** Dạng dữ liệu trước khi parse (form, CSV). */
+/** Shape of the data before parsing (form, CSV). */
 export type LinkInputRaw = z.input<typeof LinkInput>;

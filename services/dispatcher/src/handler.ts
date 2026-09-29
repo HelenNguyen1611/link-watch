@@ -5,13 +5,13 @@ import type { Db } from "@linkwatch/core/db";
 import pLimit from "p-limit";
 
 /**
- * Dời next_run_at khi đã gửi job ("giữ chỗ") để tick sau không gửi trùng.
- * Checker ghi lượt thật khi xử lý xong; job lỗi vào DLQ thì hết hạn giữ chỗ link được gửi lại (NFR-04).
+ * Move next_run_at forward once a job is sent (a "lease") so the next tick does not resend it.
+ * The Checker writes the real next run when done; if the job ends in the DLQ, the link is resent when the lease expires (NFR-04).
  */
 export const LEASE_MS = 30 * 60_000;
-/** SQS: tối đa 10 message mỗi SendMessageBatch. */
+/** SQS: at most 10 messages per SendMessageBatch. */
 const SQS_BATCH = 10;
-/** Số lệnh ghi DynamoDB song song khi giữ chỗ. */
+/** Number of parallel DynamoDB writes while leasing. */
 const WRITE_CONCURRENCY = 10;
 
 export type DispatcherDeps = {
@@ -32,13 +32,13 @@ const chunk = <T>(items: T[], size: number): T[][] =>
 const isConditionalFailure = (err: unknown) =>
 	/ConditionalCheckFailed|conditional request failed/i.test(String(err));
 
-/** EventBridge Scheduler mỗi 5 phút → lấy link đến hạn (GSI1) → SQS FIFO. */
+/** EventBridge Scheduler every 5 minutes → fetch due links (GSI1) → SQS FIFO. */
 export function createHandler(deps: DispatcherDeps) {
 	const now = deps.now ?? (() => new Date());
 	const log = deps.log ?? (() => {});
 	const limit = pLimit(WRITE_CONCURRENCY);
 
-	/** Giữ chỗ nếu next_run_at chưa đổi; trả false nếu link vừa bị Checker/người dùng cập nhật. */
+	/** Lease only if next_run_at is unchanged; returns false if the Checker or a user just updated the link. */
 	const lease = (l: DueLink, until: string) =>
 		limit(async () => {
 			try {
@@ -123,7 +123,7 @@ export function createHandler(deps: DispatcherDeps) {
 				);
 				failedIds = new Set((res.Failed ?? []).map((f) => f.Id ?? ""));
 			} catch (err) {
-				log("Gửi SQS lỗi", { error: String(err) });
+				log("SQS send failed", { error: String(err) });
 				failedIds = new Set(entries.map((e) => e.Id));
 			}
 			for (const [i, { links }] of batch.entries()) {
@@ -142,7 +142,7 @@ export function createHandler(deps: DispatcherDeps) {
 			failed,
 			messages: jobs.length,
 		};
-		log("Dispatch xong", summary);
+		log("Dispatch finished", summary);
 		return summary;
 	};
 }

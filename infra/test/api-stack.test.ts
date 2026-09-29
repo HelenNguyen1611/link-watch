@@ -17,7 +17,7 @@ describe("LinkWatch-Api", () => {
 		);
 	});
 
-	it("SRS 3.5: 1 Lambda API (Hono) arm64, Node 22, ngoài VPC, log 14 ngày", () => {
+	it("SRS 3.5: one API Lambda (Hono), arm64, Node 22, outside a VPC, 14-day logs", () => {
 		template.resourceCountIs("AWS::Lambda::Function", 1);
 		template.hasResourceProperties("AWS::Lambda::Function", {
 			Architectures: ["arm64"],
@@ -36,7 +36,7 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
-	it("HTTP API: route /api và /api/{proxy+} → Lambda; chưa có authorizer (Mốc 1 dùng khóa tạm)", () => {
+	it("HTTP API: routes /api and /api/{proxy+} → Lambda; no authorizer yet (milestone 1 uses a temporary key)", () => {
 		template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
 		template.hasResourceProperties("AWS::ApiGatewayV2::Api", {
 			ProtocolType: "HTTP",
@@ -58,7 +58,7 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
-	it("giới hạn tốc độ để chặn lạm dụng làm tăng chi phí", () => {
+	it("throttles requests so abuse cannot drive up cost", () => {
 		template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
 			StageName: "$default",
 			AutoDeploy: true,
@@ -69,7 +69,7 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
-	it("NFR-07 (tạm): Lambda chỉ đọc đúng tham số SSM khóa API, không tạo tham số (SecureString tạo tay)", () => {
+	it("NFR-07 (temporary): Lambda only reads the API key SSM parameter and creates none (SecureString is created manually)", () => {
 		expect(API_KEY_PARAM).toBe("/linkwatch/api-shared-secret");
 		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
 		expect(policies).toContain("ssm:GetParameter");
