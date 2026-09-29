@@ -152,6 +152,7 @@
 
 ### Bước 38a — Budgets
 - Stack mới `LinkWatch-Ops`: AWS Budgets 1 USD/tháng (email cảnh báo). Đưa lên Mốc 1 để có cảnh báo chi phí trước khi Lambda chạy thật.
+- **Việc người dùng làm trước khi deploy:** đăng nhập tài khoản root, bật "IAM user and role access to Billing information" (hiện đang tắt). Xem `docs/RUNBOOK.md` mục 1. Claude phải nhắc khi tới bước này.
 - **FR/AC:** SRS 3.4 (Budgets). **Phụ thuộc:** 0
 
 ### Bước 40a — Smoke test Mốc 1 (mới)
