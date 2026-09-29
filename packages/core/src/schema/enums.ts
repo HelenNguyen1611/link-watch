@@ -29,3 +29,21 @@ export type IncidentState = z.infer<typeof IncidentState>;
 /** Chỉ lỗi thật mới mở incident; Chậm không mở (SRS 5.1). */
 export const IncidentType = z.enum(["dead", "down"]);
 export type IncidentType = z.infer<typeof IncidentType>;
+
+/** SRS 5.1: loại lỗi của một lần check (FR-17). */
+export const CheckErrorType = z.enum([
+	// Site down
+	"dns",
+	"timeout",
+	"connection_refused",
+	"ssl",
+	"network",
+	"http_5xx",
+	// Link chết
+	"http_4xx",
+	"unexpected_status",
+	"too_many_redirects",
+	"keyword_missing",
+	"blocked_private_address",
+]);
+export type CheckErrorType = z.infer<typeof CheckErrorType>;

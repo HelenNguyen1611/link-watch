@@ -1,5 +1,7 @@
+export * from "./classify";
 export * from "./domain";
 export * from "./schedule";
+export * from "./schema/check";
 export * from "./schema/domain";
 export * from "./schema/enums";
 export * from "./schema/link";
