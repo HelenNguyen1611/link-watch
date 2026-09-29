@@ -72,17 +72,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
 				/>
 			</AppShell.Navbar>
 			<AppShell.Main>
+				{/* Full viewport height minus the header, so the footer always sits at the bottom. */}
 				<Box
 					maw={1152}
 					mx="auto"
 					px={{ base: "md", sm: 48 }}
-					py={{ base: "lg", sm: 56 }}
+					pt={{ base: "lg", sm: 56 }}
+					pb="lg"
+					mih="calc(100dvh - var(--app-shell-header-height, 64px))"
+					style={{ display: "flex", flexDirection: "column" }}
 				>
-					<ApiKeyGate>{children}</ApiKeyGate>
+					<Box style={{ flex: 1 }}>
+						<ApiKeyGate>{children}</ApiKeyGate>
+					</Box>
 					<Text
+						component="footer"
 						size="xs"
 						c="dimmed"
-						mt={96}
+						mt={64}
 						pt="md"
 						style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}
 					>

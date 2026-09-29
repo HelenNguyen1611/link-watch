@@ -42,4 +42,17 @@ describe("AppLayout", () => {
 		renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
 		expect(await screen.findByRole("button", { name: "Expand" })).toBeTruthy();
 	});
+
+	it("footer is the last element and content fills the viewport so the footer stays at the bottom", async () => {
+		renderWithApi(<AppLayout>short</AppLayout>, {} as Api);
+		const footer = await screen.findByRole("contentinfo");
+		expect(footer.textContent).toContain("watch.hueai.net");
+		const shell = footer.parentElement as HTMLElement;
+		expect(shell.lastElementChild).toBe(footer);
+		expect(shell.style.flexDirection).toBe("column");
+		expect(getComputedStyle(shell).minHeight).toContain("100dvh");
+		expect((footer.previousElementSibling as HTMLElement).style.flex).toContain(
+			"1",
+		);
+	});
 });

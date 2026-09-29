@@ -25,6 +25,12 @@ type Props = {
 	onNavigate?: () => void;
 };
 
+/** Active-item marker drawn as an inset shadow so it never shifts the icon. */
+const activeMarker = (active: boolean) =>
+	active ? "inset 2px 0 0 var(--mantine-color-brand-7)" : undefined;
+
+export const ICON_SIZE = 20;
+
 function Item({
 	item,
 	pathname,
@@ -35,35 +41,53 @@ function Item({
 	const label = t(`nav.${item.key}`);
 	const active = isActive(item.href, pathname);
 	const Icon = item.icon;
-	const link = (
+
+	if (collapsed) {
+		// Icon-only square, centred in the rail; the label is available via aria-label and tooltip.
+		return (
+			<Tooltip label={label} position="right" withArrow>
+				<UnstyledButton
+					component={Link}
+					href={item.href}
+					aria-label={label}
+					aria-current={active ? "page" : undefined}
+					onClick={onNavigate}
+					h={44}
+					w="100%"
+					c={active ? "brand.7" : "dark.6"}
+					bg={active ? "brand.0" : undefined}
+					style={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						boxShadow: activeMarker(active),
+					}}
+				>
+					<Icon size={ICON_SIZE} />
+				</UnstyledButton>
+			</Tooltip>
+		);
+	}
+
+	return (
 		<NavLink
 			component={Link}
 			href={item.href}
-			label={collapsed ? undefined : label}
-			aria-label={collapsed ? label : undefined}
+			label={label}
 			aria-current={active ? "page" : undefined}
-			leftSection={<Icon />}
+			leftSection={<Icon size={ICON_SIZE} />}
 			active={active}
 			variant="subtle"
 			onClick={onNavigate}
 			styles={{
 				root: {
 					borderRadius: 0,
-					borderLeft: `2px solid ${active ? "var(--mantine-color-brand-7)" : "transparent"}`,
 					paddingBlock: 10,
-					justifyContent: collapsed ? "center" : undefined,
+					boxShadow: activeMarker(active),
 				},
-				section: collapsed ? { marginInlineEnd: 0 } : undefined,
 				label: { fontWeight: active ? 500 : 400, fontSize: 15 },
 			}}
 		/>
-	);
-	return collapsed ? (
-		<Tooltip label={label} position="right" withArrow>
-			{link}
-		</Tooltip>
-	) : (
-		link
 	);
 }
 
@@ -92,8 +116,17 @@ export function Sidebar({
 				<Divider my="md" color="gray.2" />
 				{collapsed ? (
 					<Tooltip label={t("nav.settings")} position="right" withArrow>
-						<Text ta="center" c="dimmed" aria-hidden="true">
-							<IconSettings size={16} />
+						<Text
+							c="dimmed"
+							aria-hidden="true"
+							h={32}
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+							}}
+						>
+							<IconSettings size={ICON_SIZE} />
 						</Text>
 					</Tooltip>
 				) : (
@@ -134,9 +167,9 @@ export function Sidebar({
 					}}
 				>
 					{collapsed ? (
-						<IconChevronRight size={18} />
+						<IconChevronRight size={ICON_SIZE} />
 					) : (
-						<IconChevronLeft size={18} />
+						<IconChevronLeft size={ICON_SIZE} />
 					)}
 					{!collapsed && <Text size="sm">{t("nav.collapse")}</Text>}
 				</UnstyledButton>

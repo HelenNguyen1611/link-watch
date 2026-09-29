@@ -84,4 +84,27 @@ describe("Sidebar", () => {
 		await userEvent.click(toggle);
 		expect(screen.getByText("Overview")).toBeTruthy();
 	});
+
+	it("collapsed: every item is a centred icon of the same size, including the Settings icon", async () => {
+		render(<Harness />);
+		await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
+		const nav = screen.getByRole("navigation", { name: "Menu" });
+		const links = within(nav).getAllByRole("link");
+		expect(links).toHaveLength(8);
+		for (const a of links) {
+			expect(a.style.justifyContent).toBe("center");
+			expect(a.querySelector("svg")?.getAttribute("width")).toBe("20");
+		}
+		const svgs = [...nav.querySelectorAll("svg")].map((svg) =>
+			svg.getAttribute("width"),
+		);
+		expect(new Set(svgs)).toEqual(new Set(["20"]));
+	});
+
+	it("the active marker does not shift content (inset shadow, no border)", () => {
+		render(<Harness pathname="/links/" />);
+		const active = screen.getByRole("link", { name: "Links" });
+		expect(active.style.boxShadow).toContain("inset 2px 0 0");
+		expect(active.style.borderLeft).toBe("");
+	});
 });
