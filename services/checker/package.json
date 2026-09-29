@@ -12,5 +12,9 @@
 		"@linkwatch/core": "workspace:*",
 		"p-limit": "^7.3.3",
 		"undici": "^8.11.2"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./handler": "./src/handler.ts"
 	}
 }

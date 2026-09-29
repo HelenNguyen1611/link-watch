@@ -19,6 +19,7 @@
 		"@biomejs/biome": "^2.5.14",
 		"@types/aws-lambda": "^8.10.163",
 		"@types/node": "^26.6.3",
+		"aws-sdk-client-mock": "^4.1.0",
 		"esbuild": "^0.28.2",
 		"tsx": "^4.23.15",
 		"typescript": "^7.0.2",
