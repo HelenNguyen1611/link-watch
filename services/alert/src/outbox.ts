@@ -35,11 +35,11 @@ export type AlertDeps = {
 	log?: (message: string, extra?: Record<string, unknown>) => void;
 };
 
-type Incident = Awaited<ReturnType<typeof loadIncidents>>[number];
-type Sender = { from: string; adminEmail?: string };
+export type Incident = Awaited<ReturnType<typeof loadIncidents>>[number];
+export type Sender = { from: string; adminEmail?: string };
 
 /** FR-26: sender and default admin from Settings, falling back to the infra config. */
-async function resolveSender(deps: AlertDeps): Promise<Sender> {
+export async function resolveSender(deps: AlertDeps): Promise<Sender> {
 	const { data } = await deps.db.Settings.get({}).go();
 	const email = data?.senderEmail ?? deps.config.defaultSenderEmail;
 	const name = data?.senderName ?? "LinkWatch";
@@ -52,7 +52,7 @@ async function resolveSender(deps: AlertDeps): Promise<Sender> {
 
 const idOf = (i: Incident) => incidentId(i.linkId, i.openedAt);
 
-const toIncidentItem = (i: Incident): IncidentItem => ({
+export const toIncidentItem = (i: Incident): IncidentItem => ({
 	incidentId: idOf(i),
 	url: i.url,
 	type: i.type,
@@ -72,7 +72,7 @@ const toRecoveryItem = (i: Incident): RecoveryItem => ({
  * FR-20 + FR-22: sends one email per recipient listing only their incidents,
  * logs every attempt (FR-25) and returns the incidents that reached at least one recipient.
  */
-async function sendGrouped(
+export async function sendGrouped(
 	deps: AlertDeps,
 	sender: Sender,
 	incidents: Incident[],
@@ -212,10 +212,13 @@ export async function flushOutbox(
 	await taken.done();
 }
 
-async function markIncidents(
+export async function markIncidents(
 	deps: AlertDeps,
 	incidents: Incident[],
-	set: { downNotifiedAt: string } | { recoveryNotifiedAt: string },
+	set:
+		| { downNotifiedAt: string }
+		| { recoveryNotifiedAt: string }
+		| { lastReminderAt: string },
 ): Promise<void> {
 	await Promise.all(
 		incidents.map((i) =>

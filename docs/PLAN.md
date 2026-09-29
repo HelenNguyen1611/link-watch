@@ -241,7 +241,8 @@
 - **Xong khi:** `pnpm test:int` (DynamoDB Local + `aws-sdk-client-mock` cho SES) pass `AC-04`, `AC-06`, `AC-07`.
 - **Phụ thuộc:** 8b, 12b, 14, 15a
 
-### Bước 17a — Nhắc lại
+### Bước 17a — Nhắc lại ✅
+- ✅ đã làm (29/09/2026): Alert nhận event `{"kind":"reminders"}` từ EventBridge Scheduler (mỗi 15 phút, tạo ở Bước 36b) thay vì chạy theo tick Dispatcher. Chỉ nhắc incident Đang mở/Chờ xác minh, chưa Acknowledge, **đã có email Sự cố**; gộp theo domain + người nhận; `lastReminderAt` được ghi kể cả khi gửi lỗi (lỗi vẫn ghi `MAIL#`) để không gửi lại mỗi 15 phút.
 - **File:** `services/alert/src/reminder.ts` (chạy theo tick dispatcher).
 - **FR/AC:** FR-23.
 - **Xong khi:** test int: incident mở 24 giờ chưa ack → 1 email Nhắc lại; đã ack → không gửi.

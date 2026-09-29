@@ -8,6 +8,7 @@ import type {
 	SQSEvent,
 } from "aws-lambda";
 import { type AlertDeps, flushOutbox } from "./outbox";
+import { sendReminders } from "./reminder";
 import { toNotificationEvent } from "./stream";
 
 export type AlertHandlerDeps = AlertDeps & {
@@ -17,14 +18,22 @@ export type AlertHandlerDeps = AlertDeps & {
 	now?: () => Date;
 };
 
-type AlertEvent = DynamoDBStreamEvent | SQSEvent;
+/** FR-23: payload of the EventBridge Scheduler rule that runs reminders (step 36b). */
+export type ReminderEvent = { kind: "reminders" };
 
-const isStream = (event: AlertEvent): event is DynamoDBStreamEvent =>
+type AlertEvent = DynamoDBStreamEvent | SQSEvent | ReminderEvent;
+
+const isReminder = (event: AlertEvent): event is ReminderEvent =>
+	(event as ReminderEvent).kind === "reminders";
+
+const isStream = (
+	event: DynamoDBStreamEvent | SQSEvent,
+): event is DynamoDBStreamEvent =>
 	event.Records[0]?.eventSource === "aws:dynamodb";
 
 /**
  * Alert Lambda: DynamoDB Streams (incident opened/closed) → outbox + delayed flush;
- * alert queue (flush) → grouped email through SES.
+ * alert queue (flush) → grouped email through SES; scheduler → reminders (FR-23).
  */
 export function createHandler(deps: AlertHandlerDeps) {
 	const now = deps.now ?? (() => new Date());
@@ -95,8 +104,18 @@ export function createHandler(deps: AlertHandlerDeps) {
 		return { batchItemFailures: failures };
 	}
 
-	return async function handler(event: AlertEvent) {
+	async function handler(event: ReminderEvent): Promise<{ reminded: number }>;
+	async function handler(
+		event: DynamoDBStreamEvent | SQSEvent,
+	): Promise<DynamoDBBatchResponse | SQSBatchResponse>;
+	async function handler(event: AlertEvent) {
+		if (isReminder(event)) {
+			const reminded = await sendReminders(deps, now());
+			log("Reminders sent", { incidents: reminded });
+			return { reminded };
+		}
 		if (event.Records.length === 0) return { batchItemFailures: [] };
 		return isStream(event) ? onStream(event) : onQueue(event);
-	};
+	}
+	return handler;
 }
