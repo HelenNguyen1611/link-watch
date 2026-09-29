@@ -1,1 +1,16 @@
-{"name":"@linkwatch/checker","version":"0.1.0","private":true,"type":"module","main":"src/index.ts","dependencies":{"@aws-lambda-powertools/idempotency":"^2.35.0","@aws-lambda-powertools/logger":"^2.35.0","@aws-lambda-powertools/metrics":"^2.35.0","@aws-lambda-powertools/tracer":"^2.35.0","@linkwatch/core":"workspace:*","p-limit":"^7.3.3","undici":"^8.11.2"}}
+{
+	"name": "@linkwatch/checker",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"dependencies": {
+		"@aws-lambda-powertools/idempotency": "^2.35.0",
+		"@aws-lambda-powertools/logger": "^2.35.0",
+		"@aws-lambda-powertools/metrics": "^2.35.0",
+		"@aws-lambda-powertools/tracer": "^2.35.0",
+		"@linkwatch/core": "workspace:*",
+		"p-limit": "^7.3.3",
+		"undici": "^8.11.2"
+	}
+}

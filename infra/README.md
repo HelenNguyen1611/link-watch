@@ -1,14 +1,12 @@
-# Welcome to your CDK TypeScript project
+# @linkwatch/infra
 
-This is a blank project for CDK development with TypeScript.
+AWS CDK v2 cho LinkWatch. Stack đang chạy: `LinkWatch-Web`, `LinkWatch-Cicd` (xem `CLAUDE.md` ở gốc repo).
+Cấu hình cố định (account, region, domain, chứng chỉ, GitHub OIDC) nằm ở `lib/config.ts`.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+```bash
+pnpm test                  # ở gốc repo: Vitest + CDK assertions (infra/test)
+pnpm synth                 # ở gốc repo: cần apps/web/out (pnpm --filter @linkwatch/web build)
+pnpm --filter @linkwatch/infra exec cdk diff
+```
 
-## Useful commands
-
-* `npm run build`   type-check the project
-* `npm run watch`   watch for changes and type-check
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+Deploy chạy tự động khi push `main` (`.github/workflows/deploy.yml`). Không chạy `cdk deploy` từ máy khi chưa thống nhất.
