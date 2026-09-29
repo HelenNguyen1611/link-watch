@@ -8,5 +8,6 @@ export * from "./schema/check";
 export * from "./schema/domain";
 export * from "./schema/enums";
 export * from "./schema/link";
+export * from "./schema/link-view";
 export * from "./ssrf";
 export * from "./url";

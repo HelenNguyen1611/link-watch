@@ -11,7 +11,10 @@ export type ClientOptions = {
 export function createRawClient(opts: ClientOptions = {}): DynamoDBClient {
 	const endpoint = opts.endpoint ?? process.env.DYNAMODB_ENDPOINT;
 	return new DynamoDBClient({
-		region: opts.region ?? process.env.AWS_REGION ?? "ap-southeast-1",
+		// DynamoDB Local tách dữ liệu theo region: mọi công cụ local dùng chung region "local".
+		region:
+			opts.region ??
+			(endpoint ? "local" : (process.env.AWS_REGION ?? "ap-southeast-1")),
 		...(endpoint
 			? {
 					endpoint,

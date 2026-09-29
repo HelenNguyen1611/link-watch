@@ -1,10 +1,11 @@
 import { API_KEY_HEADER, LinkInput } from "@linkwatch/core";
+import type { Db } from "@linkwatch/core/db";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
 
 const SECRET = "bi-mat-thu-nghiem-0123456789";
 const app = () => {
-	const a = createApp({ getApiKey: async () => SECRET });
+	const a = createApp({ db: {} as Db, getApiKey: async () => SECRET });
 	a.post("/_test/zod", async (c) =>
 		c.json(LinkInput.parse(await c.req.json())),
 	);
@@ -40,7 +41,7 @@ describe("API khung", () => {
 	});
 
 	it("NFR-07 (tạm): chưa cấu hình khóa (rỗng) thì từ chối mọi request, không mở toang", async () => {
-		const a = createApp({ getApiKey: async () => "" });
+		const a = createApp({ db: {} as Db, getApiKey: async () => "" });
 		a.get("/_test/ok", (c) => c.text("ok"));
 		const res = await a.request("/api/_test/ok", {
 			headers: { [API_KEY_HEADER]: "" },
