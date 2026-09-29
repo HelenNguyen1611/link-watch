@@ -190,7 +190,8 @@
 - **Xong khi:** test `5.2`, `FR-09`, `AC-05`, `AC-07` pass.
 - **Phụ thuộc:** 3a, 4a
 
-### Bước 6 — Người nhận, gộp email, nhắc lại, quy tắc 80%
+### Bước 6 — Người nhận, gộp email, nhắc lại, quy tắc 80% ✅
+- ✅ đã làm (29/09/2026): gộp theo (domain, loại email) — Sự cố và Hồi phục tách email; `sendAt` = sự kiện đầu + 5 phút (Q3); `groupByRecipient` tách email gộp để mỗi người chỉ nhận link của mình; Nhắc lại tính cả incident Chờ xác minh, `null` = tắt; tiêu đề email viết tiếng Anh theo quyết định UI chỉ tiếng Anh: `[LinkWatch][DOWN] abc.com — 3 broken links`.
 - **File:** `src/recipients.ts`, `src/notify.ts` (`groupIncidents` theo domain trong cửa sổ 5 phút, `isReminderDue`, `isSystemWideOutage`), `src/email-subject.ts`.
 - **FR/AC:** FR-20, FR-22, FR-23, FR-24 (tiêu đề `[LinkWatch][DOWN] abc.com — 3 link lỗi`), 5.2 bước 5; AC-06 mức hàm.
 - **Xong khi:** test `FR-20`, `FR-22`, `FR-23`, `FR-24`, `AC-06` pass.
