@@ -293,6 +293,7 @@
 - **FR/AC:** FR-26. Assertion: template không chứa resource SES/ACM. **Phụ thuộc:** 36b, 37b
 
 ### Bước 40b — Smoke test Mốc 2 + RUNBOOK (mới)
+- 🟡 code xong (30/09/2026), **chờ push + chạy thật**: smoke đăng nhập bằng `AdminInitiateAuth` qua client Cognito riêng `linkwatch-smoke` (chỉ bật `ADMIN_USER_PASSWORD_AUTH`, cần credentials IAM); kiểm tra 37c (`DELETE /api/links/<không có>` → 404 JSON, trang web không có → trang 404); luồng sự cố dùng link `https://watch.hueai.net/smoke/<run>.txt` (S3 trả 403 → Link chết) → incident → `MAIL#` `down` `sent` ≤ 5 phút (+1) → upload file → `recovery` `sent`; đọc incident/`MAIL#` thẳng từ DynamoDB (Mốc 3 mới có API). RUNBOOK: tạo user Cognito, xóa SSM header tạm, SES sandbox, bảng xử lý 3 DLQ, cách chạy smoke.
 - Mở rộng `scripts/smoke.ts` (đăng nhập Cognito, link 404 → incident → email tới địa chỉ đã xác thực); `docs/RUNBOOK.md` (tạo user Cognito, xác thực người nhận trong SES sandbox, xử lý DLQ, xóa SSM header tạm).
 - **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass. **Phụ thuộc:** 23b, 31a, 38b
 

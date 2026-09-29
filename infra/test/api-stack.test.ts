@@ -65,7 +65,7 @@ describe("LinkWatch-Api", () => {
 			AuthorizerType: "JWT",
 			IdentitySource: ["$request.header.Authorization"],
 			JwtConfiguration: {
-				Audience: [Match.anyValue()],
+				Audience: [Match.anyValue(), Match.anyValue()],
 				Issuer: Match.anyValue(),
 			},
 		});
@@ -86,10 +86,21 @@ describe("LinkWatch-Api", () => {
 			}),
 		});
 		template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+			ClientName: "linkwatch-web",
 			GenerateSecret: false,
 			ExplicitAuthFlows: ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
 			PreventUserExistenceErrors: "ENABLED",
 		});
+		// Step 40b: server-side sign-in for the smoke test only (needs IAM credentials).
+		template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+			ClientName: "linkwatch-smoke",
+			GenerateSecret: false,
+			ExplicitAuthFlows: [
+				"ALLOW_ADMIN_USER_PASSWORD_AUTH",
+				"ALLOW_REFRESH_TOKEN_AUTH",
+			],
+		});
+		template.resourceCountIs("AWS::Cognito::UserPoolClient", 2);
 	});
 
 	it("throttles requests so abuse cannot drive up cost", () => {

@@ -1,20 +1,22 @@
 /**
- * Milestone 1 smoke test against a deployed LinkWatch (step 40a).
+ * Smoke test against a deployed LinkWatch (steps 40a, 40b) — see docs/RUNBOOK.md §4.
  *
- *   SMOKE_API_KEY=… pnpm smoke                        # https://watch.hueai.net
- *   SMOKE_BASE_URL=http://localhost:8787 SMOKE_API_KEY=dev pnpm smoke
+ *   SMOKE_EMAIL=… SMOKE_PASSWORD=… AWS_PROFILE=linkwatch pnpm smoke
  *
- * Steps: /api/health → request without key gets 401 → add 4 sample links →
- * wait for the Dispatcher/Checker (up to 10 minutes) → each link has the expected status → delete the sample links.
+ * Milestone 1 part: /api/health → request without a token gets 401 → API errors stay JSON
+ * through CloudFront (step 37c) → add 4 sample links → wait for the Dispatcher/Checker
+ * (up to 10 minutes) → each link has the expected status → delete the sample links.
+ * Milestone 2 part (smoke-incident.ts): 404 link → incident → email → fix → recovery email.
  */
 import { pathToFileURL } from "node:url";
-import {
-	API_KEY_HEADER,
-	type LinkInputRaw,
-	type LinkPage,
-	type LinkStatus,
-	type LinkView,
+import type {
+	LinkInputRaw,
+	LinkPage,
+	LinkStatus,
+	LinkView,
 } from "@linkwatch/core";
+import { loadAwsEnvironment } from "./aws";
+import { runIncidentSmoke } from "./smoke-incident";
 
 export type SmokeSample = { expected: LinkStatus; input: LinkInputRaw };
 
@@ -37,7 +39,10 @@ export function defaultSamples(runId: string): SmokeSample[] {
 
 export type SmokeOptions = {
 	baseUrl: string;
-	apiKey: string;
+	/** Cognito ID token (FR-28). */
+	token: string;
+	/** Also check that an unknown web page still shows the 404 page (step 37c); off for a local API. */
+	checkWebNotFound?: boolean;
 	samples: SmokeSample[];
 	timeoutMs?: number;
 	pollMs?: number;
@@ -64,9 +69,13 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 	const base = `${opts.baseUrl.replace(/\/+$/, "")}/api`;
 	const failures: string[] = [];
 
-	const call = async (path: string, init: RequestInit = {}, withKey = true) => {
+	const call = async (
+		path: string,
+		init: RequestInit = {},
+		signedIn = true,
+	) => {
 		const headers = new Headers(init.headers);
-		if (withKey) headers.set(API_KEY_HEADER, opts.apiKey);
+		if (signedIn) headers.set("authorization", `Bearer ${opts.token}`);
 		if (init.body) headers.set("content-type", "application/json");
 		const res = await doFetch(`${base}${path}`, { ...init, headers });
 		const body =
@@ -78,11 +87,32 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 	if (health.status !== 200)
 		failures.push(`GET /api/health: expected 200, got ${health.status}`);
 
-	const noKey = await call("/links", {}, false);
-	if (noKey.status !== 401)
+	const noToken = await call("/links", {}, false);
+	if (noToken.status !== 401)
 		failures.push(
-			`GET /api/links without key: expected 401, got ${noKey.status}`,
+			`GET /api/links without a token: expected 401, got ${noToken.status}`,
 		);
+
+	// Step 37c: CloudFront must not turn API errors into the HTML 404 page.
+	const missing = await call("/links/linkwatch-smoke-missing", {
+		method: "DELETE",
+	});
+	if (
+		missing.status !== 404 ||
+		(missing.body as { error?: string } | undefined)?.error !== "not_found"
+	)
+		failures.push(
+			`DELETE /api/links/<unknown>: expected 404 {"error":"not_found"}, got ${missing.status} ${JSON.stringify(missing.body)}`,
+		);
+	if (opts.checkWebNotFound) {
+		const page = await doFetch(
+			`${opts.baseUrl.replace(/\/+$/, "")}/linkwatch-smoke-missing-page/`,
+		);
+		if (!(page.headers.get("content-type") ?? "").includes("text/html"))
+			failures.push(
+				`unknown web page: expected the HTML 404 page, got ${page.status} ${page.headers.get("content-type")}`,
+			);
+	}
 
 	// Stop early: without a working API every later step fails for the same reason.
 	if (failures.length) return { ok: false, failures, links: [] };
@@ -173,19 +203,24 @@ async function findLinks(call: Call, ids: Set<string>) {
 }
 
 async function main() {
-	const apiKey = process.env.SMOKE_API_KEY;
-	if (!apiKey) {
+	const email = process.env.SMOKE_EMAIL;
+	const password = process.env.SMOKE_PASSWORD;
+	if (!email || !password) {
 		console.error(
-			"SMOKE_API_KEY is required (see docs/RUNBOOK.md, section 2, for how to read it from SSM).",
+			"SMOKE_EMAIL and SMOKE_PASSWORD (a Cognito user) are required — see docs/RUNBOOK.md §4.",
 		);
 		process.exit(2);
 	}
 	const baseUrl = process.env.SMOKE_BASE_URL ?? "https://watch.hueai.net";
 	const runId = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
 	console.log(`LinkWatch smoke test → ${baseUrl} (run ${runId})`);
+
+	const aws = await loadAwsEnvironment();
+	const token = await aws.signIn(email, password);
 	const report = await runSmoke({
 		baseUrl,
-		apiKey,
+		token,
+		checkWebNotFound: true,
 		samples: defaultSamples(runId),
 		timeoutMs: Number(process.env.SMOKE_TIMEOUT_MS ?? 10 * 60_000),
 		log: (m) => console.log(`  ${m}`),
@@ -195,8 +230,25 @@ async function main() {
 			`  ${l.actual === l.expected ? "PASS" : "FAIL"} ${l.expected.padEnd(4)} ← ${l.actual ?? "-"}  ${l.url}`,
 		);
 	for (const f of report.failures) console.error(`  ✗ ${f}`);
-	console.log(report.ok ? "Smoke test passed" : "Smoke test FAILED");
-	process.exit(report.ok ? 0 : 1);
+
+	let incidentOk = true;
+	if (process.env.SMOKE_SKIP_INCIDENT !== "1") {
+		console.log("Incident flow (milestone 2, up to ~35 minutes)…");
+		const incident = await runIncidentSmoke({
+			baseUrl,
+			token,
+			runId,
+			recipient: process.env.SMOKE_RECIPIENT ?? "helen@wootech.co",
+			store: aws.store,
+			site: aws.site,
+			log: (m) => console.log(`  ${m}`),
+		});
+		for (const f of incident.failures) console.error(`  ✗ ${f}`);
+		incidentOk = incident.ok;
+	}
+	const ok = report.ok && incidentOk;
+	console.log(ok ? "Smoke test passed" : "Smoke test FAILED");
+	process.exit(ok ? 0 : 1);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

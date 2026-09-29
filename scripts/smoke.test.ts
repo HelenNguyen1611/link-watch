@@ -1,8 +1,4 @@
-import {
-	API_KEY_HEADER,
-	type LinkStatus,
-	type LinkView,
-} from "@linkwatch/core";
+import type { LinkStatus, LinkView } from "@linkwatch/core";
 import { describe, expect, it } from "vitest";
 import { defaultSamples, runSmoke } from "./smoke";
 
@@ -14,6 +10,8 @@ type FakeOptions = {
 	healthStatus?: number;
 	noKeyStatus?: number;
 	deleteStatus?: number;
+	/** Status of DELETE on an unknown link (CloudFront used to turn it into HTML). */
+	missingStatus?: number;
 };
 
 /** In-memory stand-in for the deployed API, mirroring the real routes. */
@@ -28,7 +26,8 @@ function fakeApi(o: FakeOptions = {}) {
 	const fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
 		const url = new URL(String(input));
 		const method = init.method ?? "GET";
-		const hasKey = new Headers(init.headers).get(API_KEY_HEADER) === "k";
+		const hasKey =
+			new Headers(init.headers).get("authorization") === "Bearer tok";
 		if (url.pathname === "/api/health")
 			return json(o.healthStatus ?? 200, { ok: true });
 		if (!hasKey) return json(o.noKeyStatus ?? 401, { error: "unauthorized" });
@@ -56,6 +55,8 @@ function fakeApi(o: FakeOptions = {}) {
 		}
 		if (method === "DELETE") {
 			const id = url.pathname.split("/").pop() ?? "";
+			if (!links.has(id))
+				return json(o.missingStatus ?? 404, { error: "not_found" });
 			deleted.push(id);
 			links.delete(id);
 			return json(o.deleteStatus ?? 204);
@@ -73,7 +74,7 @@ const opts = (api: ReturnType<typeof fakeApi>, extra = {}) => {
 	let t = 0;
 	return {
 		baseUrl: "https://lw.test/",
-		apiKey: "k",
+		token: "tok",
 		samples,
 		fetch: api.fetch,
 		sleep: async (ms: number) => {
@@ -86,7 +87,7 @@ const opts = (api: ReturnType<typeof fakeApi>, extra = {}) => {
 	};
 };
 
-describe("smoke test (step 40a)", () => {
+describe("smoke test (steps 40a, 40b)", () => {
 	it("FR-17: one sample link per SRS 5.1 result, each URL unique per run", () => {
 		expect(samples.map((s) => s.expected)).toEqual([
 			"up",
@@ -133,7 +134,17 @@ describe("smoke test (step 40a)", () => {
 		expect(api.deleted).toHaveLength(4);
 	});
 
-	it("NFR-07: fails fast when a request without the API key is not rejected", async () => {
+	it("step 37c: fails when an API 404 is not JSON through CloudFront", async () => {
+		const api = fakeApi({ checkedAs: expectedByUrl, missingStatus: 200 });
+		const report = await runSmoke(opts(api));
+		expect(report.ok).toBe(false);
+		expect(report.failures).toEqual([
+			expect.stringContaining('expected 404 {"error":"not_found"}'),
+		]);
+		expect(api.deleted).toHaveLength(0);
+	});
+
+	it("NFR-07: fails fast when a request without a token is not rejected", async () => {
 		const api = fakeApi({ noKeyStatus: 200 });
 		const report = await runSmoke(opts(api));
 		expect(report.ok).toBe(false);

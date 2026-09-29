@@ -78,6 +78,15 @@ export class ApiStack extends cdk.Stack {
 			refreshTokenValidity: cdk.Duration.days(30),
 			enableTokenRevocation: true,
 		});
+		// Step 40b: smoke test signs in server-side with AWS credentials (AdminInitiateAuth);
+		// the web client stays SRP-only.
+		const smokeClient = userPool.addClient("SmokeClient", {
+			userPoolClientName: "linkwatch-smoke",
+			generateSecret: false,
+			authFlows: { adminUserPassword: true },
+			preventUserExistenceErrors: true,
+			idTokenValidity: cdk.Duration.hours(1),
+		});
 		this.userPoolId = userPool.userPoolId;
 		this.userPoolClientId = client.userPoolClientId;
 
@@ -86,7 +95,7 @@ export class ApiStack extends cdk.Stack {
 			"CognitoAuthorizer",
 			userPool,
 			{
-				userPoolClients: [client],
+				userPoolClients: [client, smokeClient],
 			},
 		);
 
@@ -133,6 +142,9 @@ export class ApiStack extends cdk.Stack {
 		new cdk.CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
 		new cdk.CfnOutput(this, "UserPoolClientId", {
 			value: client.userPoolClientId,
+		});
+		new cdk.CfnOutput(this, "SmokeClientId", {
+			value: smokeClient.userPoolClientId,
 		});
 	}
 }

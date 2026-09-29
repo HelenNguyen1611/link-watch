@@ -16,19 +16,57 @@ Chỉ cần nếu muốn user IAM `helen` (không phải root) xem được Bill
 3. Mục **IAM user and role access to Billing information** → **Edit** → tick **Activate IAM Access** → **Update**.
 4. User IAM còn cần quyền Billing trong policy của mình (vd. `AWSBillingReadOnlyAccess`).
 
-## 2. Khóa API tạm (Mốc 1) — trước lần push đầu có stack `LinkWatch-Api`
+## 2. Đăng nhập Cognito (Mốc 2) — ngay sau lần push đầu có Cognito
 
-**TẠM THỜI:** xóa ở Bước 37b khi chuyển sang Cognito. CloudFormation không tạo được SecureString nên tạo bằng CLI:
+Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` đã bị xóa. Sau khi workflow deploy xanh, web **bắt buộc đăng nhập** và chưa có ai đăng nhập được cho tới khi tạo user.
 
-```bash
-aws ssm put-parameter --name /linkwatch/api-shared-secret --type SecureString \
-  --value "$(openssl rand -base64 32)" --region ap-southeast-1 --profile linkwatch
-```
+1. Lấy User Pool ID (output `UserPoolId` của `LinkWatch-Api`):
 
-- Chưa có tham số thì mọi request `/api/*` (trừ `/api/health`) trả 500; API không bao giờ mở toang.
-- Xem khóa để nhập vào web (ô "Nhập khóa API"), chỉ lưu trên trình duyệt:
-  `aws ssm get-parameter --name /linkwatch/api-shared-secret --with-decryption --query Parameter.Value --output text --region ap-southeast-1 --profile linkwatch`
-- Đổi khóa: chạy lại `put-parameter` với `--overwrite`. Lambda đọc lại sau tối đa 5 phút, không cần deploy.
+   ```bash
+   POOL=$(aws cloudformation describe-stacks --stack-name LinkWatch-Api --region ap-southeast-1 --profile linkwatch \
+     --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)
+   ```
+
+2. Tạo user (Admin — mọi user đăng nhập đều là Admin ở MVP, FR-28). Cognito gửi email mời kèm mật khẩu tạm (hết hạn sau 7 ngày):
+
+   ```bash
+   aws cognito-idp admin-create-user --user-pool-id "$POOL" --username helen@wootech.co \
+     --user-attributes Name=email,Value=helen@wootech.co Name=email_verified,Value=true \
+     --desired-delivery-mediums EMAIL --region ap-southeast-1 --profile linkwatch
+   ```
+
+   Lần đăng nhập đầu, web yêu cầu đặt mật khẩu mới (≥ 12 ký tự, có chữ hoa, chữ thường, số).
+3. User cho smoke test: tạo không gửi email mời, rồi đặt mật khẩu cố định:
+
+   ```bash
+   aws cognito-idp admin-create-user --user-pool-id "$POOL" --username smoke@watch.hueai.net \
+     --user-attributes Name=email,Value=smoke@watch.hueai.net Name=email_verified,Value=true \
+     --message-action SUPPRESS --region ap-southeast-1 --profile linkwatch
+   aws cognito-idp admin-set-user-password --user-pool-id "$POOL" --username smoke@watch.hueai.net \
+     --password '<mật khẩu>' --permanent --region ap-southeast-1 --profile linkwatch
+   ```
+
+4. Quên mật khẩu: nút "Forgot password" trên web (email do Cognito gửi, giới hạn 50 email/ngày của Cognito mặc định). Khóa một user: `admin-disable-user`.
+5. **Xóa tham số SSM của header tạm** (không còn Lambda nào đọc):
+
+   ```bash
+   aws ssm delete-parameter --name /linkwatch/api-shared-secret --region ap-southeast-1 --profile linkwatch
+   ```
+
+   Web còn giữ khóa cũ trong `localStorage` của trình duyệt cũng không sao — không còn được gửi đi.
+
+## 2a. Email qua SES — sandbox
+
+- Identity `watch.hueai.net` (DKIM, MAIL FROM `mail.watch.hueai.net`) tạo tay; CDK chỉ cấp quyền `ses:SendEmail` (điều kiện From thuộc `watch.hueai.net`). Địa chỉ gửi mặc định `noreply@watch.hueai.net`, đổi được ở màn Settings → Email.
+- **Khi tài khoản còn trong sandbox, SES chỉ gửi được tới địa chỉ đã xác thực.** Mỗi người nhận (kể cả email admin mặc định `helen@wootech.co`) phải xác thực một lần:
+
+  ```bash
+  aws sesv2 create-email-identity --email-identity helen@wootech.co --region ap-southeast-1 --profile linkwatch
+  ```
+
+  Người nhận bấm link trong email "Amazon Web Services – Email Address Verification Request". Kiểm tra: `aws sesv2 get-email-identity --email-identity helen@wootech.co …` → `VerifiedForSendingStatus: true`.
+- Gửi tới địa chỉ chưa xác thực: SES trả `MessageRejected`; LinkWatch ghi `MAIL#` với `status = failed` (không retry, FR-25). Màn Settings → "Send test email" hiện lỗi này.
+- Thoát sandbox (khi có người nhận ngoài công ty): SES → Account dashboard → Request production access.
 
 ## 3. Giới hạn đồng thời của Checker
 
@@ -37,22 +75,45 @@ aws ssm put-parameter --name /linkwatch/api-shared-secret --type SecureString \
 - Xem hạn mức: `aws lambda get-account-settings --region ap-southeast-1 --profile linkwatch` (`AccountLimit.ConcurrentExecutions`).
 - Khi hạn mức ≥ 100: có thể tăng `CHECKER_MAX_CONCURRENCY` (NFR-06, chỉ đổi số rồi deploy) hoặc cân nhắc reserved concurrency cho Checker.
 - Job lỗi 3 lần nằm ở DLQ (output `CheckDlqUrl` của `LinkWatch-Workers`); link tự được gửi lại sau 30 phút giữ chỗ.
+- Mốc 2 thêm: recheck trên hàng đợi ưu tiên (Checker, tối đa 2 đồng thời), Alert (Streams 1/shard + hàng đợi alert tối đa 2). Lúc cao điểm tổng có thể vượt hạn mức 10 → Lambda bị throttle, SQS/Streams tự thử lại (không mất việc), API có thể trả 429 trong chốc lát. Nên xin tăng hạn mức.
 
-## 4. Smoke test sau khi deploy (Bước 40a)
+### Xử lý DLQ (3 hàng đợi)
 
-Chạy sau mỗi lần push `main` khi workflow deploy đã xanh. Script `scripts/smoke.ts` gọi API thật qua CloudFront:
+| Output của `LinkWatch-Workers` | Chứa gì | Hậu quả nếu bỏ mặc | Xử lý |
+| --- | --- | --- | --- |
+| `CheckDlqUrl` (FIFO) | job check theo lịch lỗi 3 lần | không có — link được gửi lại sau 30 phút giữ chỗ | xem log Checker, rồi purge |
+| `PriorityDlqUrl` | recheck 2/10 phút lỗi 3 lần | không có — Dispatcher chạy dự phòng qua `next_run_at` (+5 phút) | xem log Checker, rồi purge |
+| `AlertDlqUrl` | message flush lỗi 3 lần, hoặc bản ghi Streams lỗi sau 5 lần thử (chỉ chứa metadata shard/sequence) | **email Sự cố/Hồi phục của domain đó không được gửi** | sửa nguyên nhân (log Alert), rồi gửi lại message flush (xem dưới) |
 
-1. `GET /api/health` → 200; `GET /api/links` không có khóa → 401.
-2. Tạo 4 link mẫu (tag `smoke`, có query `?linkwatch-smoke=<run>` nên không trùng lần chạy trước):
-   `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down (DNS).
-3. Chờ Dispatcher (5 phút/lần) + Checker, tối đa 10 phút, rồi so trạng thái từng link.
-4. Luôn xóa 4 link mẫu, kể cả khi thất bại.
+- Xem số message: `aws sqs get-queue-attributes --queue-url <url> --attribute-names ApproximateNumberOfMessages …`.
+- Gửi lại message flush từ `AlertDlq` về hàng đợi alert: SQS Console → AlertDlq → **Start DLQ redrive** (về source queue). Bản ghi lỗi của Streams không redrive được: sự kiện vẫn nằm trong `OUTBOX#<domain>#<kind>`; gửi tay một message `{"kind":"flush","domain":"<domain>","notification":"down"}` vào hàng đợi alert.
+- Purge: `aws sqs purge-queue --queue-url <url> …`.
+
+## 4. Smoke test sau khi deploy (Bước 40a, 40b)
+
+Chạy sau mỗi lần push `main` khi workflow deploy đã xanh, bằng credentials AWS của bạn (`scripts/smoke.ts`, `scripts/smoke-incident.ts`).
+
+**Chuẩn bị một lần:** tạo user Cognito cho smoke test với mật khẩu cố định (mục 2, bước 3) và xác thực người nhận trong SES (mục 2a).
 
 ```bash
-SMOKE_API_KEY="$(aws ssm get-parameter --name /linkwatch/api-shared-secret --with-decryption \
-  --query Parameter.Value --output text --region ap-southeast-1 --profile linkwatch)" pnpm smoke
+AWS_PROFILE=linkwatch SMOKE_EMAIL=smoke@watch.hueai.net SMOKE_PASSWORD='<mật khẩu>' pnpm smoke
 ```
 
-- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`; local: `http://localhost:8787` với khóa `dev`, nhưng local không có Dispatcher/Checker nên link luôn ở `pending`), `SMOKE_TIMEOUT_MS` (mặc định 600000).
-- Mã thoát: 0 = pass, 1 = fail, 2 = thiếu `SMOKE_API_KEY`.
-- Fail vì `pending` quá 10 phút: xem log Lambda Dispatcher/Checker và DLQ (mục 3). Fail vì sai trạng thái: có thể do httpbin.org chập chờn, chạy lại một lần trước khi điều tra.
+Phần Mốc 1 (~10 phút):
+
+1. `GET /api/health` → 200; `GET /api/links` không có token → 401.
+2. Bước 37c: `DELETE /api/links/<không có>` → 404 JSON `{"error":"not_found"}` (không bị CloudFront đổi thành trang HTML); một trang web không tồn tại vẫn ra trang 404 (HTML).
+3. Tạo 4 link mẫu (tag `smoke`, query `?linkwatch-smoke=<run>`): `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down. Chờ tối đa 10 phút rồi so trạng thái; luôn xóa link mẫu.
+
+Phần Mốc 2 (~20–35 phút, bỏ qua bằng `SMOKE_SKIP_INCIDENT=1`):
+
+4. Thêm người nhận `SMOKE_RECIPIENT` (mặc định `helen@wootech.co`) cho domain `hueai.net`.
+5. Thêm link `https://watch.hueai.net/smoke/<run>.txt` — file không có trong bucket nên CloudFront/S3 trả 403 → Link chết.
+6. Chờ incident mở sau lần check lỗi thứ 2 (≤ 15 phút), rồi chờ `MAIL#` loại `down` tới người nhận ở trạng thái `sent` trong ≤ 5 phút (+1 phút dư) kể từ lúc mở (AC-04).
+7. Upload file đó lên bucket web → link trả 200 → chờ incident đóng và email `recovery` `sent` (AC-07).
+8. Luôn dọn: xóa file trong bucket, xóa link, xóa người nhận nếu do smoke tạo. Kiểm tra hộp thư: có 2 email `[LinkWatch][DOWN] hueai.net — 1 broken link` và `[LinkWatch][RECOVERED] …`.
+
+- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`), `SMOKE_TIMEOUT_MS` (phần Mốc 1, mặc định 600000), `SMOKE_RECIPIENT`, `SMOKE_SKIP_INCIDENT=1`.
+- Quyền IAM cần: `cloudformation:DescribeStacks`, `cloudformation:DescribeStackResource`, `cognito-idp:AdminInitiateAuth`, `ssm:GetParameter` (`/linkwatch/table-name`), đọc DynamoDB, `s3:PutObject`/`s3:DeleteObject` trên bucket web.
+- Mã thoát: 0 = pass, 1 = fail, 2 = thiếu `SMOKE_EMAIL`/`SMOKE_PASSWORD`.
+- Fail ở "incident email": xem log Lambda Alert, `AlertDlqUrl`, và `MAIL#` (`status = failed` + `error`, thường là người nhận chưa xác thực trong sandbox). Fail ở "incident opened": xem log Checker/Dispatcher và `PriorityDlqUrl`.
