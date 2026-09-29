@@ -6,7 +6,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Api } from "@/lib/api";
 import { renderWithApi } from "@/test/render";
-import { Sidebar } from "./Sidebar";
+import { SHELL_GUTTER, Sidebar } from "./Sidebar";
 
 vi.mock("next/link", () => ({
 	default: ({
@@ -109,6 +109,14 @@ describe("Sidebar", () => {
 			svg.getAttribute("width"),
 		);
 		expect(new Set(svgs)).toEqual(new Set(["20"]));
+	});
+
+	it("menu items use the same left inset as the header logo", () => {
+		render(<Harness />);
+		const item = screen.getByRole("link", { name: "Overview" });
+		expect(item.getAttribute("style")).toContain(
+			`--mantine-spacing-${SHELL_GUTTER}`,
+		);
 	});
 
 	it("the active marker does not shift content (inset shadow, no border)", () => {

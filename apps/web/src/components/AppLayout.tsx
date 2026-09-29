@@ -16,7 +16,12 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiKeyGate } from "./ApiKeyGate";
 import { Logo } from "./Logo";
-import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, Sidebar } from "./Sidebar";
+import {
+	SHELL_GUTTER,
+	SIDEBAR_COLLAPSED_WIDTH,
+	SIDEBAR_WIDTH,
+	Sidebar,
+} from "./Sidebar";
 
 export const SIDEBAR_STORAGE_KEY = "linkwatch.sidebarCollapsed";
 
@@ -51,12 +56,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 		>
 			<AppShell.Header>
 				{/* Logo on the left; tagline (desktop) and the menu button (mobile) on the right. */}
-				<Group
-					h="100%"
-					px={{ base: "md", sm: "lg" }}
-					justify="space-between"
-					wrap="nowrap"
-				>
+				<Group h="100%" px={SHELL_GUTTER} justify="space-between" wrap="nowrap">
 					<Anchor
 						component={Link}
 						href="/"

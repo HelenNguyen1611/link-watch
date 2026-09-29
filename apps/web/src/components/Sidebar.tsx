@@ -32,6 +32,8 @@ const activeMarker = (active: boolean) =>
 	active ? "inset 2px 0 0 var(--mantine-color-brand-7)" : undefined;
 
 export const ICON_SIZE = 20;
+/** Left inset shared by the header logo and the menu, so icons line up under the logo. */
+export const SHELL_GUTTER = "md";
 
 function Item({
 	item,
@@ -85,6 +87,7 @@ function Item({
 				root: {
 					borderRadius: 0,
 					paddingBlock: 10,
+					paddingInline: `var(--mantine-spacing-${SHELL_GUTTER})`,
 					boxShadow: activeMarker(active),
 				},
 				label: { fontWeight: active ? 500 : 400, fontSize: 15 },
@@ -135,7 +138,7 @@ export function Sidebar({
 						</Text>
 					</Tooltip>
 				) : (
-					<Text size="xs" c="dimmed" px="md" mb={6} fw={500}>
+					<Text size="xs" c="dimmed" px={SHELL_GUTTER} mb={6} fw={500}>
 						{t("nav.settings")}
 					</Text>
 				)}
@@ -162,7 +165,7 @@ export function Sidebar({
 					aria-label={collapsedPref ? t("nav.expand") : t("nav.collapse")}
 					aria-expanded={!collapsedPref}
 					w="100%"
-					px="md"
+					px={SHELL_GUTTER}
 					py={6}
 					c="dimmed"
 					style={{
