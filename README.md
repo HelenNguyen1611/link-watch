@@ -33,6 +33,8 @@ Yêu cầu: Node.js 22 (`nvm use`), pnpm (`corepack enable`), Docker (cho Dynamo
 pnpm install                 # cài dependencies (lần đầu trên máy)
 pnpm dev:web                 # giao diện: http://localhost:3000
 pnpm db:local                # DynamoDB Local tại cổng 8000
+pnpm db:init                 # tạo bảng "linkwatch" trên DynamoDB Local
+pnpm test:int                # integration test (cần db:local)
 pnpm lint                    # Biome
 pnpm test                    # Vitest
 pnpm synth                   # kiểm tra CDK

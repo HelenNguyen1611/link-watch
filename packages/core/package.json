@@ -10,5 +10,10 @@
 		"electrodb": "^3.9.3",
 		"tldts": "^7.4.16",
 		"zod": "^4.6.5"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./db": "./src/db/index.ts",
+		"./db/testing": "./src/db/testing.ts"
 	}
 }

@@ -47,3 +47,7 @@ export const CheckErrorType = z.enum([
 	"blocked_private_address",
 ]);
 export type CheckErrorType = z.infer<typeof CheckErrorType>;
+
+/** FR-09: trạng thái tổng hợp của domain. */
+export const DomainStatus = z.enum(["normal", "warning", "error", "down"]);
+export type DomainStatus = z.infer<typeof DomainStatus>;

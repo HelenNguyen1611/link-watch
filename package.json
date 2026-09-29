@@ -12,13 +12,15 @@
 		"typecheck": "pnpm -r exec tsc --noEmit",
 		"synth": "pnpm --filter @linkwatch/infra exec cdk synth",
 		"deploy": "pnpm --filter @linkwatch/infra exec cdk deploy --all",
-		"db:local": "docker run -d --name linkwatch-ddb -p 8000:8000 amazon/dynamodb-local"
+		"db:local": "docker run -d --name linkwatch-ddb -p 8000:8000 amazon/dynamodb-local",
+		"db:init": "tsx packages/core/scripts/create-local-table.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.14",
 		"@types/aws-lambda": "^8.10.163",
 		"@types/node": "^26.6.3",
 		"esbuild": "^0.28.2",
+		"tsx": "^4.23.15",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.2"
 	}
