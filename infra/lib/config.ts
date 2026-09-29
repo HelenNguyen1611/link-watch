@@ -15,4 +15,15 @@ export const config = {
 		ownerId: "126633948",
 		repoId: "1394505495",
 	},
+	/**
+	 * DynamoDB provisioned (PLAN Bước 35, phương án c). Hạn mức miễn phí 25 RCU / 25 WCU
+	 * dùng chung cho bảng và mọi GSI; test chặn tổng vượt 25.
+	 * GSI1 ghi nhiều vì mỗi lần giữ chỗ / cập nhật next_run_at đều ghi vào GSI1.
+	 */
+	dynamodb: {
+		table: { read: 10, write: 15 },
+		gsi1: { read: 5, write: 8 },
+		gsi2: { read: 2, write: 1 },
+		gsi3: { read: 8, write: 1 },
+	},
 } as const;
