@@ -276,7 +276,8 @@
 - Mở rộng `LinkWatch-Workers`: hàng đợi ưu tiên Standard (Q2), NodejsFunction Alert, event source mapping Streams có filter, IAM tối thiểu.
 - **FR/AC:** NFR-04, NFR-06. **Phụ thuộc:** 36a, 17a
 
-### Bước 37b — Cognito + JWT authorizer
+### Bước 37b — Cognito + JWT authorizer ✅
+- ✅ đã làm (30/09/2026): User Pool `linkwatch-users` (tắt tự đăng ký, đăng nhập bằng email, mật khẩu ≥ 12 ký tự, RETAIN + deletion protection), client SPA `linkwatch-web` (SRP, không secret, ID token 1 giờ, refresh 30 ngày); JWT authorizer (audience = client id) trên `ANY /api` và `ANY /api/{proxy+}`; `GET /api/health`, `ANY /api/public/{proxy+}` không auth. Đã bỏ env/quyền SSM của header tạm. **Web static export không biết id lúc build** → Web stack ghi `/auth-config.json` (`region`, `userPoolId`, `userPoolClientId`) vào S3 cùng BucketDeployment (giá trị lấy từ LinkWatch-Api qua `Fn::GetStackOutput`); web đọc file này khi khởi động (Bước 23b). Logical ID cũ giữ nguyên. Tham số SSM `/linkwatch/api-shared-secret` (tạo tay) xóa tay sau khi deploy (RUNBOOK, Bước 40b).
 - Mở rộng `LinkWatch-Api`: User Pool chỉ admin tạo user, JWT authorizer, route `/public/*` không auth; bỏ quyền đọc SSM header tạm.
 - **FR/AC:** FR-28, NFR-07. **Phụ thuộc:** 37a, 18b
 

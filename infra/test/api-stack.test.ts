@@ -1,7 +1,7 @@
 import { Match, Template } from "aws-cdk-lib/assertions";
 import * as cdk from "aws-cdk-lib/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { API_KEY_PARAM, ApiStack } from "../lib/api-stack";
+import { ApiStack } from "../lib/api-stack";
 import { config } from "../lib/config";
 import { DataStack } from "../lib/data-stack";
 
@@ -27,7 +27,9 @@ describe("LinkWatch-Api", () => {
 			Environment: {
 				Variables: Match.objectLike({
 					TABLE_NAME: Match.anyValue(),
-					API_KEY_PARAM,
+					SES_IDENTITY: config.sesIdentity,
+					SENDER_EMAIL: config.senderEmail,
+					DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
 				}),
 			},
 		});
@@ -36,10 +38,11 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
-	it("HTTP API: routes /api and /api/{proxy+} → Lambda; no authorizer yet (milestone 1 uses a temporary key)", () => {
+	it("NFR-07: /api and /api/{proxy+} require the Cognito JWT authorizer; /api/health and /api/public/* are public", () => {
 		template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
 		template.hasResourceProperties("AWS::ApiGatewayV2::Api", {
 			ProtocolType: "HTTP",
+			CorsConfiguration: Match.absent(),
 		});
 		const routes = Object.values(
 			template.findResources("AWS::ApiGatewayV2::Route"),
@@ -48,13 +51,44 @@ describe("LinkWatch-Api", () => {
 				(r as { Properties: { RouteKey: string; AuthorizationType?: string } })
 					.Properties,
 		);
-		expect(routes.map((r) => r.RouteKey).sort()).toEqual([
-			"ANY /api",
-			"ANY /api/{proxy+}",
-		]);
-		template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 0);
-		template.hasResourceProperties("AWS::ApiGatewayV2::Api", {
-			CorsConfiguration: Match.absent(),
+		const auth = Object.fromEntries(
+			routes.map((r) => [r.RouteKey, r.AuthorizationType ?? "NONE"]),
+		);
+		expect(auth).toEqual({
+			"ANY /api": "JWT",
+			"ANY /api/{proxy+}": "JWT",
+			"GET /api/health": "NONE",
+			"ANY /api/public/{proxy+}": "NONE",
+		});
+		template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 1);
+		template.hasResourceProperties("AWS::ApiGatewayV2::Authorizer", {
+			AuthorizerType: "JWT",
+			IdentitySource: ["$request.header.Authorization"],
+			JwtConfiguration: {
+				Audience: [Match.anyValue()],
+				Issuer: Match.anyValue(),
+			},
+		});
+	});
+
+	it("FR-28: User Pool without self sign-up, email sign-in, retained; SPA client with SRP and no secret", () => {
+		template.hasResource("AWS::Cognito::UserPool", {
+			DeletionPolicy: "Retain",
+			Properties: Match.objectLike({
+				AdminCreateUserConfig: Match.objectLike({
+					AllowAdminCreateUserOnly: true,
+				}),
+				UsernameAttributes: ["email"],
+				DeletionProtection: "ACTIVE",
+				Policies: {
+					PasswordPolicy: Match.objectLike({ MinimumLength: 12 }),
+				},
+			}),
+		});
+		template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+			GenerateSecret: false,
+			ExplicitAuthFlows: ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+			PreventUserExistenceErrors: "ENABLED",
 		});
 	});
 
@@ -69,11 +103,10 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
-	it("NFR-07 (temporary): Lambda only reads the API key SSM parameter and creates none (SecureString is created manually)", () => {
-		expect(API_KEY_PARAM).toBe("/linkwatch/api-shared-secret");
+	it("NFR-07: the temporary API key is gone — no SSM access for the API Lambda", () => {
 		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
-		expect(policies).toContain("ssm:GetParameter");
-		expect(policies).toContain(":parameter/linkwatch/api-shared-secret");
+		expect(policies).not.toContain("ssm:GetParameter");
+		expect(policies).not.toContain("api-shared-secret");
 		template.resourceCountIs("AWS::SSM::Parameter", 0);
 	});
 });

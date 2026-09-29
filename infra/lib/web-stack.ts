@@ -19,7 +19,15 @@ export interface WebStackProps extends cdk.StackProps {
 	siteDir?: string;
 	/** execute-api domain of LinkWatch-Api; when set, adds the /api/* behavior (step 37a). */
 	apiOriginDomain?: string;
+	/**
+	 * FR-28: Cognito ids written to /auth-config.json at deploy time — the static export is
+	 * built before `cdk deploy` creates the User Pool, so the web app reads them at runtime.
+	 */
+	auth?: { userPoolId: string; userPoolClientId: string };
 }
+
+/** Path of the runtime auth config read by apps/web (src/lib/auth.ts). */
+export const AUTH_CONFIG_PATH = "auth-config.json";
 
 export class WebStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props?: WebStackProps) {
@@ -96,7 +104,7 @@ function handler(event) {
 		});
 
 		// /api/* → API Gateway: same origin as the web app, so no CORS. No caching; forward every
-		// header except Host (API Gateway needs its own Host) so the API key header reaches Lambda.
+		// header except Host (API Gateway needs its own Host) so the Authorization header reaches the JWT authorizer.
 		if (props?.apiOriginDomain) {
 			distribution.addBehavior(
 				"/api/*",
@@ -113,8 +121,17 @@ function handler(event) {
 			);
 		}
 
+		const sources = [s3deploy.Source.asset(siteDir)];
+		if (props?.auth)
+			sources.push(
+				s3deploy.Source.jsonData(AUTH_CONFIG_PATH, {
+					region: this.region,
+					userPoolId: props.auth.userPoolId,
+					userPoolClientId: props.auth.userPoolClientId,
+				}),
+			);
 		new s3deploy.BucketDeployment(this, "DeploySite", {
-			sources: [s3deploy.Source.asset(siteDir)],
+			sources,
 			destinationBucket: bucket,
 			distribution,
 			distributionPaths: ["/*"],

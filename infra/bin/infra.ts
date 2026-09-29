@@ -14,6 +14,13 @@ new CicdStack(app, "LinkWatch-Cicd", { env });
 const data = new DataStack(app, "LinkWatch-Data", { env });
 new WorkersStack(app, "LinkWatch-Workers", { env, table: data.table });
 const api = new ApiStack(app, "LinkWatch-Api", { env, table: data.table });
-new WebStack(app, "LinkWatch-Web", { env, apiOriginDomain: api.apiDomainName });
+new WebStack(app, "LinkWatch-Web", {
+	env,
+	apiOriginDomain: api.apiDomainName,
+	auth: {
+		userPoolId: api.userPoolId,
+		userPoolClientId: api.userPoolClientId,
+	},
+});
 
 cdk.Tags.of(app).add("project", "linkwatch");

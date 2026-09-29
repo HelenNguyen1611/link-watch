@@ -179,3 +179,31 @@ describe("LinkWatch-Web + behavior /api/*", () => {
 		});
 	});
 });
+
+describe("LinkWatch-Web — runtime auth config (FR-28)", () => {
+	it("FR-28: deploys /auth-config.json with the Cognito ids next to the static site", () => {
+		const app = new cdk.App();
+		const stack = new WebStack(app, "LinkWatch-Web", {
+			env: { account: config.account, region: config.region },
+			siteDir: path.join(__dirname, "fixtures/site"),
+			// Cross-stack references in the real app: deploy-time tokens, resolved into the file by the custom resource.
+			auth: {
+				userPoolId: cdk.Fn.importValue("PoolId"),
+				userPoolClientId: cdk.Fn.importValue("ClientId"),
+			},
+		});
+		const t = Template.fromStack(stack);
+		const deployment = Object.values(
+			t.findResources("Custom::CDKBucketDeployment"),
+		)[0] as {
+			Properties: { SourceObjectKeys: unknown[]; SourceMarkers: unknown[] };
+		};
+		expect(deployment.Properties.SourceObjectKeys).toHaveLength(2);
+		const markers = JSON.stringify(deployment.Properties.SourceMarkers);
+		expect(markers).toContain('"Fn::ImportValue":"PoolId"');
+		expect(markers).toContain('"Fn::ImportValue":"ClientId"');
+		expect(Object.keys(t.toJSON().Resources)).toEqual(
+			expect.arrayContaining(DEPLOYED_LOGICAL_IDS),
+		);
+	});
+});
