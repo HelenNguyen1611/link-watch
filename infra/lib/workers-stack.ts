@@ -8,6 +8,7 @@ import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
 import { config } from "./config";
 import { LinkWatchFunction } from "./lambda";
+import { grantSendEmail } from "./ses";
 
 export interface WorkersStackProps extends cdk.StackProps {
 	/** Needs the table stream (NEW_AND_OLD_IMAGES) for the Alert Lambda. */
@@ -36,7 +37,6 @@ const CHECKER_TIMEOUT = cdk.Duration.minutes(7);
  */
 export class WorkersStack extends cdk.Stack {
 	readonly checkQueue: sqs.Queue;
-	/** Step 38b grants it ses:SendEmail on the existing identity. */
 	readonly alertFunction: lambda.IFunction;
 
 	constructor(scope: Construct, id: string, props: WorkersStackProps) {
@@ -136,6 +136,7 @@ export class WorkersStack extends cdk.Stack {
 		this.alertFunction = alert;
 		props.table.grantReadWriteData(alert);
 		alertQueue.grantSendMessages(alert);
+		grantSendEmail(alert);
 		// Only incident items reach the Lambda (ElectroDB entity attribute): other writes cost nothing.
 		alert.addEventSource(
 			new eventSources.DynamoEventSource(props.table, {

@@ -287,7 +287,8 @@
 - Sửa: bỏ `errorResponses` khỏi distribution và xử lý trang 404 của web tĩnh bằng CloudFront Function (chỉ gắn behavior mặc định), hoặc cách tương đương không ảnh hưởng `/api/*`; giữ logical ID tài nguyên cũ.
 - **Xong khi:** test CDK: `/api/*` không chịu `errorResponses`; trên môi trường thật `DELETE /api/links/<id không có>` trả 404 JSON `{"error":"not_found"}`, còn đường dẫn web không tồn tại vẫn ra trang 404. **Phụ thuộc:** 37a
 
-### Bước 38b — Tham chiếu SES
+### Bước 38b — Tham chiếu SES ✅
+- ✅ đã làm (30/09/2026): `config.ts` có `sesIdentity`, `senderEmail` (từ Bước 36b); `infra/lib/ses.ts` `grantSendEmail()` cấp `ses:SendEmail` cho Alert và API trên `identity/*` **kèm điều kiện** `ses:FromAddress` ∈ `*@watch.hueai.net`, `*@*.watch.hueai.net` (sandbox SES kiểm tra quyền cả trên identity người nhận đã xác thực, nên không giới hạn resource vào đúng domain). Test: không stack nào có tài nguyên `AWS::SES::*` hay `AWS::CertificateManager::*`.
 - Thêm `sesIdentity: 'watch.hueai.net'`, địa chỉ gửi mặc định vào `config.ts`; cấp quyền `ses:SendEmail` cho Alert/API theo ARN identity có sẵn, không tạo `AWS::SES::EmailIdentity`.
 - **FR/AC:** FR-26. Assertion: template không chứa resource SES/ACM. **Phụ thuộc:** 36b, 37b
 

@@ -8,6 +8,7 @@ import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
 import { config } from "./config";
 import { LinkWatchFunction } from "./lambda";
+import { grantSendEmail } from "./ses";
 
 export interface ApiStackProps extends cdk.StackProps {
 	table: dynamodb.ITable;
@@ -24,7 +25,6 @@ export class ApiStack extends cdk.Stack {
 	/** Written to /auth-config.json by the web stack (static export cannot know them at build time). */
 	readonly userPoolId: string;
 	readonly userPoolClientId: string;
-	/** Step 38b grants it ses:SendEmail on the existing identity (test email). */
 	readonly apiFunction: lambda.IFunction;
 
 	constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -42,6 +42,8 @@ export class ApiStack extends cdk.Stack {
 		});
 		this.apiFunction = fn;
 		props.table.grantReadWriteData(fn);
+		// FR-26: test email from the Settings screen.
+		grantSendEmail(fn);
 
 		// FR-28 (MVP): email + password, a single Admin role; users are created by an admin (RUNBOOK).
 		const userPool = new cognito.UserPool(this, "UserPool", {
