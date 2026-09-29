@@ -238,6 +238,12 @@ describe("probe", () => {
 		).toMatchObject({ keywordFound: false });
 	});
 
+	it("FR-01: từ khóa không phân biệt hoa/thường (nhập 'LIÊN HỆ', trang ghi 'Liên hệ')", async () => {
+		expect(
+			await probe(link("/ok", { keyword: "LIÊN HỆ" }), local),
+		).toMatchObject({ keywordFound: true });
+	});
+
 	it("FR-01: link HEAD có từ khóa thì dùng GET để đọc nội dung", async () => {
 		expect(
 			await probe(link("/ok", { method: "HEAD", keyword: "Liên hệ" }), local),

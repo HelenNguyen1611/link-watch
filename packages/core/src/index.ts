@@ -2,6 +2,7 @@ export * from "./api";
 export * from "./classify";
 export * from "./domain";
 export * from "./id";
+export * from "./keyword";
 export * from "./queue";
 export * from "./schedule";
 export * from "./schema/check";

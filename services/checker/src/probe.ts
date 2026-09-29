@@ -1,4 +1,8 @@
-import type { HttpMethod, ProbeResult } from "@linkwatch/core";
+import {
+	containsKeyword,
+	type HttpMethod,
+	type ProbeResult,
+} from "@linkwatch/core";
 import { Agent, request } from "undici";
 import {
 	assertHostAllowed,
@@ -135,9 +139,7 @@ export async function probe(
 					res.body,
 					opts.maxBodyBytes ?? MAX_BODY_BYTES,
 				);
-				keywordFound = text
-					.normalize("NFC")
-					.includes(target.keyword.normalize("NFC"));
+				keywordFound = containsKeyword(text, target.keyword);
 			} else {
 				await res.body.dump();
 			}
