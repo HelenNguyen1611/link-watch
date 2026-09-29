@@ -22,9 +22,19 @@
 ## Quyết định kỹ thuật nhỏ (làm theo nếu không có phản đối)
 
 - Múi giờ Asia/Saigon không có DST → tính lịch với offset cố định +07:00, không thêm thư viện timezone.
-- Trang chi tiết link chỉ có `?id=` nhưng Link có PK `DOMAIN#…` → thêm GSI3 thưa `LINK#<id>` để tra theo id.
+- GSI3 `byType`: pk = loại thực thể (`LINK`, `DOMAIN`), sk = id → tra link theo id và liệt kê mọi link/domain.
 - Lấy "bây giờ" và sinh id qua tham số/tiêm phụ thuộc để test điều khiển được thời gian.
 - Chạy local: API Hono qua `@hono/node-server` + DynamoDB Local; handler Lambda gọi được trực tiếp trong test.
+
+**Đã chốt 29/09/2026 (sau Mốc 1 phần local):**
+
+- Domain chính dùng cả phần private của PSL: `abc.github.io`, `shop.vercel.app` là domain riêng.
+- Link trỏ vào địa chỉ nội bộ bị chặn (NFR-07) → Link chết (`blocked_private_address`).
+- Mã HTTP trong danh sách mong đợi luôn được ưu tiên, kể cả 4xx/5xx do người dùng khai báo.
+- Từ khóa bắt buộc: **không phân biệt hoa/thường** và NFC/NFD, vẫn phân biệt dấu; chỉ đọc tối đa 1 MB.
+- Chống trùng URL bằng item `URL#<sha256>` ghi cùng Link trong 1 transaction.
+- Dispatcher giữ chỗ 30 phút (dời `next_run_at`) để tick sau không gửi trùng; hết hạn thì gửi lại.
+- Link tạm dừng/xóa không có `next_run_at` → tự rời GSI1.
 
 ---
 
@@ -140,6 +150,7 @@
 ### Bước 35 — DataStack
 - Stack mới `LinkWatch-Data`: bảng single-table (provisioned 25/25, GSI1–3, Streams NEW_AND_OLD_IMAGES, TTL, `RemovalPolicy.RETAIN`), tham số SSM.
 - Làm trọn ở Mốc 1: DynamoDB chỉ thêm được **1 GSI mỗi lần cập nhật bảng**, nên tạo đủ GSI1–3 và bật Streams ngay để các mốc sau không phải deploy nhiều lượt.
+- **Đã chốt 29/09/2026 — phương án (c):** provisioned 25 WCU / 25 RCU (hạn mức miễn phí dùng chung cho bảng và các GSI) cho giai đoạn đầu khi số link thực tế còn ít. Với 5.000 link, lượt 06:00 cần khoảng 20.000 lần ghi trong 15 phút nên có thể bị giới hạn tốc độ và vượt NFR-01; khi số link tăng thì xem lại (on-demand hoặc nâng capacity).
 - **FR/AC:** SRS 3.4, 6.2, NFR-08. **Phụ thuộc:** 9a
 
 ### Bước 36a — Workers: hàng đợi FIFO, Dispatcher, Checker
