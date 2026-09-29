@@ -169,4 +169,51 @@ describe("LinksPage", () => {
 		await waitFor(() => expect(onInvalid).toHaveBeenCalled());
 		window.removeEventListener("linkwatch:api-key-invalid", onInvalid);
 	});
+
+	it("colours: status icon matches its meaning, 4xx/5xx codes coloured, Delete is red", async () => {
+		renderWithApi(
+			<LinksPage />,
+			fakeApi([
+				view({
+					id: "a",
+					url: "https://a.vn/",
+					status: "up",
+					lastHttpCode: 200,
+				}),
+				view({
+					id: "c",
+					url: "https://c.vn/",
+					status: "dead",
+					lastHttpCode: 404,
+				}),
+				view({
+					id: "d",
+					url: "https://d.vn/",
+					status: "down",
+					lastHttpCode: 503,
+				}),
+			]),
+		);
+		const row = async (url: string) =>
+			within((await screen.findByText(url)).closest("tr") as HTMLElement);
+		const up = await row("https://a.vn/");
+		expect(up.getByTestId("status-icon").getAttribute("data-icon")).toBe(
+			"circle-check",
+		);
+		const dead = await row("https://c.vn/");
+		expect(dead.getByTestId("status-icon").getAttribute("data-icon")).toBe(
+			"unlink",
+		);
+		expect(dead.getByText("404").getAttribute("style")).toContain("orange-7");
+		const down = await row("https://d.vn/");
+		expect(down.getByTestId("status-icon").getAttribute("data-icon")).toBe(
+			"circle-x",
+		);
+		expect(down.getByText("503").getAttribute("style")).toContain("red-7");
+		expect(up.getByText("200").getAttribute("style") ?? "").not.toMatch(
+			/orange|red/,
+		);
+		const del = up.getByRole("button", { name: "Delete" });
+		expect(del.getAttribute("style")).toContain("red");
+	});
 });

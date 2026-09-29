@@ -5,9 +5,11 @@ import { Anchor, Button, Stack, Table, Text } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IconTrash } from "@/components/icons";
 import { useApi } from "@/lib/api-context";
 import { formatDateTime, formatMs } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
+import { httpCodeColor, responseTimeColor } from "./status-style";
 
 function DeleteButton({ id }: { id: string }) {
 	const { t } = useTranslation();
@@ -22,6 +24,7 @@ function DeleteButton({ id }: { id: string }) {
 		<Button
 			size="xs"
 			color="red"
+			leftSection={<IconTrash size={16} />}
 			loading={remove.isPending}
 			onClick={() => remove.mutate()}
 			onBlur={() => setConfirming(false)}
@@ -32,7 +35,8 @@ function DeleteButton({ id }: { id: string }) {
 		<Button
 			size="xs"
 			variant="subtle"
-			color="gray"
+			color="red"
+			leftSection={<IconTrash size={16} />}
 			onClick={() => setConfirming(true)}
 		>
 			{t("links.delete")}
@@ -107,9 +111,27 @@ export function LinkTable({ links }: { links: LinkView[] }) {
 									)}
 								</Stack>
 							</Table.Td>
-							<Table.Td>{l.lastHttpCode ?? "—"}</Table.Td>
-							<Table.Td>{formatMs(l.lastResponseMs)}</Table.Td>
-							<Table.Td>{formatDateTime(l.lastCheckedAt)}</Table.Td>
+							<Table.Td>
+								<Text
+									size="sm"
+									c={httpCodeColor(l.lastHttpCode)}
+									fw={httpCodeColor(l.lastHttpCode) ? 500 : undefined}
+								>
+									{l.lastHttpCode ?? "—"}
+								</Text>
+							</Table.Td>
+							<Table.Td>
+								<Text
+									size="sm"
+									c={responseTimeColor(l.status)}
+									style={{ whiteSpace: "nowrap" }}
+								>
+									{formatMs(l.lastResponseMs)}
+								</Text>
+							</Table.Td>
+							<Table.Td style={{ whiteSpace: "nowrap" }}>
+								{formatDateTime(l.lastCheckedAt)}
+							</Table.Td>
 							<Table.Td>
 								<DeleteButton id={l.id} />
 							</Table.Td>

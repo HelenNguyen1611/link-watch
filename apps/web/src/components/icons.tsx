@@ -99,3 +99,44 @@ export const IconArrowRight = (p: P) => (
 		<path d="M5 12h14M13 6l6 6-6 6" />
 	</Icon>
 );
+export const IconCircleCheck = (p: P) => (
+	<Icon {...p}>
+		<circle cx="12" cy="12" r="8.5" />
+		<path d="m8.5 12.2 2.4 2.4 4.6-4.9" />
+	</Icon>
+);
+export const IconClock = (p: P) => (
+	<Icon {...p}>
+		<circle cx="12" cy="12" r="8.5" />
+		<path d="M12 7.5V12l3 2" />
+	</Icon>
+);
+export const IconUnlink = (p: P) => (
+	<Icon {...p}>
+		<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+		<path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+		<path d="m3.5 3.5 17 17" />
+	</Icon>
+);
+export const IconCircleX = (p: P) => (
+	<Icon {...p}>
+		<circle cx="12" cy="12" r="8.5" />
+		<path d="m9.5 9.5 5 5M14.5 9.5l-5 5" />
+	</Icon>
+);
+export const IconHourglass = (p: P) => (
+	<Icon {...p}>
+		<path d="M7 3.5h10M7 20.5h10M8 3.5c0 4 8 5 8 8.5s-8 4.5-8 8.5M16 3.5c0 4-8 5-8 8.5s8 4.5 8 8.5" />
+	</Icon>
+);
+export const IconHelp = (p: P) => (
+	<Icon {...p}>
+		<circle cx="12" cy="12" r="8.5" />
+		<path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.6-2.2 2-2.2 3.4M12 16.8h.01" />
+	</Icon>
+);
+export const IconTrash = (p: P) => (
+	<Icon {...p}>
+		<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
+	</Icon>
+);
