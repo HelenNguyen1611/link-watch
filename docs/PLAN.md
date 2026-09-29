@@ -1,13 +1,23 @@
 # LinkWatch — Kế hoạch build MVP (Giai đoạn 1, SRS 7.2)
 
-29/09/2026 · bản nháp chờ duyệt
+29/09/2026 · đã duyệt 29/09/2026
 
 ## Phạm vi MVP
 
-- **Trong MVP:** HLR-01 → HLR-08 (FR-01 → FR-14, FR-16 → FR-26), đăng nhập đơn giản 1 vai trò Admin, luồng "Đã khắc phục" FR-33 → FR-42, triển khai serverless (stage `dev`).
+- **Trong MVP:** HLR-01 → HLR-08 (FR-01 → FR-14, FR-16 → FR-26), đăng nhập đơn giản 1 vai trò Admin, luồng "Đã khắc phục" FR-33 → FR-42, triển khai serverless lên môi trường duy nhất đang chạy (https://watch.hueai.net).
 - **Để giai đoạn 2** (theo SRS 7.2): FR-15 khung bảo trì (AC-08), FR-27 cảnh báo SSL, FR-28 SSO, FR-29 quản lý người dùng/vai trò, FR-30 audit log, FR-31/32. Schema vẫn chừa chỗ để không phải migrate. Xem câu hỏi Q1.
 - Mỗi bước = 1 commit, 1–3 giờ. "Xong" luôn gồm `pnpm lint && pnpm typecheck && pnpm test` pass, cộng với kiểm tra riêng của bước.
-- AWS chỉ được gọi thật ở bước 40. Trước đó: DynamoDB Local (`pnpm db:local`) hoặc `aws-sdk-client-mock`.
+- Test không gọi AWS thật: DynamoDB Local (`pnpm db:local`) hoặc `aws-sdk-client-mock`.
+- **Chỉ commit local, không `git push`.** Push `main` chạy `deploy.yml` → `cdk deploy --all` lên AWS thật; người dùng tự review và push. Từ bước 35, mỗi lần push sẽ tạo/sửa stack thật.
+
+## Hạ tầng đã có (29/09/2026) — không tạo lại, chỉ mở rộng
+
+- 1 môi trường, không stage. Tên stack `LinkWatch-<Tên>`: đã có `LinkWatch-Web`, `LinkWatch-Cicd`; sẽ thêm `LinkWatch-Data`, `LinkWatch-Workers`, `LinkWatch-Api`, `LinkWatch-Ops`.
+- `infra/lib/config.ts` là nguồn duy nhất cho account, region, domain, ARN chứng chỉ, GitHub OIDC; stack mới đọc từ đây.
+- `LinkWatch-Web`: S3 + OAC + CloudFront + rewrite `index.html` + BucketDeployment `apps/web/out`.
+- `LinkWatch-Cicd`: OIDC provider + role `linkwatch-github-deploy`.
+- `.github/workflows/deploy.yml`: push `main` → build web → OIDC → `cdk deploy --all`.
+- ACM và SES identity `watch.hueai.net` (DKIM, MAIL FROM `mail.watch.hueai.net`) tạo tay; CDK chỉ tham chiếu bằng ARN/tên.
 
 ## Quyết định kỹ thuật nhỏ (làm theo nếu không có phản đối)
 
@@ -21,10 +31,10 @@
 ## A. Nền móng
 
 ### Bước 0 — Sửa baseline tooling
-- **Mục tiêu:** repo xanh trước khi viết tính năng. Hiện tại `pnpm lint` báo 27 lỗi format, `pnpm test` fail vì Vitest chạy test Jest của `infra`.
-- **File:** `pnpm-workspace.yaml` (thay giá trị `allowBuilds` đang là placeholder), `vitest.config.ts` (projects cho từng package, tách `*.int.test.ts`), `infra/test/*` + `infra/package.json` (Jest → Vitest), bỏ `infra/jest.config.js`, `package.json` (thêm `test:int`, `aws-sdk-client-mock`), thống nhất phiên bản TypeScript/Biome giữa root và `apps/web`, `biome format --write`.
+- **Mục tiêu:** repo xanh trước khi viết tính năng. Hiện tại `pnpm lint` báo lỗi format, `pnpm test` fail vì Vitest chạy test Jest mẫu của `infra`.
+- **File:** `pnpm-workspace.yaml` (thay giá trị `allowBuilds` đang là placeholder), `vitest.config.ts` (projects cho từng package, tách `*.int.test.ts`), `package.json` (thêm `test:int`), `infra/package.json` (Jest → Vitest), xóa `infra/lib/infra-stack.ts`, `infra/test/infra.test.ts`, `infra/jest.config.js`; thêm `infra/test/web-stack.test.ts`, `infra/test/cicd-stack.test.ts` (Vitest + CDK assertions cho stack đang chạy); thống nhất phiên bản Biome giữa root và `apps/web`; `biome format --write`. Giữ pnpm 10.33.0.
 - **FR/AC:** — (hạ tầng dev).
-- **Xong khi:** `pnpm install` không cảnh báo build script; `pnpm lint && pnpm typecheck && pnpm test` pass với 1 smoke test ở core; `pnpm synth` chạy được.
+- **Xong khi:** `pnpm lint && pnpm typecheck && pnpm test` pass; `pnpm synth` ra template `LinkWatch-Web` và `LinkWatch-Cicd` giống hệt trước khi sửa (so bằng `diff`).
 - **Phụ thuộc:** —
 
 ## B. Core (`packages/core`)
@@ -219,20 +229,20 @@
 ## I. Hạ tầng CDK (`infra/`) — mỗi bước kiểm tra bằng `pnpm synth` + test `Template.fromStack` assertions
 
 ### Bước 35 — DataStack
-- Bảng single-table (provisioned 25/25, GSI1–3, Streams NEW_AND_OLD_IMAGES, TTL), tham số SSM, tên stack theo `stage`.
+- Stack mới `LinkWatch-Data`: bảng single-table (provisioned 25/25, GSI1–3, Streams NEW_AND_OLD_IMAGES, TTL, `RemovalPolicy.RETAIN`), tham số SSM.
 - **FR/AC:** SRS 3.4, 6.2, NFR-08. **Phụ thuộc:** 9
 
 ### Bước 36 — Hàng đợi và Lambda xử lý
-- SQS FIFO + DLQ (maxReceive 3), hàng đợi ưu tiên (Q2), NodejsFunction arm64/esbuild cho dispatcher/checker/alert, **không VPC**, log 14 ngày, reserved concurrency checker = 10, EventBridge Scheduler 5 phút, event source mapping (SQS, Streams có filter), IAM tối thiểu.
+- Stack mới `LinkWatch-Workers`: SQS FIFO + DLQ (maxReceive 3), hàng đợi ưu tiên (Q2), NodejsFunction arm64/esbuild cho dispatcher/checker/alert, **không VPC**, log 14 ngày, reserved concurrency checker = 10, EventBridge Scheduler 5 phút, event source mapping (SQS, Streams có filter), IAM tối thiểu.
 - **FR/AC:** NFR-04, NFR-06, SRS 3.4 quy tắc chi phí. Assertion: không có `AWS::EC2::NatGateway`, không có `VpcConfig`. **Phụ thuộc:** 35, 17
 
 ### Bước 37 — API và Cognito
-- HTTP API + JWT authorizer, route `/public/*` không auth, User Pool chỉ admin tạo user, Lambda API.
+- Stack mới `LinkWatch-Api`: HTTP API + JWT authorizer, route `/public/*` không auth, User Pool chỉ admin tạo user, Lambda API. Mở rộng `LinkWatch-Web`: thêm behavior `/api/*` → API Gateway trên distribution có sẵn (cùng origin, không cần CORS), không đổi logical ID tài nguyên cũ.
 - **FR/AC:** FR-28, NFR-07. **Phụ thuộc:** 36, 22
 
-### Bước 38 — Web, SES, Budgets
-- S3 private + CloudFront (OAC) + CloudFront Function rewrite `/x/` → `/x/index.html`, SES identity + cấu hình DKIM (domain qua context), AWS Budgets 1 USD, output URL.
-- **FR/AC:** SRS 3.4–3.5, FR-26. **Phụ thuộc:** 37, 32
+### Bước 38 — Budgets và tham chiếu SES
+- Web đã có, không làm lại. Stack mới `LinkWatch-Ops`: AWS Budgets 1 USD/tháng (email cảnh báo). Thêm `sesIdentity: 'watch.hueai.net'`, địa chỉ gửi mặc định vào `config.ts`; cấp quyền `ses:SendEmail` cho Alert/API theo ARN identity có sẵn, không tạo `AWS::SES::EmailIdentity`.
+- **FR/AC:** SRS 3.4 (Budgets), FR-26. Assertion: template không chứa resource SES/ACM. **Phụ thuộc:** 36, 37
 
 ## J. CI/CD và triển khai
 
@@ -240,10 +250,10 @@
 - `.github/workflows/ci.yml`: install (cache pnpm) → lint → typecheck → test → test:int (DynamoDB Local service container) → web build → synth → `cdk diff` qua OIDC.
 - **Xong khi:** PR thử chạy xanh. **Phụ thuộc:** 38
 
-### Bước 40 — Deploy dev
-- `.github/workflows/deploy.yml` (merge `main` → deploy `dev`, OIDC role), `docs/RUNBOOK.md` (bootstrap, tạo user Cognito, xác thực SES, gỡ sandbox), `scripts/smoke.ts` (tạo link thật OK + link 404, Check now, xác nhận email tới địa chỉ đã xác thực), heartbeat healthchecks.io (NFR-05).
-- **Cần bạn duyệt trước khi chạy** `cdk bootstrap`/`cdk deploy` lần đầu.
-- **Xong khi:** smoke test pass trên `dev`; Budgets đã bật. **Phụ thuộc:** 39
+### Bước 40 — Mở rộng deploy.yml và smoke test
+- Mở rộng `.github/workflows/deploy.yml` có sẵn (không tạo mới): chạy lint/typecheck/test trước `cdk deploy`, chạy `scripts/smoke.ts` sau deploy. Thêm `docs/RUNBOOK.md` (tạo user Cognito, SES ra khỏi sandbox, xử lý DLQ), heartbeat healthchecks.io (NFR-05).
+- Không push; người dùng review rồi push để deploy.
+- **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass trên https://watch.hueai.net; Budgets đã bật. **Phụ thuộc:** 39
 
 ---
 
@@ -266,7 +276,7 @@ Nhóm G có thể làm song song với E–F khi API client dùng dữ liệu gi
 
 ## Câu hỏi mở ảnh hưởng tới code
 
-Mỗi câu có giả định đề xuất; kế hoạch trên đang làm theo giả định. Khi chốt, cập nhật mục này và SRS 7.3.
+**Đã chốt 29/09/2026:** chấp nhận toàn bộ giả định Q1–Q5 dưới đây.
 
 1. **Q1 — Ranh giới MVP.** FR-15 (khung bảo trì, AC-08) thuộc HLR-05 "Must" nhưng SRS 7.2 xếp vào giai đoạn 2; FR-41/FR-42 nằm ngoài dải "FR-33 đến FR-40". *Giả định:* FR-15, FR-27 để giai đoạn 2; FR-41, FR-42 làm trong MVP (dùng chung API resolve-claim, FR-42 là hệ quả của 5.2).
 2. **Q2 — Check lại có độ trễ với SQS FIFO.** Recheck sau 2 phút, xác minh +2/+5 phút nhỏ hơn chu kỳ 5 phút của Dispatcher, mà SQS FIFO không hỗ trợ `DelaySeconds` theo từng message. *Giả định:* thêm một hàng đợi **Standard** "ưu tiên" cho recheck/xác minh/Check now, dùng `DelaySeconds` (≤ 15 phút); giới hạn 2 request/domain trong Checker bằng `p-limit` theo domain. Hàng đợi FIFO giữ cho lượt theo lịch.

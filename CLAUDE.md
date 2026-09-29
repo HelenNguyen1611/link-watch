@@ -46,7 +46,20 @@ Thêm theo phạm vi thay đổi:
 
 Không báo "xong" khi một lệnh trên còn fail; báo rõ lệnh nào fail và output.
 
-## An toàn
+## Hạ tầng đã triển khai (29/09/2026) — không tạo lại, chỉ mở rộng
 
+- 1 môi trường, không có stage. Tên stack `LinkWatch-<Tên>`; stack mới: `LinkWatch-Data`, `LinkWatch-Workers`, `LinkWatch-Api`…
+- `infra/lib/config.ts`: account, region `ap-southeast-1`, domain `watch.hueai.net`, ARN chứng chỉ ACM (us-east-1), GitHub owner/repo + ownerId/repoId cho OIDC.
+- `LinkWatch-Web` (`web-stack.ts`): S3 private + OAC + CloudFront + CloudFront Function rewrite `index.html` + BucketDeployment `apps/web/out`, đang phục vụ https://watch.hueai.net.
+- `LinkWatch-Cicd` (`cicd-stack.ts`): OIDC provider + role `linkwatch-github-deploy`.
+- `.github/workflows/deploy.yml`: push `main` → build web → OIDC → `cdk deploy --all`.
+- Chứng chỉ ACM và SES identity `watch.hueai.net` (DKIM, MAIL FROM `mail.watch.hueai.net`) tạo tay, DNS ở Cloudflare. CDK chỉ tham chiếu bằng ARN/tên, không tạo mới.
+- Sửa stack đang chạy phải giữ nguyên logical ID; kiểm tra bằng `cdk synth` + test assertions trước khi commit.
+
+## Git và an toàn
+
+- **Push `main` = deploy AWS thật.** Chỉ commit local, **không `git push`**; người dùng tự review và push.
 - Không chạy `cdk deploy`, `rm -rf`, `git reset --hard`, `git push --force` khi chưa được đồng ý.
-- Không commit `.env*`, khóa, account ID thật.
+- Account ID AWS không phải bí mật, được phép nằm trong `infra/lib/config.ts`.
+- Cấm commit access key, secret, `.env*`.
+- pnpm 10.33.0 trên máy và CI — không đổi phiên bản.
