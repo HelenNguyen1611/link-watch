@@ -183,7 +183,8 @@
 **Mục tiêu:** xác nhận sự cố theo 5.2, email Sự cố / Hồi phục / Nhắc lại qua SES (gửi tới người nhận đã xác thực trong sandbox), đăng nhập Cognito thay header tạm.
 **Xong mốc khi:** link 404 trên môi trường thật → sau lần check lại thứ 2 mở incident → email Sự cố tới địa chỉ đã xác thực trong ≤ 5 phút; sửa link → email Hồi phục; web bắt buộc đăng nhập, header tạm đã bị xóa.
 
-### Bước 5 — Máy trạng thái xác nhận sự cố (5.2) và trạng thái domain
+### Bước 5 — Máy trạng thái xác nhận sự cố (5.2) và trạng thái domain ✅
+- ✅ đã làm (29/09/2026): thời lượng down tính từ `openedAt` (lần lỗi thứ 2); đổi loại lỗi khi incident đang mở thì giữ 1 incident; `suspect`/`pending` tính là bình thường cho FR-09.
 - **File:** `src/incident.ts` (`evaluateCheck(linkState, result, now)` → trạng thái link mới, hành động incident open/close/none, `next_run_at`), `src/domain-status.ts`.
 - **FR/AC:** 5.2 bước 1–4 (Nghi ngờ → recheck 2 phút; lần 2 mở incident; recheck 10 phút trong 1 giờ đầu rồi max(lịch gốc, 1 giờ)); FR-09; FR-42; AC-05, AC-07 mức hàm; FR-04 (link tạm dừng không được đánh giá).
 - **Xong khi:** test `5.2`, `FR-09`, `AC-05`, `AC-07` pass.
