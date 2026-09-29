@@ -5,11 +5,14 @@ import { IncidentEmail } from "./incident";
 import { OutageEmail } from "./outage";
 import { RecoveryEmail } from "./recovery";
 import { ReminderEmail } from "./reminder";
+import { en } from "./strings";
+import { TestEmail } from "./test-email";
 import type {
 	IncidentEmailProps,
 	OutageEmailProps,
 	RecoveryEmailProps,
 	ReminderEmailProps,
+	TestEmailProps,
 } from "./types";
 
 export type RenderedEmail = { subject: string; html: string; text: string };
@@ -52,3 +55,7 @@ export const renderOutageEmail = (props: OutageEmailProps) =>
 		systemWideOutageSubject(props.failed, props.checked),
 		createElement(OutageEmail, props),
 	);
+
+/** FR-26: test email from the Settings screen. */
+export const renderTestEmail = (props: TestEmailProps) =>
+	renderBoth(en.test.subject, createElement(TestEmail, props));

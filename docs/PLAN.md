@@ -255,7 +255,8 @@
 - **Xong khi:** test `app.request()`: 401 khi thiếu claims; không còn route nào đọc `x-linkwatch-key`.
 - **Phụ thuộc:** 18a
 
-### Bước 20a — API Người nhận và Cài đặt
+### Bước 20a — API Người nhận và Cài đặt ✅
+- ✅ đã làm (29/09/2026): `GET/POST/DELETE /api/recipients?scope=DOMAIN|LINK&target=…` (409 trùng, 404 khi domain/link không có); `GET/PATCH /api/settings` trả giá trị hiệu lực (Settings ∪ mặc định từ env `SES_IDENTITY`, `SENDER_EMAIL`, `DEFAULT_ADMIN_EMAIL`), địa chỉ gửi phải thuộc SES identity (`sender_not_verified`); `POST /api/settings/test-email` (mặc định gửi tới email đang đăng nhập, lỗi SES → 502 kèm lỗi). `sendEmail` chuyển sang `packages/emails` để API và Alert dùng chung; schema dùng chung ở `core/schema/settings.ts`.
 - **File:** `src/routes/{recipients,settings}.ts`.
 - **FR/AC:** FR-20, FR-26 (địa chỉ gửi SES đã xác thực, gửi email thử qua mock SES).
 - **Xong khi:** test route pass.

@@ -41,3 +41,6 @@ export type OutageEmailProps = {
 	checked: number;
 	failed: number;
 };
+
+/** FR-26: test email. */
+export type TestEmailProps = { sender: string; requestedBy: string };

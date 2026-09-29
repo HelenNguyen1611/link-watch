@@ -1,13 +1,31 @@
 import { Logger } from "@aws-lambda-powertools/logger";
+import { SESv2Client } from "@aws-sdk/client-sesv2";
 import { createDb } from "@linkwatch/core/db";
 import { handle } from "hono/aws-lambda";
 import { createApp } from "./app";
 
 const logger = new Logger({ serviceName: "api" });
 
+const env = (name: string) => {
+	const value = process.env[name];
+	if (!value) throw new Error(`Missing environment variable ${name}`);
+	return value;
+};
+
 const app = createApp({
 	db: createDb(),
 	auth: { kind: "apiGateway" },
+	email: {
+		// FR-25: sendEmail retries itself, so the SDK makes a single attempt.
+		ses: new SESv2Client({ maxAttempts: 1 }),
+		defaults: {
+			sesIdentity: env("SES_IDENTITY"),
+			senderEmail: env("SENDER_EMAIL"),
+			...(process.env.DEFAULT_ADMIN_EMAIL && {
+				defaultAdminEmail: process.env.DEFAULT_ADMIN_EMAIL,
+			}),
+		},
+	},
 	log: (message, extra) => logger.error(message, extra ?? {}),
 });
 

@@ -1,5 +1,11 @@
 import type { SESv2Client } from "@aws-sdk/client-sesv2";
-import { groupByRecipient, incidentId } from "@linkwatch/core";
+import {
+	effectiveSettings,
+	fromHeader,
+	groupByRecipient,
+	incidentId,
+	type SettingsDefaults,
+} from "@linkwatch/core";
 import type { Db, NotificationLogKind } from "@linkwatch/core/db";
 import {
 	claimOutageNotice,
@@ -16,15 +22,15 @@ import {
 	renderIncidentEmail,
 	renderOutageEmail,
 	renderRecoveryEmail,
+	type SendResult,
+	sendEmail,
 } from "@linkwatch/emails";
-import { type SendResult, sendEmail } from "./send";
 
 export type AlertConfig = {
 	/** Base URL of the web app, used for incident links. */
 	appUrl: string;
 	/** FR-26 fallbacks when Settings has no value yet (from infra config). */
-	defaultSenderEmail: string;
-	defaultAdminEmail?: string;
+	defaults: SettingsDefaults;
 };
 
 export type AlertDeps = {
@@ -41,12 +47,12 @@ export type Sender = { from: string; adminEmail?: string };
 /** FR-26: sender and default admin from Settings, falling back to the infra config. */
 export async function resolveSender(deps: AlertDeps): Promise<Sender> {
 	const { data } = await deps.db.Settings.get({}).go();
-	const email = data?.senderEmail ?? deps.config.defaultSenderEmail;
-	const name = data?.senderName ?? "LinkWatch";
-	const adminEmail = data?.defaultAdminEmail ?? deps.config.defaultAdminEmail;
+	const settings = effectiveSettings(data, deps.config.defaults);
 	return {
-		from: `"${name.replaceAll('"', "")}" <${email}>`,
-		...(adminEmail && { adminEmail }),
+		from: fromHeader(settings),
+		...(settings.defaultAdminEmail && {
+			adminEmail: settings.defaultAdminEmail,
+		}),
 	};
 }
 

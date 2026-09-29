@@ -1,3 +1,4 @@
+import type { SESv2Client } from "@aws-sdk/client-sesv2";
 import type { LinkView } from "@linkwatch/core";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -10,6 +11,13 @@ beforeAll(async () => {
 	app = createApp({
 		db: t.db,
 		auth: { kind: "local", user: { sub: "u1", email: "admin@abc.com" } },
+		email: {
+			ses: {} as SESv2Client,
+			defaults: {
+				sesIdentity: "watch.hueai.net",
+				senderEmail: "noreply@watch.hueai.net",
+			},
+		},
 	});
 });
 afterAll(() => t?.drop());

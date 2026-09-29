@@ -1,3 +1,4 @@
+import type { SESv2Client } from "@aws-sdk/client-sesv2";
 import { LinkInput } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
 import { describe, expect, it } from "vitest";
@@ -5,9 +6,16 @@ import { createApp } from "./app";
 import type { AuthMode } from "./middleware/auth";
 
 const gateway: AuthMode = { kind: "apiGateway" };
+const email = {
+	ses: {} as SESv2Client,
+	defaults: {
+		sesIdentity: "watch.hueai.net",
+		senderEmail: "noreply@watch.hueai.net",
+	},
+};
 
 const app = (auth: AuthMode = gateway) => {
-	const a = createApp({ db: {} as Db, auth });
+	const a = createApp({ db: {} as Db, auth, email });
 	a.post("/_test/zod", async (c) =>
 		c.json(LinkInput.parse(await c.req.json())),
 	);
@@ -153,6 +161,7 @@ describe("CORS (local development only)", () => {
 		const a = createApp({
 			db: {} as Db,
 			auth: { kind: "local", user: { sub: "l", email: "l@l" } },
+			email,
 			corsOrigins: ["http://localhost:3000"],
 		});
 		const res = await a.request("/api/links", {

@@ -21,10 +21,13 @@ export const handler = createHandler({
 	alertQueueUrl: env("ALERT_QUEUE_URL"),
 	config: {
 		appUrl: env("APP_URL"),
-		defaultSenderEmail: env("SENDER_EMAIL"),
-		...(process.env.DEFAULT_ADMIN_EMAIL && {
-			defaultAdminEmail: process.env.DEFAULT_ADMIN_EMAIL,
-		}),
+		defaults: {
+			sesIdentity: env("SES_IDENTITY"),
+			senderEmail: env("SENDER_EMAIL"),
+			...(process.env.DEFAULT_ADMIN_EMAIL && {
+				defaultAdminEmail: process.env.DEFAULT_ADMIN_EMAIL,
+			}),
+		},
 	},
 	log: (message, extra) => logger.info(message, extra ?? {}),
 });

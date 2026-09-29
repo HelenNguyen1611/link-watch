@@ -31,6 +31,14 @@ export const en = {
 		advice:
 			"Check the LinkWatch Checker logs. Incidents confirmed during this run stay open and are closed silently when the links respond again.",
 	},
+	test: {
+		subject: "[LinkWatch] Test email",
+		preview: "Your LinkWatch email settings work",
+		heading: "LinkWatch test email",
+		intro: (sender: string) =>
+			`This test email was sent from ${sender}. If you can read it, alerts will reach this address.`,
+		requestedBy: (email: string) => `Requested by ${email}.`,
+	},
 	fields: {
 		type: "Type",
 		error: "Error",

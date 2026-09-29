@@ -5,6 +5,7 @@ import {
 	renderOutageEmail,
 	renderRecoveryEmail,
 	renderReminderEmail,
+	renderTestEmail,
 } from "./render";
 import type { IncidentItem } from "./types";
 
@@ -151,5 +152,17 @@ describe("renderOutageEmail — SRS 5.2 step 5", () => {
 		);
 		expect(email.text).toContain("92 of 100 links failed in the same run");
 		expect(email.text).toContain("2026-09-30 06:00 (GMT+7)");
+	});
+});
+
+describe("renderTestEmail — FR-26", () => {
+	it("FR-26: names the sender and who asked for it", async () => {
+		const email = await renderTestEmail({
+			sender: "noreply@watch.hueai.net",
+			requestedBy: "helen@wootech.co",
+		});
+		expect(email.subject).toBe("[LinkWatch] Test email");
+		expect(email.text).toContain("sent from noreply@watch.hueai.net");
+		expect(email.text).toContain("Requested by helen@wootech.co.");
 	});
 });

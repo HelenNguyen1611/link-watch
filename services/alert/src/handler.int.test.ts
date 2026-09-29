@@ -37,7 +37,10 @@ const handlerAt = (now: Date) =>
 		alertQueueUrl: QUEUE,
 		config: {
 			appUrl: "https://watch.hueai.net",
-			defaultSenderEmail: "noreply@watch.hueai.net",
+			defaults: {
+				sesIdentity: "watch.hueai.net",
+				senderEmail: "noreply@watch.hueai.net",
+			},
 		},
 		sleep: async () => {},
 		now: () => now,

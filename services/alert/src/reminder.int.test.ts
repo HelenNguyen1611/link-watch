@@ -29,8 +29,11 @@ const run = (now: Date) =>
 		alertQueueUrl: "https://sqs.local/alert",
 		config: {
 			appUrl: "https://watch.hueai.net",
-			defaultSenderEmail: "noreply@watch.hueai.net",
-			defaultAdminEmail: "admin@linkwatch.test",
+			defaults: {
+				sesIdentity: "watch.hueai.net",
+				senderEmail: "noreply@watch.hueai.net",
+				defaultAdminEmail: "admin@linkwatch.test",
+			},
 		},
 		sleep: async () => {},
 		now: () => now,
