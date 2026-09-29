@@ -1,0 +1,36 @@
+import type { Context } from "hono";
+
+type ZodLikeError = Error & { issues: unknown[] };
+const isZodError = (err: Error): err is ZodLikeError =>
+	err.name === "ZodError" && Array.isArray((err as ZodLikeError).issues);
+
+/** Map lỗi → HTTP: Zod 400, JSON sai 400, lỗi nghiệp vụ theo `code`, còn lại 500 không lộ chi tiết. */
+export function onError(
+	log: (message: string, extra?: Record<string, unknown>) => void,
+) {
+	return (err: Error, c: Context) => {
+		if (isZodError(err))
+			return c.json({ error: "validation", issues: err.issues }, 400);
+		if (err instanceof SyntaxError)
+			return c.json({ error: "invalid_json" }, 400);
+		const code = (err as { code?: unknown }).code;
+		if (code === "duplicate")
+			return c.json(
+				{
+					error: "duplicate",
+					message: err.message,
+					...pick(err, "existingId"),
+				},
+				409,
+			);
+		if (code === "not_found")
+			return c.json({ error: "not_found", message: err.message }, 404);
+		log("Lỗi không lường trước", { error: String(err), stack: err.stack });
+		return c.json({ error: "internal" }, 500);
+	};
+}
+
+const pick = (err: Error, key: string) => {
+	const v = (err as unknown as Record<string, unknown>)[key];
+	return v === undefined ? {} : { [key]: v };
+};

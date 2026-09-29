@@ -4,6 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev:web": "pnpm --filter @linkwatch/web dev",
+		"dev:api": "pnpm --filter @linkwatch/api dev",
 		"build": "pnpm -r build",
 		"test": "vitest run --project unit",
 		"test:int": "vitest run --project int --passWithNoTests",
