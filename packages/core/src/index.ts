@@ -1,4 +1,5 @@
 export * from "./domain";
+export * from "./schedule";
 export * from "./schema/domain";
 export * from "./schema/enums";
 export * from "./schema/link";
