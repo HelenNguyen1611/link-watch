@@ -11,8 +11,12 @@ export interface WorkersStackProps extends cdk.StackProps {
 	table: dynamodb.ITable;
 }
 
-/** NFR-06: tăng thông lượng bằng cách nâng số này, không sửa code. */
-export const CHECKER_RESERVED_CONCURRENCY = 10;
+/**
+ * NFR-06: số lần gọi Checker đồng thời tối đa, giới hạn trên event source SQS (tối thiểu 2).
+ * Không dùng reserved concurrency để không phụ thuộc hạn mức concurrency của tài khoản;
+ * khi hạn mức ≥ 100 có thể cân nhắc reserved concurrency. Tăng thông lượng: nâng số này.
+ */
+export const CHECKER_MAX_CONCURRENCY = 5;
 /** 20 link/message, 2 đồng thời/domain, tối đa 30 s + 5 s đọc SSL mỗi link ≈ 350 s. */
 const CHECKER_TIMEOUT = cdk.Duration.minutes(7);
 
@@ -54,7 +58,6 @@ export class WorkersStack extends cdk.Stack {
 		const checker = new LinkWatchFunction(this, "Checker", {
 			entry: "services/checker/src/index.ts",
 			timeout: CHECKER_TIMEOUT,
-			reservedConcurrentExecutions: CHECKER_RESERVED_CONCURRENCY,
 			environment: { TABLE_NAME: props.table.tableName },
 		});
 		props.table.grantReadWriteData(checker);
@@ -62,6 +65,7 @@ export class WorkersStack extends cdk.Stack {
 			new eventSources.SqsEventSource(this.checkQueue, {
 				batchSize: 1,
 				reportBatchItemFailures: true,
+				maxConcurrency: CHECKER_MAX_CONCURRENCY,
 			}),
 		);
 

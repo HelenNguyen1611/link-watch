@@ -29,3 +29,11 @@ aws ssm put-parameter --name /linkwatch/api-shared-secret --type SecureString \
 - Xem khóa để nhập vào web (ô "Nhập khóa API"), chỉ lưu trên trình duyệt:
   `aws ssm get-parameter --name /linkwatch/api-shared-secret --with-decryption --query Parameter.Value --output text --region ap-southeast-1 --profile linkwatch`
 - Đổi khóa: chạy lại `put-parameter` với `--overwrite`. Lambda đọc lại sau tối đa 5 phút, không cần deploy.
+
+## 3. Giới hạn đồng thời của Checker
+
+- Checker được giới hạn **5 lần gọi đồng thời** bằng `maxConcurrency` trên event source SQS (`infra/lib/workers-stack.ts`, `CHECKER_MAX_CONCURRENCY`), không dùng reserved concurrency để deploy không phụ thuộc hạn mức concurrency của tài khoản.
+- Xem hạn mức: `aws lambda get-account-settings --region ap-southeast-1 --profile linkwatch` (`AccountLimit.ConcurrentExecutions`).
+- Khi hạn mức tài khoản ≥ 100 có thể cân nhắc thêm reserved concurrency cho Checker. Tăng thông lượng (NFR-06): nâng `CHECKER_MAX_CONCURRENCY` rồi deploy, không sửa code.
+- Job lỗi 3 lần nằm ở DLQ (output `CheckDlqUrl` của `LinkWatch-Workers`); link tự được gửi lại sau 30 phút giữ chỗ.
+

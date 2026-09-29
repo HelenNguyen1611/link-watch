@@ -46,12 +46,17 @@ describe("LinkWatch-Workers", () => {
 		});
 	});
 
-	it("NFR-06: Checker reserved concurrency = 10, timeout đủ cho 20 link", () => {
-		expect(fn("checker").Properties.ReservedConcurrentExecutions).toBe(10);
+	it("NFR-06: Checker giới hạn 5 lần gọi đồng thời trên event source SQS, timeout đủ cho 20 link", () => {
+		template.hasResourceProperties("AWS::Lambda::EventSourceMapping", {
+			ScalingConfig: { MaximumConcurrency: 5 },
+		});
 		expect(fn("checker").Properties.Timeout).toBe(420);
-		expect(fn("dispatcher").Properties).not.toHaveProperty(
-			"ReservedConcurrentExecutions",
-		);
+	});
+
+	it("không dùng reserved concurrency (không phụ thuộc hạn mức concurrency của tài khoản)", () => {
+		for (const f of Object.values(fns)) {
+			expect(f.Properties).not.toHaveProperty("ReservedConcurrentExecutions");
+		}
 	});
 
 	it("SRS 3.4: SQS FIFO (MessageGroupId = domain, dedup id do Dispatcher đặt)", () => {

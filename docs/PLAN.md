@@ -154,7 +154,8 @@
 - **FR/AC:** SRS 3.4, 6.2, NFR-08. **Phụ thuộc:** 9a
 
 ### Bước 36a — Workers: hàng đợi FIFO, Dispatcher, Checker
-- Stack mới `LinkWatch-Workers`: SQS FIFO + DLQ (maxReceive 3), NodejsFunction arm64/esbuild cho dispatcher/checker, **không VPC**, log 14 ngày, reserved concurrency checker = 10, EventBridge Scheduler 5 phút, event source mapping SQS, IAM tối thiểu.
+- Stack mới `LinkWatch-Workers`: SQS FIFO + DLQ (maxReceive 3), NodejsFunction arm64/esbuild cho dispatcher/checker, **không VPC**, log 14 ngày, EventBridge Scheduler 5 phút, event source mapping SQS, IAM tối thiểu.
+- **Đổi 29/09/2026:** không dùng reserved concurrency cho Checker (phụ thuộc hạn mức concurrency của tài khoản, tài khoản mới có thể chỉ có 10). Giới hạn bằng `maxConcurrency = 5` trên event source SQS. Khi hạn mức tài khoản ≥ 100 có thể cân nhắc reserved concurrency.
 - **FR/AC:** NFR-04, NFR-06, SRS 3.4 quy tắc chi phí. Assertion: không có `AWS::EC2::NatGateway`, không có `VpcConfig`. **Phụ thuộc:** 35, 12a, 13a
 
 ### Bước 37a — Api stack + behavior `/api/*`
@@ -261,6 +262,11 @@
 ### Bước 37b — Cognito + JWT authorizer
 - Mở rộng `LinkWatch-Api`: User Pool chỉ admin tạo user, JWT authorizer, route `/public/*` không auth; bỏ quyền đọc SSM header tạm.
 - **FR/AC:** FR-28, NFR-07. **Phụ thuộc:** 37a, 18b
+
+### Bước 37c — Lỗi JSON của `/api/*` qua CloudFront (mới)
+- **Hạn chế đã chấp nhận ở Mốc 1:** `errorResponses` của distribution (403/404 → `/404.html`) áp cho mọi behavior, nên API trả 404 (hoặc 403) thì body JSON bị CloudFront thay bằng trang HTML (mã HTTP vẫn giữ).
+- Sửa: bỏ `errorResponses` khỏi distribution và xử lý trang 404 của web tĩnh bằng CloudFront Function (chỉ gắn behavior mặc định), hoặc cách tương đương không ảnh hưởng `/api/*`; giữ logical ID tài nguyên cũ.
+- **Xong khi:** test CDK: `/api/*` không chịu `errorResponses`; trên môi trường thật `DELETE /api/links/<id không có>` trả 404 JSON `{"error":"not_found"}`, còn đường dẫn web không tồn tại vẫn ra trang 404. **Phụ thuộc:** 37a
 
 ### Bước 38b — Tham chiếu SES
 - Thêm `sesIdentity: 'watch.hueai.net'`, địa chỉ gửi mặc định vào `config.ts`; cấp quyền `ses:SendEmail` cho Alert/API theo ARN identity có sẵn, không tạo `AWS::SES::EmailIdentity`.
@@ -424,7 +430,7 @@
 | Mốc | Bước | Ước lượng |
 | --- | --- | --- |
 | 1 Walking skeleton | 0 ✅, 1 ✅, 2, 3a, 4a, 8a, 9a, 10a, 11, 12a, 13a, 18a, 19a, 23a, 26a, 35, 36a, 37a, 38a, 40a | khoảng 30–38 giờ |
-| 2 Sự cố, email, Cognito | 5, 6, 8b, 9b, 12b, 14, 15a, 16a, 17a, 18b, 20a, 23b, 31a, 36b, 37b, 38b, 40b | khoảng 25–32 giờ |
+| 2 Sự cố, email, Cognito | 5, 6, 8b, 9b, 12b, 14, 15a, 16a, 17a, 18b, 20a, 23b, 31a, 36b, 37b, 37c, 38b, 40b | khoảng 25–32 giờ |
 | 3 Lịch riêng và phần còn lại | 3b, 8c, 13b, 20b, 29, 25, 4b, 10b, 19b, 26b, 27, 21, 24, 31b, 7, 9c, 15b, 16b, 17b, 22, 28, 30, 32, 33, 34, 39, 40c | khoảng 32–42 giờ |
 | **Tổng** | | **khoảng 87–112 giờ** (thêm khoảng 7 giờ so với bản cũ do auth tạm và smoke test theo mốc) |
 
