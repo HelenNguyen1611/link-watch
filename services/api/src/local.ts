@@ -15,6 +15,8 @@ const app = createApp({
 	db: createDb(),
 	getApiKey: async () => apiKey,
 	log: console.error,
+	// Static export không có rewrites: web :3000 gọi thẳng API :8787 nên cần CORS khi chạy local.
+	corsOrigins: [process.env.WEB_ORIGIN ?? "http://localhost:3000"],
 });
 serve({ fetch: app.fetch, port }, () =>
 	console.log(`API local: http://localhost:${port}/api (khóa: ${apiKey})`),
