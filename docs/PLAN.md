@@ -281,7 +281,8 @@
 - Mở rộng `LinkWatch-Api`: User Pool chỉ admin tạo user, JWT authorizer, route `/public/*` không auth; bỏ quyền đọc SSM header tạm.
 - **FR/AC:** FR-28, NFR-07. **Phụ thuộc:** 37a, 18b
 
-### Bước 37c — Lỗi JSON của `/api/*` qua CloudFront (mới)
+### Bước 37c — Lỗi JSON của `/api/*` qua CloudFront (mới) ✅
+- ✅ đã làm (30/09/2026): bỏ `errorResponses`; CloudFront Function `IndexRewrite` (chỉ behavior mặc định, giữ logical ID) nhúng danh sách trang `.html` đọc từ `apps/web/out` lúc synth → trang không có trong bản build được rewrite sang `/404.html` (**trả 200 kèm trang 404**, vì viewer-request không đổi được mã của origin); file có đuôi (asset, `auth-config.json`) không đụng tới. Synth báo lỗi rõ nếu code vượt 10 KB. Kiểm tra trên môi trường thật (`DELETE /api/links/<id không có>` → 404 JSON) làm ở smoke test 40b.
 - **Hạn chế đã chấp nhận ở Mốc 1:** `errorResponses` của distribution (403/404 → `/404.html`) áp cho mọi behavior, nên API trả 404 (hoặc 403) thì body JSON bị CloudFront thay bằng trang HTML (mã HTTP vẫn giữ).
 - Sửa: bỏ `errorResponses` khỏi distribution và xử lý trang 404 của web tĩnh bằng CloudFront Function (chỉ gắn behavior mặc định), hoặc cách tương đương không ảnh hưởng `/api/*`; giữ logical ID tài nguyên cũ.
 - **Xong khi:** test CDK: `/api/*` không chịu `errorResponses`; trên môi trường thật `DELETE /api/links/<id không có>` trả 404 JSON `{"error":"not_found"}`, còn đường dẫn web không tồn tại vẫn ra trang 404. **Phụ thuộc:** 37a

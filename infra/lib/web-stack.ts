@@ -29,6 +29,54 @@ export interface WebStackProps extends cdk.StackProps {
 /** Path of the runtime auth config read by apps/web (src/lib/auth.ts). */
 export const AUTH_CONFIG_PATH = "auth-config.json";
 
+/** CloudFront Functions: maximum code size. */
+const MAX_FUNCTION_CODE_BYTES = 10 * 1024;
+
+/** Every page of the static export as a URI after the index rewrite, e.g. /links/index.html. */
+export function listPages(siteDir: string): string[] {
+	const pages: string[] = [];
+	const walk = (dir: string) => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) walk(full);
+			else if (entry.name.endsWith(".html"))
+				pages.push(
+					`/${path.relative(siteDir, full).split(path.sep).join("/")}`,
+				);
+		}
+	};
+	walk(siteDir);
+	return pages.sort();
+}
+
+/**
+ * Viewer-request function of the static site (default behavior only):
+ * 1. trailingSlash export: /links/ and /links → /links/index.html;
+ * 2. step 37c: a page URI missing from the build → /404.html. This replaces the distribution-wide
+ *    `errorResponses`, which also rewrote /api/* 403/404 JSON into the HTML page. The 404 page is
+ *    served with status 200 (a viewer-request function cannot change the origin status).
+ */
+export function siteRewriteCode(pages: readonly string[]): string {
+	const known = JSON.stringify(Object.fromEntries(pages.map((p) => [p, 1])));
+	const notFound = pages.includes("/404.html") ? "'/404.html'" : "null";
+	const code = `var PAGES = ${known};
+var NOT_FOUND = ${notFound};
+function handler(event) {
+  var req = event.request;
+  var uri = req.uri;
+  if (uri.endsWith('/')) { uri = uri + 'index.html'; }
+  else if (uri.lastIndexOf('.') < uri.lastIndexOf('/')) { uri = uri + '/index.html'; }
+  if (NOT_FOUND && uri.endsWith('.html') && !PAGES[uri]) { uri = NOT_FOUND; }
+  req.uri = uri;
+  return req;
+}`;
+	if (Buffer.byteLength(code) > MAX_FUNCTION_CODE_BYTES)
+		throw new Error(
+			`CloudFront Function code is ${Buffer.byteLength(code)} bytes (max ${MAX_FUNCTION_CODE_BYTES}): too many pages`,
+		);
+	return code;
+}
+
 export class WebStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props?: WebStackProps) {
 		super(scope, id, props);
@@ -48,17 +96,12 @@ export class WebStack extends cdk.Stack {
 			removalPolicy: cdk.RemovalPolicy.RETAIN,
 		});
 
-		// Static export uses trailingSlash: /links/ → /links/index.html
+		// Static export uses trailingSlash: /links/ → /links/index.html; unknown pages → /404.html.
 		const rewrite = new cloudfront.Function(this, "IndexRewrite", {
 			runtime: cloudfront.FunctionRuntime.JS_2_0,
-			code: cloudfront.FunctionCode.fromInline(`
-function handler(event) {
-  var req = event.request;
-  var uri = req.uri;
-  if (uri.endsWith('/')) { req.uri = uri + 'index.html'; }
-  else if (uri.lastIndexOf('.') < uri.lastIndexOf('/')) { req.uri = uri + '/index.html'; }
-  return req;
-}`),
+			code: cloudfront.FunctionCode.fromInline(
+				siteRewriteCode(listPages(siteDir)),
+			),
 		});
 
 		const certificate = acm.Certificate.fromCertificateArn(
@@ -87,20 +130,8 @@ function handler(event) {
 					},
 				],
 			},
-			errorResponses: [
-				{
-					httpStatus: 403,
-					responseHttpStatus: 404,
-					responsePagePath: "/404.html",
-					ttl: cdk.Duration.minutes(5),
-				},
-				{
-					httpStatus: 404,
-					responseHttpStatus: 404,
-					responsePagePath: "/404.html",
-					ttl: cdk.Duration.minutes(5),
-				},
-			],
+			// No errorResponses (step 37c): they apply to every behavior and replaced the API's
+			// 403/404 JSON with the HTML page. Unknown pages are handled by the function above.
 		});
 
 		// /api/* → API Gateway: same origin as the web app, so no CORS. No caching; forward every

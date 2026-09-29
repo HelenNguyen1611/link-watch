@@ -3,7 +3,7 @@ import { Match, Template } from "aws-cdk-lib/assertions";
 import * as cdk from "aws-cdk-lib/core";
 import { beforeAll, describe, expect, it } from "vitest";
 import { config } from "../lib/config";
-import { WebStack } from "../lib/web-stack";
+import { listPages, siteRewriteCode, WebStack } from "../lib/web-stack";
 
 // Live stack: a changed logical ID makes CloudFormation delete and recreate the resource.
 const DEPLOYED_LOGICAL_IDS = [
@@ -69,10 +69,8 @@ describe("LinkWatch-Web", () => {
 						Match.objectLike({ EventType: "viewer-request" }),
 					],
 				}),
-				CustomErrorResponses: [
-					Match.objectLike({ ErrorCode: 403, ResponsePagePath: "/404.html" }),
-					Match.objectLike({ ErrorCode: 404, ResponsePagePath: "/404.html" }),
-				],
+				// Step 37c: distribution-wide error pages would also rewrite /api/* JSON errors.
+				CustomErrorResponses: Match.absent(),
 			}),
 		});
 	});
@@ -87,6 +85,23 @@ describe("LinkWatch-Web", () => {
 			FunctionConfig: Match.objectLike({ Runtime: "cloudfront-js-2.0" }),
 			FunctionCode: Match.stringLikeRegexp("index\\.html"),
 		});
+	});
+
+	it("step 37c: the function serves /404.html for pages missing from the build, leaves assets alone", () => {
+		const fnRes = Object.values(
+			template.findResources("AWS::CloudFront::Function"),
+		)[0] as { Properties: { FunctionCode: string } };
+		const handler = new Function(
+			`${fnRes.Properties.FunctionCode}; return handler;`,
+		)() as (e: { request: { uri: string } }) => { uri: string };
+		const uri = (u: string) => handler({ request: { uri: u } }).uri;
+		expect(uri("/")).toBe("/index.html");
+		expect(uri("/links/")).toBe("/links/index.html");
+		expect(uri("/links")).toBe("/links/index.html");
+		expect(uri("/does-not-exist/")).toBe("/404.html");
+		expect(uri("/nope")).toBe("/404.html");
+		expect(uri("/_next/static/app.js")).toBe("/_next/static/app.js");
+		expect(uri("/auth-config.json")).toBe("/auth-config.json");
 	});
 
 	it("BucketDeployment prunes and invalidates everything", () => {
@@ -205,5 +220,27 @@ describe("LinkWatch-Web — runtime auth config (FR-28)", () => {
 		expect(Object.keys(t.toJSON().Resources)).toEqual(
 			expect.arrayContaining(DEPLOYED_LOGICAL_IDS),
 		);
+	});
+});
+
+describe("siteRewriteCode — step 37c", () => {
+	it("without a 404 page in the build, unknown pages are left to S3", () => {
+		const handler = new Function(
+			`${siteRewriteCode(["/index.html"])}; return handler;`,
+		)() as (e: { request: { uri: string } }) => { uri: string };
+		expect(handler({ request: { uri: "/x/" } }).uri).toBe("/x/index.html");
+	});
+
+	it("lists the pages of the real fixture site", () => {
+		expect(listPages(path.join(__dirname, "fixtures/site"))).toEqual([
+			"/404.html",
+			"/index.html",
+			"/links/index.html",
+		]);
+	});
+
+	it("fails clearly when the page list no longer fits a CloudFront Function", () => {
+		const many = Array.from({ length: 800 }, (_, i) => `/page-${i}/index.html`);
+		expect(() => siteRewriteCode(many)).toThrow(/too many pages/);
 	});
 });
