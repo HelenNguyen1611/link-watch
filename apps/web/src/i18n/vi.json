@@ -1,10 +1,22 @@
 {
 	"app": {
 		"title": "LinkWatch",
-		"tagline": "Theo dõi link chết và site down"
+		"tagline": "Theo dõi link chết và site down",
+		"footer": "LinkWatch · Theo dõi link chết và site down · watch.hueai.net"
 	},
 	"nav": {
-		"links": "Link"
+		"links": "Link",
+		"menu": "Menu",
+		"overview": "Tổng quan",
+		"domains": "Domain",
+		"schedules": "Lịch",
+		"incidents": "Sự cố",
+		"settings": "Cài đặt",
+		"settingsEmail": "Email cảnh báo",
+		"settingsAccount": "Tài khoản",
+		"settingsApiKey": "Khóa API",
+		"collapse": "Thu gọn",
+		"expand": "Mở rộng"
 	},
 	"apiKey": {
 		"title": "Nhập khóa API",
@@ -12,7 +24,9 @@
 		"label": "Khóa API",
 		"save": "Lưu",
 		"change": "Đổi khóa",
-		"invalid": "Khóa API không đúng. Hãy nhập lại."
+		"invalid": "Khóa API không đúng. Hãy nhập lại.",
+		"settingsDescription": "Bản chạy thử dùng khóa API tạm, chỉ lưu trên trình duyệt này. Sẽ thay bằng đăng nhập ở Mốc 2.",
+		"stored": "Khóa đang lưu"
 	},
 	"home": {
 		"intro": "Thêm link cần theo dõi và xem trạng thái kiểm tra gần nhất.",
@@ -53,7 +67,8 @@
 			"http": "Mã HTTP",
 			"responseTime": "Phản hồi",
 			"lastChecked": "Kiểm tra lần cuối"
-		}
+		},
+		"subtitle": "Thêm link cần theo dõi và xem kết quả kiểm tra gần nhất."
 	},
 	"linkForm": {
 		"url": "URL",
@@ -65,6 +80,18 @@
 			"too_long": "URL dài quá 2.048 ký tự",
 			"duplicate": "Link này đã có trong danh sách",
 			"unknown": "Không thêm được link. Hãy thử lại."
+		}
+	},
+	"comingSoon": {
+		"status": "Màn hình {{screen}} đang được xây dựng — dự kiến ở Mốc {{milestone}}.",
+		"goLinks": "Đi tới danh sách link",
+		"desc": {
+			"overview": "Sức khỏe từng domain: số link theo trạng thái, uptime 7/30 ngày, lần kiểm tra gần nhất.",
+			"domains": "Nhóm link theo domain chính, người nhận cảnh báo và lịch riêng của từng domain.",
+			"schedules": "Lịch kiểm tra mặc định 06:00 và các lịch mẫu gán cho domain hoặc link.",
+			"incidents": "Sự cố đang mở và đã đóng, thời lượng, người đã nhận email, ghi chú.",
+			"settingsEmail": "Địa chỉ gửi đã xác thực trên SES, email admin mặc định, gửi email thử.",
+			"settingsAccount": "Thông tin tài khoản đăng nhập."
 		}
 	}
 }

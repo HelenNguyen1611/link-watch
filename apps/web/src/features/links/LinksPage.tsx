@@ -1,19 +1,11 @@
 "use client";
 
 import type { LinkView } from "@linkwatch/core";
-import {
-	Alert,
-	Card,
-	Container,
-	Group,
-	Loader,
-	Stack,
-	Text,
-	Title,
-} from "@mantine/core";
+import { Alert, Box, Group, Loader, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { AddLinkForm } from "./AddLinkForm";
@@ -51,26 +43,26 @@ export function LinksPage() {
 	}, [unauthorized]);
 
 	return (
-		<Container size="xl" py="md">
-			<Stack>
-				<Group justify="space-between">
-					<Title order={2}>{t("links.title")}</Title>
-					{links.isFetching && <Loader size="xs" />}
-				</Group>
-				<Card withBorder>
-					<AddLinkForm />
-				</Card>
-				{links.isPending ? (
-					<Loader />
-				) : links.isError && !unauthorized ? (
-					<Alert color="red">{t("links.loadError")}</Alert>
-				) : (
-					<LinkTable links={links.data ?? []} />
-				)}
-				<Text size="xs" c="dimmed">
+		<>
+			<PageHeader title={t("links.title")} description={t("links.subtitle")} />
+			<Box pb={40}>
+				<AddLinkForm />
+			</Box>
+			<Group justify="space-between" mb="xs">
+				<Text size="sm" c="dimmed">
 					{t("links.refreshNote")}
 				</Text>
-			</Stack>
-		</Container>
+				{links.isFetching && <Loader size="xs" />}
+			</Group>
+			{links.isPending ? (
+				<Loader />
+			) : links.isError && !unauthorized ? (
+				<Alert color="red" variant="light">
+					{t("links.loadError")}
+				</Alert>
+			) : (
+				<LinkTable links={links.data ?? []} />
+			)}
+		</>
 	);
 }

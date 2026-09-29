@@ -1,0 +1,23 @@
+/* Ô nhập chỉ có gạch chân (phong cách tối giản). */
+.input {
+	border: 0;
+	border-bottom: 1px solid var(--mantine-color-gray-3);
+	border-radius: 0;
+	padding-inline: 0;
+	background: transparent;
+	font-size: 16px;
+}
+
+.input:focus {
+	border-bottom-color: var(--mantine-color-brand-7);
+}
+
+.input[data-error] {
+	border-bottom-color: var(--mantine-color-red-6);
+}
+
+.label {
+	font-size: 13px;
+	font-weight: 400;
+	color: var(--mantine-color-dimmed);
+}

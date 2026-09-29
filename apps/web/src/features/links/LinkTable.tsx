@@ -32,7 +32,7 @@ function DeleteButton({ id }: { id: string }) {
 		<Button
 			size="xs"
 			variant="subtle"
-			color="red"
+			color="gray"
 			onClick={() => setConfirming(true)}
 		>
 			{t("links.delete")}
@@ -46,15 +46,32 @@ export function LinkTable({ links }: { links: LinkView[] }) {
 	if (links.length === 0) return <Text c="dimmed">{t("links.empty")}</Text>;
 	return (
 		<Table.ScrollContainer minWidth={760}>
-			<Table striped highlightOnHover verticalSpacing="xs">
+			<Table
+				highlightOnHover
+				verticalSpacing="md"
+				horizontalSpacing="sm"
+				borderColor="gray.2"
+			>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th>{t("links.col.url")}</Table.Th>
-						<Table.Th>{t("links.col.domain")}</Table.Th>
-						<Table.Th>{t("links.col.status")}</Table.Th>
-						<Table.Th>{t("links.col.http")}</Table.Th>
-						<Table.Th>{t("links.col.responseTime")}</Table.Th>
-						<Table.Th>{t("links.col.lastChecked")}</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.url")}
+						</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.domain")}
+						</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.status")}
+						</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.http")}
+						</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.responseTime")}
+						</Table.Th>
+						<Table.Th c="dimmed" fz="xs" fw={400}>
+							{t("links.col.lastChecked")}
+						</Table.Th>
 						<Table.Th />
 					</Table.Tr>
 				</Table.Thead>

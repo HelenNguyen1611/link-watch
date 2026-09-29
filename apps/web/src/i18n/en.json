@@ -1,10 +1,22 @@
 {
 	"app": {
 		"title": "LinkWatch",
-		"tagline": "Monitor dead links and site outages"
+		"tagline": "Monitor dead links and site outages",
+		"footer": "LinkWatch · Dead link and outage monitoring · watch.hueai.net"
 	},
 	"nav": {
-		"links": "Links"
+		"links": "Links",
+		"menu": "Menu",
+		"overview": "Overview",
+		"domains": "Domains",
+		"schedules": "Schedules",
+		"incidents": "Incidents",
+		"settings": "Settings",
+		"settingsEmail": "Alert email",
+		"settingsAccount": "Account",
+		"settingsApiKey": "API key",
+		"collapse": "Collapse",
+		"expand": "Expand"
 	},
 	"apiKey": {
 		"title": "Enter API key",
@@ -12,7 +24,9 @@
 		"label": "API key",
 		"save": "Save",
 		"change": "Change key",
-		"invalid": "Wrong API key. Please enter it again."
+		"invalid": "Wrong API key. Please enter it again.",
+		"settingsDescription": "This preview uses a temporary API key stored in this browser only. Sign-in replaces it in milestone 2.",
+		"stored": "Stored key"
 	},
 	"home": {
 		"intro": "Add links to monitor and see their latest check status.",
@@ -53,7 +67,8 @@
 			"http": "HTTP",
 			"responseTime": "Response",
 			"lastChecked": "Last checked"
-		}
+		},
+		"subtitle": "Add links to monitor and see their latest check results."
 	},
 	"linkForm": {
 		"url": "URL",
@@ -65,6 +80,18 @@
 			"too_long": "URL is longer than 2,048 characters",
 			"duplicate": "This link is already in the list",
 			"unknown": "Could not add the link. Please try again."
+		}
+	},
+	"comingSoon": {
+		"status": "Screen {{screen}} is under construction — planned for milestone {{milestone}}.",
+		"goLinks": "Go to link list",
+		"desc": {
+			"overview": "Health per domain: links by status, 7/30-day uptime, last check.",
+			"domains": "Links grouped by root domain, alert recipients and per-domain schedules.",
+			"schedules": "Default 06:00 schedule and schedule profiles for domains or links.",
+			"incidents": "Open and closed incidents, duration, notified recipients, notes.",
+			"settingsEmail": "Verified SES sender, default admin email, test email.",
+			"settingsAccount": "Your sign-in account."
 		}
 	}
 }

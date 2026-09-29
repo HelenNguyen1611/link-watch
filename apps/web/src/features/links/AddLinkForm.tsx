@@ -5,6 +5,8 @@ import { Button, Group, TextInput } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FieldErrors, type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { IconArrowRight } from "@/components/icons";
+import underline from "@/components/underline.module.css";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 
@@ -90,27 +92,39 @@ export function AddLinkForm() {
 			onSubmit={form.handleSubmit((input) => create.mutate(input))}
 			noValidate
 		>
-			<Group align="flex-start" wrap="wrap">
+			<Group align="flex-end" wrap="wrap" gap="xl">
 				<TextInput
 					label={t("linkForm.url")}
 					placeholder="https://abc.com/trang"
 					required
+					classNames={underline}
 					style={{ flex: "2 1 320px" }}
 					error={form.formState.errors.url?.message}
 					{...form.register("url")}
 				/>
 				<TextInput
 					label={t("linkForm.name")}
+					classNames={underline}
 					style={{ flex: "1 1 200px" }}
 					error={form.formState.errors.name?.message}
 					{...form.register("name")}
 				/>
-				<Button type="submit" mt={25} loading={create.isPending}>
+				<Button
+					type="submit"
+					variant="subtle"
+					px={0}
+					loading={create.isPending}
+					rightSection={<IconArrowRight size={18} />}
+					styles={{ label: { fontSize: 16, fontWeight: 500 } }}
+				>
 					{t("linkForm.add")}
 				</Button>
 			</Group>
 			{form.formState.errors.root && (
-				<div role="alert" style={{ color: "var(--mantine-color-red-7)" }}>
+				<div
+					role="alert"
+					style={{ color: "var(--mantine-color-red-7)", marginTop: 8 }}
+				>
 					{form.formState.errors.root.message}
 				</div>
 			)}

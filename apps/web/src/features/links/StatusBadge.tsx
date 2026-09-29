@@ -1,22 +1,35 @@
 import type { LinkStatus } from "@linkwatch/core";
-import { Badge } from "@mantine/core";
+import { Group, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
+/** Màu theo trạng thái: thông tin cần nhìn nhanh nên giữ màu dù giao diện tối giản. */
 const COLORS: Record<LinkStatus, string> = {
-	pending: "gray",
-	up: "green",
-	slow: "yellow",
-	dead: "orange",
-	down: "red",
-	suspect: "grape",
+	pending: "var(--mantine-color-gray-5)",
+	up: "var(--mantine-color-green-7)",
+	slow: "var(--mantine-color-yellow-6)",
+	dead: "var(--mantine-color-orange-7)",
+	down: "var(--mantine-color-red-7)",
+	suspect: "var(--mantine-color-grape-6)",
 };
 
-/** SRS 5.1: Hoạt động / Chậm / Link chết / Site down (+ Chờ kiểm tra, Nghi ngờ). */
+/** SRS 5.1: Hoạt động / Chậm / Link chết / Site down (+ Chờ kiểm tra, Nghi ngờ) — chấm màu + chữ. */
 export function StatusBadge({ status }: { status: LinkStatus }) {
 	const { t } = useTranslation();
 	return (
-		<Badge color={COLORS[status]} variant="light">
-			{t(`status.${status}`)}
-		</Badge>
+		<Group gap={8} wrap="nowrap">
+			<span
+				aria-hidden="true"
+				style={{
+					width: 8,
+					height: 8,
+					borderRadius: "50%",
+					background: COLORS[status],
+					flexShrink: 0,
+				}}
+			/>
+			<Text size="sm" fw={500}>
+				{t(`status.${status}`)}
+			</Text>
+		</Group>
 	);
 }
