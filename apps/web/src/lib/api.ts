@@ -1,9 +1,4 @@
-import {
-	API_KEY_HEADER,
-	type LinkInputRaw,
-	type LinkPage,
-	type LinkView,
-} from "@linkwatch/core";
+import type { LinkInputRaw, LinkPage, LinkView } from "@linkwatch/core";
 import { getApiKey } from "./api-key";
 
 export class ApiError extends Error {
@@ -30,8 +25,10 @@ export function createApi(opts: ApiOptions) {
 
 	async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 		const headers = new Headers(init.headers);
+		// TEMPORARY bridge until step 23b (Cognito sign-in): the API only accepts
+		// `Authorization: Bearer …`; the local API signs any bearer in as the dev user.
 		const key = opts.getApiKey();
-		if (key) headers.set(API_KEY_HEADER, key);
+		if (key) headers.set("authorization", `Bearer ${key}`);
 		if (init.body) headers.set("content-type", "application/json");
 		const res = await doFetch(`${opts.baseUrl}/api${path}`, {
 			...init,

@@ -1,4 +1,3 @@
-import { API_KEY_HEADER } from "@linkwatch/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, createApi } from "./api";
 
@@ -20,12 +19,12 @@ const api = (key: string | null = "k", base = "") =>
 	});
 
 describe("createApi", () => {
-	it("sends the temporary API key header and calls same-origin /api when no base URL is set", async () => {
+	it("sends the stored key as a Bearer token and calls same-origin /api when no base URL is set", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api().listLinks();
 		const [url, init] = fetchMock.mock.calls[0];
 		expect(url).toBe("/api/links?limit=100");
-		expect(new Headers(init.headers).get(API_KEY_HEADER)).toBe("k");
+		expect(new Headers(init.headers).get("authorization")).toBe("Bearer k");
 	});
 
 	it("uses the base URL (local: web :3000 → API :8787)", async () => {
@@ -82,7 +81,7 @@ describe("createApi", () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api(null).listLinks();
 		expect(
-			new Headers(fetchMock.mock.calls[0][1].headers).has(API_KEY_HEADER),
+			new Headers(fetchMock.mock.calls[0][1].headers).has("authorization"),
 		).toBe(false);
 	});
 });
