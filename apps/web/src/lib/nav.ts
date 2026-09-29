@@ -3,7 +3,6 @@ import {
 	IconAlert,
 	IconCalendar,
 	IconGlobe,
-	IconKey,
 	IconLink,
 	IconMail,
 	IconOverview,
@@ -35,7 +34,7 @@ export const MAIN_NAV: NavItem[] = [
 	{ key: "incidents", href: "/incidents/", icon: IconAlert, screen: "SCR-07" },
 ];
 
-/** Settings group (SCR-08/09 + the temporary milestone-1 API key). */
+/** Settings group (SCR-08/09). */
 export const SETTINGS_NAV: NavItem[] = [
 	{
 		key: "settingsEmail",
@@ -48,12 +47,6 @@ export const SETTINGS_NAV: NavItem[] = [
 		href: "/settings/account/",
 		icon: IconUser,
 		screen: "SCR-09",
-	},
-	{
-		key: "settingsApiKey",
-		href: "/settings/api-key/",
-		icon: IconKey,
-		screen: "—",
 	},
 ];
 

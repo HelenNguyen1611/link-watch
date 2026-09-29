@@ -262,7 +262,8 @@
 - **Xong khi:** test route pass.
 - **Phụ thuộc:** 8b, 18a
 
-### Bước 23b — Đăng nhập web
+### Bước 23b — Đăng nhập web ✅
+- ✅ đã làm (30/09/2026): trang `/login/` (công khai, ngoài khung app) gồm đăng nhập email + mật khẩu (SRP qua client `linkwatch-web`), đặt mật khẩu mới lần đầu (mật khẩu tạm trong email mời), quên mật khẩu (mã qua email → mật khẩu mới), danh sách quy tắc mật khẩu khớp policy User Pool. `lib/auth.ts` (interface + `safeNext` chống open redirect + `loadAuthSetup`), `auth-cognito.ts` (Amplify, tự gia hạn ID token bằng refresh token 30 ngày), `auth-local.ts` (chỉ `next dev` khi không có `/auth-config.json`; production thiếu file → báo lỗi, không bao giờ đăng nhập giả), `auth-context.tsx` (phiên + API client gửi `Authorization: Bearer <idToken>`, 401 → đăng xuất). `AuthGate` thay `ApiKeyGate`; `/login/` và `/confirm/` không cần đăng nhập. Header phải: email + Sign out (thay tagline). Đã xóa ô khóa API tạm, trang Settings → API key, `lib/api-key.ts`, `API_KEY_HEADER` trong core.
 - **File:** `src/lib/auth.ts` (aws-amplify/auth; local dùng token giả), trang đăng nhập; bỏ ô nhập khóa API tạm.
 - **FR/AC:** FR-28.
 - **Xong khi:** build ra `out/`; `pnpm dev:web` + API local hiển thị layout sau đăng nhập.

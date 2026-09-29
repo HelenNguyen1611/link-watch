@@ -1,5 +1,5 @@
 import type { LinkInputRaw, LinkPage, LinkView } from "@linkwatch/core";
-import { getApiKey } from "./api-key";
+import { notifyUnauthorized } from "./auth";
 
 export class ApiError extends Error {
 	constructor(
@@ -14,7 +14,10 @@ export class ApiError extends Error {
 export type ApiOptions = {
 	/** "" = same origin (production via CloudFront /api/*). Local: NEXT_PUBLIC_API_BASE=http://localhost:8787. */
 	baseUrl: string;
-	getApiKey: () => string | null;
+	/** FR-28: Cognito ID token (refreshed by Amplify); null when signed out. */
+	getToken: () => Promise<string | null>;
+	/** Called on 401 (expired or revoked session); defaults to the app-wide sign-out event. */
+	onUnauthorized?: () => void;
 	fetch?: typeof fetch;
 };
 
@@ -25,10 +28,8 @@ export function createApi(opts: ApiOptions) {
 
 	async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 		const headers = new Headers(init.headers);
-		// TEMPORARY bridge until step 23b (Cognito sign-in): the API only accepts
-		// `Authorization: Bearer …`; the local API signs any bearer in as the dev user.
-		const key = opts.getApiKey();
-		if (key) headers.set("authorization", `Bearer ${key}`);
+		const token = await opts.getToken();
+		if (token) headers.set("authorization", `Bearer ${token}`);
 		if (init.body) headers.set("content-type", "application/json");
 		const res = await doFetch(`${opts.baseUrl}/api${path}`, {
 			...init,
@@ -36,6 +37,7 @@ export function createApi(opts: ApiOptions) {
 		});
 		if (res.status === 204) return undefined as T;
 		const body = await res.json().catch(() => ({}));
+		if (res.status === 401) (opts.onUnauthorized ?? notifyUnauthorized)();
 		if (!res.ok) throw new ApiError(res.status, body);
 		return body as T;
 	}
@@ -55,7 +57,7 @@ export function createApi(opts: ApiOptions) {
 
 export type Api = ReturnType<typeof createApi>;
 
-export const api = createApi({
-	baseUrl: process.env.NEXT_PUBLIC_API_BASE ?? "",
-	getApiKey,
-});
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
+
+/** Signed-out client; `AuthProvider` provides one that sends the ID token. */
+export const api = createApi({ baseUrl: API_BASE, getToken: async () => null });

@@ -18,7 +18,7 @@ Chỉ cần nếu muốn user IAM `helen` (không phải root) xem được Bill
 
 ## 2. Đăng nhập Cognito (Mốc 2) — ngay sau lần push đầu có Cognito
 
-Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` đã bị xóa. Sau khi workflow deploy xanh, web **bắt buộc đăng nhập** và chưa có ai đăng nhập được cho tới khi tạo user.
+Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` đã bị xóa. Từ Bước 23b, web có trang đăng nhập `/login/` (email + mật khẩu, đặt mật khẩu mới lần đầu, quên mật khẩu). Sau khi workflow deploy xanh, web **bắt buộc đăng nhập** và chưa có ai đăng nhập được cho tới khi tạo user.
 
 1. Lấy User Pool ID (output `UserPoolId` của `LinkWatch-Api`):
 
@@ -35,7 +35,7 @@ Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` 
      --desired-delivery-mediums EMAIL --region ap-southeast-1 --profile linkwatch
    ```
 
-   Lần đăng nhập đầu, web yêu cầu đặt mật khẩu mới (≥ 12 ký tự, có chữ hoa, chữ thường, số).
+   Lần đăng nhập đầu, web yêu cầu đặt mật khẩu mới (≥ 12 ký tự, có chữ hoa, chữ thường, số): người dùng mở email mời "Your temporary password", vào https://watch.hueai.net/login/, đăng nhập bằng mật khẩu tạm → màn "Set a new password" → đặt mật khẩu mới là vào thẳng app. Phiên giữ tới 30 ngày (refresh token); nút **Sign out** ở góc phải header.
 3. User cho smoke test: tạo không gửi email mời, rồi đặt mật khẩu cố định:
 
    ```bash
@@ -46,7 +46,7 @@ Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` 
      --password '<mật khẩu>' --permanent --region ap-southeast-1 --profile linkwatch
    ```
 
-4. Quên mật khẩu: nút "Forgot password" trên web (email do Cognito gửi, giới hạn 50 email/ngày của Cognito mặc định). Khóa một user: `admin-disable-user`.
+4. Quên mật khẩu: nút "Forgot password?" trên trang đăng nhập (email do Cognito gửi, giới hạn 50 email/ngày của Cognito mặc định). Khóa một user: `admin-disable-user`.
 5. **Xóa tham số SSM của header tạm** (không còn Lambda nào đọc):
 
    ```bash

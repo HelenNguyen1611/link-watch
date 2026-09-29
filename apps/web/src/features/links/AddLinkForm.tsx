@@ -112,7 +112,7 @@ export function AddLinkForm() {
 					form.setError(field as keyof FormValues, e);
 				}
 			} else if (err instanceof ApiError && err.status === 401) {
-				window.dispatchEvent(new Event("linkwatch:api-key-invalid"));
+				// The API client already signed out; the gate shows the sign-in page.
 			} else {
 				form.setError("root", { message: t("linkForm.errors.unknown") });
 			}

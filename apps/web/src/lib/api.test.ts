@@ -11,15 +11,19 @@ const json = (status: number, body: unknown) =>
 beforeEach(() => fetchMock.mockReset());
 afterEach(() => vi.restoreAllMocks());
 
-const api = (key: string | null = "k", base = "") =>
+const onUnauthorized = vi.fn();
+beforeEach(() => onUnauthorized.mockReset());
+
+const api = (token: string | null = "k", base = "") =>
 	createApi({
 		baseUrl: base,
-		getApiKey: () => key,
+		getToken: async () => token,
+		onUnauthorized,
 		fetch: fetchMock as unknown as typeof fetch,
 	});
 
 describe("createApi", () => {
-	it("sends the stored key as a Bearer token and calls same-origin /api when no base URL is set", async () => {
+	it("FR-28: sends the Cognito ID token as a Bearer token and calls same-origin /api when no base URL is set", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api().listLinks();
 		const [url, init] = fetchMock.mock.calls[0];
@@ -56,7 +60,7 @@ describe("createApi", () => {
 		expect(fetchMock.mock.calls[0][1].method).toBe("DELETE");
 	});
 
-	it("HTTP errors → ApiError with status and body (409 duplicate, 401 wrong key)", async () => {
+	it("HTTP errors → ApiError with status and body (409 duplicate, 401 expired session)", async () => {
 		fetchMock.mockResolvedValue(
 			json(409, { error: "duplicate", existingId: "L0" }),
 		);
@@ -77,7 +81,20 @@ describe("createApi", () => {
 		).toBe(401);
 	});
 
-	it("sends no header when no key is entered", async () => {
+	it("FR-28: 401 → signs out (onUnauthorized), other errors do not", async () => {
+		fetchMock.mockResolvedValue(json(409, { error: "duplicate" }));
+		await api()
+			.createLink({ url: "https://abc.com" })
+			.catch(() => {});
+		expect(onUnauthorized).not.toHaveBeenCalled();
+		fetchMock.mockResolvedValue(json(401, { message: "Unauthorized" }));
+		await api()
+			.listLinks()
+			.catch(() => {});
+		expect(onUnauthorized).toHaveBeenCalledTimes(1);
+	});
+
+	it("sends no Authorization header when signed out", async () => {
 		fetchMock.mockResolvedValue(json(200, { items: [], cursor: null }));
 		await api(null).listLinks();
 		expect(

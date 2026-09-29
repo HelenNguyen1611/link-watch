@@ -5,6 +5,7 @@ import {
 	AppShell,
 	Box,
 	Burger,
+	Button,
 	Group,
 	Text,
 	useMantineTheme,
@@ -14,7 +15,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiKeyGate } from "./ApiKeyGate";
+import { isPublicPath } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
+import { AuthGate } from "./AuthGate";
 import { Logo } from "./Logo";
 import {
 	SHELL_GUTTER,
@@ -25,10 +28,41 @@ import {
 
 export const SIDEBAR_STORAGE_KEY = "linkwatch.sidebarCollapsed";
 
-/** Page shell: slim header, collapsible left sidebar, centred content up to 1152 px wide. */
-export function AppLayout({ children }: { children: ReactNode }) {
+/** Signed-in email (desktop) and Sign out, at the right of the header. */
+function UserMenu() {
 	const { t } = useTranslation();
+	const { user, signOut } = useAuth();
+	if (!user) return null;
+	return (
+		<Group gap="xs" wrap="nowrap">
+			<Text size="sm" c="dimmed" visibleFrom="md" truncate maw={260}>
+				{user.email}
+			</Text>
+			<Button variant="subtle" color="gray" size="compact-sm" onClick={signOut}>
+				{t("auth.signOut")}
+			</Button>
+		</Group>
+	);
+}
+
+/**
+ * Page shell: slim header, collapsible left sidebar, centred content up to 1152 px wide.
+ * Public pages (sign-in, emailed "Fixed" link) render without the shell and without sign-in.
+ */
+export function AppLayout({ children }: { children: ReactNode }) {
 	const pathname = usePathname() ?? "/";
+	if (isPublicPath(pathname)) return <>{children}</>;
+	return <Shell pathname={pathname}>{children}</Shell>;
+}
+
+function Shell({
+	pathname,
+	children,
+}: {
+	pathname: string;
+	children: ReactNode;
+}) {
+	const { t } = useTranslation();
 	const theme = useMantineTheme();
 	// Same breakpoint as the AppShell navbar: below it the sidebar is the ☰ drawer.
 	const desktop = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
@@ -55,7 +89,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 			withBorder
 		>
 			<AppShell.Header>
-				{/* Logo on the left; tagline (desktop) and the menu button (mobile) on the right. */}
+				{/* Logo on the left; user + Sign out and the menu button (mobile) on the right. */}
 				<Group h="100%" px={SHELL_GUTTER} justify="space-between" wrap="nowrap">
 					<Anchor
 						component={Link}
@@ -67,9 +101,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 						<Logo label={t("app.title")} />
 					</Anchor>
 					<Group gap="sm" wrap="nowrap">
-						<Text size="sm" c="dimmed" visibleFrom="md">
-							{t("app.tagline")}
-						</Text>
+						<UserMenu />
 						<Burger
 							opened={mobileOpened}
 							onClick={toggleMobile}
@@ -101,7 +133,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 					style={{ display: "flex", flexDirection: "column" }}
 				>
 					<Box style={{ flex: 1 }}>
-						<ApiKeyGate>{children}</ApiKeyGate>
+						<AuthGate>{children}</AuthGate>
 					</Box>
 					<Text
 						component="footer"

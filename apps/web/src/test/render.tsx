@@ -6,10 +6,25 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
 import type { Api } from "@/lib/api";
 import { ApiContext } from "@/lib/api-context";
+import { AuthContext, type AuthState } from "@/lib/auth-context";
 import { cssVariablesResolver, theme } from "@/lib/theme";
 
-/** Renders with the same providers as the app, using a fake API. */
-export function renderWithApi(ui: ReactElement, api: Api) {
+/** Signed in as admin@abc.com unless a test overrides it. */
+export const signedInAuth = (over: Partial<AuthState> = {}): AuthState => ({
+	status: "signedIn",
+	user: { email: "admin@abc.com" },
+	client: null,
+	refresh: async () => {},
+	signOut: async () => {},
+	...over,
+});
+
+/** Renders with the same providers as the app, using a fake API and a fake session. */
+export function renderWithApi(
+	ui: ReactElement,
+	api: Api,
+	auth: AuthState = signedInAuth(),
+) {
 	const client = new QueryClient({
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
@@ -20,7 +35,9 @@ export function renderWithApi(ui: ReactElement, api: Api) {
 					theme={theme}
 					cssVariablesResolver={cssVariablesResolver}
 				>
-					<ApiContext.Provider value={api}>{ui}</ApiContext.Provider>
+					<AuthContext.Provider value={auth}>
+						<ApiContext.Provider value={api}>{ui}</ApiContext.Provider>
+					</AuthContext.Provider>
 				</MantineProvider>
 			</QueryClientProvider>
 		</I18nextProvider>,

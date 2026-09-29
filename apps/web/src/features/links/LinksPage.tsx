@@ -3,7 +3,6 @@
 import type { LinkView } from "@linkwatch/core";
 import { Alert, Box, Group, Loader, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
@@ -36,12 +35,9 @@ export function LinksPage() {
 		refetchInterval: REFRESH_MS,
 	});
 
+	// 401: the API client signs out and the gate shows the sign-in page; no error box.
 	const unauthorized =
 		links.error instanceof ApiError && links.error.status === 401;
-	useEffect(() => {
-		if (unauthorized)
-			window.dispatchEvent(new Event("linkwatch:api-key-invalid"));
-	}, [unauthorized]);
 
 	return (
 		<>

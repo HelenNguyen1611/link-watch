@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
+import { AuthProvider } from "@/lib/auth-context";
 import { cssVariablesResolver, theme } from "@/lib/theme";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -23,7 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
 					cssVariablesResolver={cssVariablesResolver}
 				>
 					<Notifications position="top-right" />
-					{children}
+					<AuthProvider>{children}</AuthProvider>
 				</MantineProvider>
 			</QueryClientProvider>
 		</I18nextProvider>

@@ -161,16 +161,15 @@ describe("LinksPage", () => {
 		).toBeTruthy();
 	});
 
-	it("wrong API key (401) → asks for the key again", async () => {
+	it("FR-28: expired session (401) → no error box (the API client signs out, the gate shows sign-in)", async () => {
 		const api = fakeApi();
 		api.listLinks.mockRejectedValue(
 			new ApiError(401, { error: "unauthorized" }),
 		);
-		const onInvalid = vi.fn();
-		window.addEventListener("linkwatch:api-key-invalid", onInvalid);
 		renderWithApi(<LinksPage />, api);
-		await waitFor(() => expect(onInvalid).toHaveBeenCalled());
-		window.removeEventListener("linkwatch:api-key-invalid", onInvalid);
+		await waitFor(() => expect(api.listLinks).toHaveBeenCalled());
+		expect(screen.queryByText(/could not load/i)).toBeNull();
+		expect(screen.queryByRole("alert")).toBeNull();
 	});
 
 	it("colours: status icon matches its meaning, Up/Site down/5xx use the shared success/danger colours, Delete is red", async () => {

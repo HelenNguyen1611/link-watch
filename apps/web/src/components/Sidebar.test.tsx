@@ -59,16 +59,15 @@ describe("Sidebar", () => {
 			["Incidents", "/incidents/"],
 			["Alert email", "/settings/email/"],
 			["Account", "/settings/account/"],
-			["API key", "/settings/api-key/"],
 		]);
 		expect(within(nav).getByText("Settings")).toBeTruthy();
 	});
 
 	it("marks the current item (aria-current)", () => {
-		render(<Harness pathname="/settings/api-key/" />);
+		render(<Harness pathname="/settings/account/" />);
 		expect(
 			screen
-				.getByRole("link", { name: "API key" })
+				.getByRole("link", { name: "Account" })
 				.getAttribute("aria-current"),
 		).toBe("page");
 		expect(
@@ -90,7 +89,7 @@ describe("Sidebar", () => {
 
 	it("mobile: the drawer always shows labels, even when collapsed on desktop", () => {
 		render(<Harness initial mobile />);
-		for (const label of ["Overview", "Links", "Settings", "API key"]) {
+		for (const label of ["Overview", "Links", "Settings", "Account"]) {
 			expect(screen.getByText(label)).toBeTruthy();
 		}
 	});
@@ -100,7 +99,7 @@ describe("Sidebar", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
 		const nav = screen.getByRole("navigation", { name: "Menu" });
 		const links = within(nav).getAllByRole("link");
-		expect(links).toHaveLength(8);
+		expect(links).toHaveLength(7);
 		for (const a of links) {
 			expect(a.style.justifyContent).toBe("center");
 			expect(a.querySelector("svg")?.getAttribute("width")).toBe("20");

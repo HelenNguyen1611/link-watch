@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isActive, MAIN_NAV, SETTINGS_NAV } from "./nav";
 
 describe("nav", () => {
-	it("has main items SCR-01, 02, 03, 06, 07 and the Settings group SCR-08, 09 + API key", () => {
+	it("has main items SCR-01, 02, 03, 06, 07 and the Settings group SCR-08, 09", () => {
 		expect(MAIN_NAV.map((i) => i.screen)).toEqual([
 			"SCR-01",
 			"SCR-02",
@@ -13,7 +13,6 @@ describe("nav", () => {
 		expect(SETTINGS_NAV.map((i) => i.href)).toEqual([
 			"/settings/email/",
 			"/settings/account/",
-			"/settings/api-key/",
 		]);
 	});
 
@@ -27,6 +26,6 @@ describe("nav", () => {
 		expect(isActive("/", "/links/")).toBe(false);
 		expect(isActive("/links/", "/links")).toBe(true);
 		expect(isActive("/links/", "/links/detail/")).toBe(true);
-		expect(isActive("/settings/email/", "/settings/api-key/")).toBe(false);
+		expect(isActive("/settings/email/", "/settings/account/")).toBe(false);
 	});
 });
