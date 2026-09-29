@@ -171,6 +171,7 @@
 
 ### Bước 40a — Smoke test Mốc 1 (mới)
 - ✅ đã làm: `deploy.yml` chạy lint/typecheck/test trước `cdk deploy` (commit `chore(ci)`).
+- ✅ đã làm (29/09/2026): `scripts/smoke.ts` (workspace `@linkwatch/scripts`, lệnh `pnpm smoke`) + unit test, RUNBOOK mục 4. Còn chờ: người dùng push rồi chạy trên production.
 - **File:** `scripts/smoke.ts` (gọi `/api/health`; tạo 4 link mẫu; chờ tối đa 10 phút; kiểm tra 4 trạng thái; thử request không có header → 401; xóa link mẫu); `docs/RUNBOOK.md` (mục tạo SSM SecureString đã thêm ở Bước 37a).
 - Không push; người dùng review rồi push để deploy.
 - **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass trên https://watch.hueai.net. **Phụ thuộc:** 26a, 37a

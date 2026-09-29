@@ -37,3 +37,22 @@ aws ssm put-parameter --name /linkwatch/api-shared-secret --type SecureString \
 - Xem hạn mức: `aws lambda get-account-settings --region ap-southeast-1 --profile linkwatch` (`AccountLimit.ConcurrentExecutions`).
 - Khi hạn mức ≥ 100: có thể tăng `CHECKER_MAX_CONCURRENCY` (NFR-06, chỉ đổi số rồi deploy) hoặc cân nhắc reserved concurrency cho Checker.
 - Job lỗi 3 lần nằm ở DLQ (output `CheckDlqUrl` của `LinkWatch-Workers`); link tự được gửi lại sau 30 phút giữ chỗ.
+
+## 4. Smoke test sau khi deploy (Bước 40a)
+
+Chạy sau mỗi lần push `main` khi workflow deploy đã xanh. Script `scripts/smoke.ts` gọi API thật qua CloudFront:
+
+1. `GET /api/health` → 200; `GET /api/links` không có khóa → 401.
+2. Tạo 4 link mẫu (tag `smoke`, có query `?linkwatch-smoke=<run>` nên không trùng lần chạy trước):
+   `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down (DNS).
+3. Chờ Dispatcher (5 phút/lần) + Checker, tối đa 10 phút, rồi so trạng thái từng link.
+4. Luôn xóa 4 link mẫu, kể cả khi thất bại.
+
+```bash
+SMOKE_API_KEY="$(aws ssm get-parameter --name /linkwatch/api-shared-secret --with-decryption \
+  --query Parameter.Value --output text --region ap-southeast-1 --profile linkwatch)" pnpm smoke
+```
+
+- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`; local: `http://localhost:8787` với khóa `dev`, nhưng local không có Dispatcher/Checker nên link luôn ở `pending`), `SMOKE_TIMEOUT_MS` (mặc định 600000).
+- Mã thoát: 0 = pass, 1 = fail, 2 = thiếu `SMOKE_API_KEY`.
+- Fail vì `pending` quá 10 phút: xem log Lambda Dispatcher/Checker và DLQ (mục 3). Fail vì sai trạng thái: có thể do httpbin.org chập chờn, chạy lại một lần trước khi điều tra.

@@ -40,6 +40,7 @@ NEXT_PUBLIC_API_BASE=http://localhost:8787 pnpm dev:web   # web gọi API local
 pnpm lint                    # Biome
 pnpm test                    # Vitest
 pnpm synth                   # kiểm tra CDK
+SMOKE_API_KEY=… pnpm smoke   # smoke test trên https://watch.hueai.net (xem docs/RUNBOOK.md mục 4)
 ```
 
 Nếu `pnpm install` báo "Ignored build scripts", chạy `pnpm approve-builds` và chỉ cho phép gói cần thiết.

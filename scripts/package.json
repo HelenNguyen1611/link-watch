@@ -1,0 +1,12 @@
+{
+	"name": "@linkwatch/scripts",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@linkwatch/core": "workspace:*"
+	},
+	"scripts": {
+		"smoke": "tsx smoke.ts"
+	}
+}
