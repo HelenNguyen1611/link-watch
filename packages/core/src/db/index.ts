@@ -1,3 +1,4 @@
+import { Service } from "electrodb";
 import {
 	type ClientOptions,
 	createDocumentClient,
@@ -6,6 +7,7 @@ import {
 import { checkEntity } from "./entities/check";
 import { domainEntity } from "./entities/domain";
 import { linkEntity } from "./entities/link";
+import { urlLockEntity } from "./entities/url-lock";
 
 export * from "./client";
 export { CHECK_TTL_DAYS, checkTtl } from "./entities/check";
@@ -18,12 +20,17 @@ export function createDb(opts: DbOptions = {}) {
 	const table = opts.table ?? process.env.TABLE_NAME;
 	if (!table) throw new Error("Thiếu tên bảng DynamoDB (TABLE_NAME)");
 	const client = createDocumentClient(createRawClient(opts));
-	return {
-		table,
-		client,
+	const entities = {
 		Domain: domainEntity(client, table),
 		Link: linkEntity(client, table),
 		Check: checkEntity(client, table),
+		UrlLock: urlLockEntity(client, table),
+	};
+	return {
+		table,
+		client,
+		...entities,
+		service: new Service(entities, { client, table }),
 	};
 }
 export type Db = ReturnType<typeof createDb>;

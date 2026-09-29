@@ -14,6 +14,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./db": "./src/db/index.ts",
-		"./db/testing": "./src/db/testing.ts"
+		"./db/testing": "./src/db/testing.ts",
+		"./usecases": "./src/usecases/index.ts"
 	}
 }
