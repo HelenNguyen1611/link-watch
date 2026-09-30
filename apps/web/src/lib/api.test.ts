@@ -101,4 +101,39 @@ describe("createApi", () => {
 			new Headers(fetchMock.mock.calls[0][1].headers).has("authorization"),
 		).toBe(false);
 	});
+
+	it("FR-26: settings — GET, PATCH with a JSON body, test email with an optional recipient", async () => {
+		fetchMock.mockImplementation(async () => json(200, { ok: true }));
+		await api().getSettings();
+		await api().updateSettings({ reminderIntervalHours: 6 });
+		await api().sendTestEmail();
+		await api().sendTestEmail("x@abc.com");
+		const calls = fetchMock.mock.calls.map(([url, init]) => [
+			url,
+			init.method ?? "GET",
+			init.body ?? null,
+		]);
+		expect(calls).toEqual([
+			["/api/settings", "GET", null],
+			["/api/settings", "PATCH", '{"reminderIntervalHours":6}'],
+			["/api/settings/test-email", "POST", "{}"],
+			["/api/settings/test-email", "POST", '{"to":"x@abc.com"}'],
+		]);
+	});
+
+	it("FR-26: a SES failure (502) surfaces as ApiError with the SES error", async () => {
+		fetchMock.mockResolvedValue(
+			json(502, {
+				status: "failed",
+				to: "x@abc.com",
+				error: "MessageRejected: not verified",
+			}),
+		);
+		const err = await api()
+			.sendTestEmail("x@abc.com")
+			.catch((e) => e);
+		expect(err).toBeInstanceOf(ApiError);
+		expect(err.status).toBe(502);
+		expect(err.body.error).toBe("MessageRejected: not verified");
+	});
 });

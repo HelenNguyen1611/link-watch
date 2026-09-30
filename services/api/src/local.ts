@@ -9,7 +9,7 @@ import { createApp } from "./app";
 
 process.env.DYNAMODB_ENDPOINT ??= "http://localhost:8000";
 process.env.TABLE_NAME ??= "linkwatch";
-const email = process.env.LOCAL_USER_EMAIL ?? "dev@localhost";
+const email = process.env.LOCAL_USER_EMAIL ?? "dev@example.com";
 const port = Number(process.env.PORT ?? 8787);
 
 const app = createApp({

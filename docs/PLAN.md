@@ -249,7 +249,7 @@
 - **Phụ thuộc:** 16a
 
 ### Bước 18b — Auth Cognito thay header tạm ✅
-- ✅ đã làm (29/09/2026): `middleware/auth.ts` đọc claims của JWT authorizer (payload 2.0), bắt buộc **ID token** (`token_use = id`, có `email`) → `c.get("user")`; công khai `/api/health`, `/api/public/*`. Local: mọi `Authorization: Bearer …` đăng nhập thành `LOCAL_USER_EMAIL` (mặc định `dev@localhost`). Đã xóa `shared-secret.ts`, `secret.ts`, dependency SSM. `API_KEY_HEADER` trong core còn giữ cho web/smoke đến Bước 23b/40b.
+- ✅ đã làm (29/09/2026): `middleware/auth.ts` đọc claims của JWT authorizer (payload 2.0), bắt buộc **ID token** (`token_use = id`, có `email`) → `c.get("user")`; công khai `/api/health`, `/api/public/*`. Local: mọi `Authorization: Bearer …` đăng nhập thành `LOCAL_USER_EMAIL` (mặc định `dev@example.com`; `dev@localhost` không qua được kiểm tra email của Zod). Đã xóa `shared-secret.ts`, `secret.ts`, dependency SSM. `API_KEY_HEADER` trong core còn giữ cho web/smoke đến Bước 23b/40b.
 - **File:** `src/middleware/auth.ts` (đọc JWT claims từ API GW; chế độ local dùng user giả); xóa `shared-secret.ts`.
 - **FR/AC:** FR-28 (MVP: email + mật khẩu qua Cognito, 1 vai trò Admin), NFR-07.
 - **Xong khi:** test `app.request()`: 401 khi thiếu claims; không còn route nào đọc `x-linkwatch-key`.
@@ -269,7 +269,8 @@
 - **Xong khi:** build ra `out/`; `pnpm dev:web` + API local hiển thị layout sau đăng nhập.
 - **Phụ thuộc:** 18b, 23a
 
-### Bước 31a — SCR-08 Cài đặt email
+### Bước 31a — SCR-08 Cài đặt email ✅
+- ✅ đã làm (30/09/2026): `/settings/email/` — địa chỉ gửi (kiểm tra thuộc SES identity ngay trên form, API vẫn kiểm tra lại), tên người gửi, email admin mặc định, bật/tắt nhắc lại + chu kỳ 1–720 giờ (khóa khi tắt); Save chỉ bật khi có thay đổi, có Discard; gửi email thử (trống = gửi tới email đang đăng nhập), lỗi SES hiện nguyên văn kèm gợi ý sandbox. Form dùng `SettingsInput` của core (`.required()`).
 - **FR/AC:** FR-20 (email admin mặc định), FR-23 (chu kỳ nhắc lại), FR-26 (gửi email thử). **Phụ thuộc:** 20a, 23b
 
 ### Bước 36b — Workers: hàng đợi ưu tiên, Alert ✅

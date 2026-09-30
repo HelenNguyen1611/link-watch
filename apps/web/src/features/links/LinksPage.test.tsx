@@ -40,6 +40,9 @@ function fakeApi(initial: LinkView[] = []) {
 		deleteLink: vi.fn(async (id: string) => {
 			links = links.filter((l) => l.id !== id);
 		}),
+		getSettings: vi.fn(),
+		updateSettings: vi.fn(),
+		sendTestEmail: vi.fn(),
 	} satisfies Api;
 	return api;
 }

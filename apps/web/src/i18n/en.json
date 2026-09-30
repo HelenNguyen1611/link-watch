@@ -169,5 +169,48 @@
 			"settingsEmail": "Verified SES sender, default admin email, test email.",
 			"settingsAccount": "Your sign-in account."
 		}
+	},
+	"settingsEmail": {
+		"subtitle": "Who sends LinkWatch alerts, who receives them by default, and how often reminders go out.",
+		"loadError": "Could not load the email settings.",
+		"formLabel": "Email settings",
+		"sender": {
+			"title": "Sender",
+			"description": "Alerts are sent through Amazon SES. The address must belong to the verified domain {{identity}}.",
+			"email": "Sender address",
+			"name": "Sender name"
+		},
+		"admin": {
+			"title": "Default admin email",
+			"description": "Receives alerts for links and domains that have no recipients of their own, and the network-problem notice.",
+			"email": "Admin email"
+		},
+		"reminders": {
+			"title": "Reminders",
+			"description": "Remind recipients while an incident stays open and nobody has acknowledged it.",
+			"enabled": "Send reminders",
+			"interval": "Remind every",
+			"hours": "hours"
+		},
+		"save": "Save changes",
+		"discard": "Discard",
+		"saved": "Email settings saved.",
+		"test": {
+			"title": "Send a test email",
+			"description": "Checks that {{sender}} can deliver to an address. Leave the field empty to send it to yourself.",
+			"to": "Send to",
+			"send": "Send test email",
+			"sent": "Test email sent to {{to}}.",
+			"failed": "The test email could not be sent.",
+			"sandboxHint": "While the SES account is in the sandbox, only verified addresses can receive email (see the runbook)."
+		},
+		"errors": {
+			"email": "Enter a valid email address",
+			"senderDomain": "Must be an address of {{identity}}",
+			"senderName": "Enter a sender name (up to 64 characters)",
+			"interval": "Enter a whole number of hours between 1 and 720",
+			"validation": "Some values were rejected. Check the fields and try again.",
+			"unknown": "Could not save. Try again."
+		}
 	}
 }

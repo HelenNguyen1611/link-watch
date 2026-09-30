@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { EmailSettingsPage } from "@/features/settings/EmailSettingsPage";
 
 export default function Page() {
-	return <ComingSoon navKey="settingsEmail" screen="SCR-08" milestone={2} />;
+	return <EmailSettingsPage />;
 }

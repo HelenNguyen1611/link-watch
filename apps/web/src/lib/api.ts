@@ -1,4 +1,10 @@
-import type { LinkInputRaw, LinkPage, LinkView } from "@linkwatch/core";
+import type {
+	LinkInputRaw,
+	LinkPage,
+	LinkView,
+	SettingsInput,
+	SettingsView,
+} from "@linkwatch/core";
 import { notifyUnauthorized } from "./auth";
 
 export class ApiError extends Error {
@@ -20,6 +26,8 @@ export type ApiOptions = {
 	onUnauthorized?: () => void;
 	fetch?: typeof fetch;
 };
+
+export type TestEmailResult = { status: "sent"; to: string };
 
 /** Typed API client sharing schemas with the backend (@linkwatch/core). */
 export function createApi(opts: ApiOptions) {
@@ -52,6 +60,19 @@ export function createApi(opts: ApiOptions) {
 			call<LinkView>("/links", { method: "POST", body: JSON.stringify(input) }),
 		deleteLink: (id: string) =>
 			call<void>(`/links/${encodeURIComponent(id)}`, { method: "DELETE" }),
+		/** FR-20, FR-23, FR-26: effective email settings (stored values + deployment defaults). */
+		getSettings: () => call<SettingsView>("/settings"),
+		updateSettings: (input: SettingsInput) =>
+			call<SettingsView>("/settings", {
+				method: "PATCH",
+				body: JSON.stringify(input),
+			}),
+		/** FR-26: sends a test email; `to` defaults to the signed-in user. A SES failure is a 502 ApiError. */
+		sendTestEmail: (to?: string) =>
+			call<TestEmailResult>("/settings/test-email", {
+				method: "POST",
+				body: JSON.stringify(to ? { to } : {}),
+			}),
 	};
 }
 
