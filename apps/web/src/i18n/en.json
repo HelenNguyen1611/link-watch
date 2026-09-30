@@ -115,8 +115,10 @@
 			"status": "Status",
 			"http": "HTTP",
 			"responseTime": "Response",
-			"lastChecked": "Last checked"
+			"lastChecked": "Last checked",
+			"added": "Added"
 		},
+		"sortBy": "Sort by {{column}}",
 		"subtitle": "Add links to monitor and see their latest check results."
 	},
 	"linkForm": {

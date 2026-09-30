@@ -1,15 +1,29 @@
 "use client";
 
 import type { LinkView } from "@linkwatch/core";
-import { Anchor, Button, Stack, Table, Text } from "@mantine/core";
+import {
+	Anchor,
+	Button,
+	Group,
+	Stack,
+	Table,
+	Text,
+	UnstyledButton,
+} from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconTrash } from "@/components/icons";
+import {
+	IconArrowDown,
+	IconArrowUp,
+	IconSelector,
+	IconTrash,
+} from "@/components/icons";
 import { useApi } from "@/lib/api-context";
 import { PALETTE } from "@/lib/colors";
 import { formatDateTime, formatMs } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
+import { nextSort, type SortKey, type SortState, sortLinks } from "./sort";
 import { httpCodeColor, responseTimeColor } from "./status-style";
 import css from "./table.module.css";
 
@@ -46,19 +60,70 @@ function DeleteButton({ id }: { id: string }) {
 	);
 }
 
-/** FR-17: status, HTTP code, response time and last check of each link. */
+/** Header label that toggles sorting; the icon shows the current direction. */
+function SortLabel({
+	column,
+	sort,
+	onSort,
+}: {
+	column: SortKey;
+	sort: SortState;
+	onSort: (key: SortKey) => void;
+}) {
+	const { t } = useTranslation();
+	const active = sort?.key === column ? sort.dir : undefined;
+	const Icon =
+		active === "asc"
+			? IconArrowUp
+			: active === "desc"
+				? IconArrowDown
+				: IconSelector;
+	const label = t(`links.col.${column}`);
+	return (
+		<UnstyledButton
+			onClick={() => onSort(column)}
+			aria-label={t("links.sortBy", { column: label })}
+			fz="xs"
+			c={active ? undefined : "dimmed"}
+			fw={active ? 500 : 400}
+		>
+			<Group gap={4} wrap="nowrap">
+				<span>{label}</span>
+				<Icon size={14} style={{ opacity: active ? 1 : 0.5 }} />
+			</Group>
+		</UnstyledButton>
+	);
+}
+
+const ariaSort = (sort: SortState, column: SortKey) =>
+	sort?.key === column
+		? sort.dir === "asc"
+			? "ascending"
+			: "descending"
+		: "none";
+
+/** FR-17: status, HTTP code, response time and last check of each link; every column sorts. */
 export function LinkTable({ links }: { links: LinkView[] }) {
 	const { t } = useTranslation();
+	const [sort, setSort] = useState<SortState>(null);
+	const rows = useMemo(() => sortLinks(links, sort), [links, sort]);
 	if (links.length === 0) return <Text c="dimmed">{t("links.empty")}</Text>;
-	const th = (key: string) => (
-		<Table.Th c="dimmed" fz="xs" fw={400} style={{ whiteSpace: "nowrap" }}>
-			{t(`links.col.${key}`)}
+	const onSort = (key: SortKey) => setSort((s) => nextSort(s, key));
+	const th = (key: SortKey) => (
+		<Table.Th
+			c="dimmed"
+			fz="xs"
+			fw={400}
+			style={{ whiteSpace: "nowrap" }}
+			aria-sort={ariaSort(sort, key)}
+		>
+			<SortLabel column={key} sort={sort} onSort={onSort} />
 		</Table.Th>
 	);
 	return (
 		// Scrolls both ways inside the viewport so the header row and URL column stay pinned.
 		<Table.ScrollContainer
-			minWidth={820}
+			minWidth={920}
 			maxHeight="calc(100dvh - var(--app-shell-header-height, 64px) - 2rem)"
 			className={css.scroll}
 			data-table-scroll
@@ -78,19 +143,21 @@ export function LinkTable({ links }: { links: LinkView[] }) {
 							fw={400}
 							className={css.sticky}
 							data-sticky="true"
+							aria-sort={ariaSort(sort, "url")}
 						>
-							{t("links.col.url")}
+							<SortLabel column="url" sort={sort} onSort={onSort} />
 						</Table.Th>
 						{th("status")}
 						{th("domain")}
 						{th("http")}
 						{th("responseTime")}
 						{th("lastChecked")}
+						{th("added")}
 						<Table.Th />
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>
-					{links.map((l) => (
+					{rows.map((l) => (
 						<Table.Tr key={l.id}>
 							<Table.Td className={css.sticky} data-sticky="true">
 								<Stack gap={0}>
@@ -143,6 +210,9 @@ export function LinkTable({ links }: { links: LinkView[] }) {
 							</Table.Td>
 							<Table.Td style={{ whiteSpace: "nowrap" }}>
 								{formatDateTime(l.lastCheckedAt)}
+							</Table.Td>
+							<Table.Td style={{ whiteSpace: "nowrap" }}>
+								{formatDateTime(l.createdAt)}
 							</Table.Td>
 							<Table.Td>
 								<DeleteButton id={l.id} />

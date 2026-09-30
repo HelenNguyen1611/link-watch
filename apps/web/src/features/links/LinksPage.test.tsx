@@ -100,7 +100,10 @@ describe("LinksPage", () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		await openForm();
-		await userEvent.type(await screen.findByLabelText(/URL/), "ftp://abc.com");
+		await userEvent.type(
+			await screen.findByRole("textbox", { name: /URL/ }),
+			"ftp://abc.com",
+		);
 		await userEvent.click(screen.getByRole("button", { name: "Add link" }));
 		expect(
 			await screen.findByText("Only http:// and https:// are supported"),
@@ -112,7 +115,7 @@ describe("LinksPage", () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		await openForm();
-		const input = await screen.findByLabelText(/URL/);
+		const input = await screen.findByRole("textbox", { name: /URL/ });
 		await userEvent.type(input, "  HTTPS://Moi.ABC.com/x#top ");
 		await userEvent.type(screen.getByLabelText(/Display name/), "New page");
 		await userEvent.click(screen.getByRole("button", { name: "Add link" }));
@@ -130,7 +133,7 @@ describe("LinksPage", () => {
 		renderWithApi(<LinksPage />, api);
 		await openForm();
 		await userEvent.type(
-			await screen.findByLabelText(/URL/),
+			await screen.findByRole("textbox", { name: /URL/ }),
 			"https://abc.com",
 		);
 		await userEvent.click(screen.getByRole("button", { name: "Add link" }));
@@ -244,14 +247,94 @@ describe("LinksPage", () => {
 		const headers = screen
 			.getAllByRole("columnheader")
 			.map((th) => th.textContent);
-		expect(headers.slice(0, 6)).toEqual([
+		expect(headers.slice(0, 7)).toEqual([
 			"URL",
 			"Status",
 			"Domain",
 			"HTTP",
 			"Response",
 			"Last checked",
+			"Added",
 		]);
+	});
+
+	it("Added column shows when each link was created (Vietnam time)", async () => {
+		renderWithApi(
+			<LinksPage />,
+			fakeApi([
+				view({ url: "https://a.vn/", createdAt: "2026-09-29T17:05:00.000Z" }),
+			]),
+		);
+		const row = within(
+			(await screen.findByText("https://a.vn/")).closest("tr") as HTMLElement,
+		);
+		expect(row.getByText("30/09/2026 00:05")).toBeTruthy();
+	});
+
+	it("sorting: clicking a header sorts the rows, again flips, a third time restores the API order", async () => {
+		renderWithApi(
+			<LinksPage />,
+			fakeApi([
+				view({ id: "a", url: "https://a.vn/", lastResponseMs: 300 }),
+				view({ id: "b", url: "https://b.vn/", lastResponseMs: 7200 }),
+				view({ id: "c", url: "https://c.vn/" }),
+				view({ id: "d", url: "https://d.vn/", lastResponseMs: 50 }),
+			]),
+		);
+		await screen.findByText("https://a.vn/");
+		const order = () =>
+			screen
+				.getAllByRole("row")
+				.slice(1)
+				.map((r) => within(r).getByRole("link").textContent);
+		const sortButton = screen.getByRole("button", { name: "Sort by Response" });
+		const header = () => sortButton.closest("th") as HTMLElement;
+		expect(header().getAttribute("aria-sort")).toBe("none");
+
+		await userEvent.click(sortButton);
+		// Slowest first; a never-checked link stays last.
+		expect(order()).toEqual([
+			"https://b.vn/",
+			"https://a.vn/",
+			"https://d.vn/",
+			"https://c.vn/",
+		]);
+		expect(header().getAttribute("aria-sort")).toBe("descending");
+
+		await userEvent.click(sortButton);
+		expect(order()).toEqual([
+			"https://d.vn/",
+			"https://a.vn/",
+			"https://b.vn/",
+			"https://c.vn/",
+		]);
+		expect(header().getAttribute("aria-sort")).toBe("ascending");
+
+		await userEvent.click(sortButton);
+		expect(order()).toEqual([
+			"https://a.vn/",
+			"https://b.vn/",
+			"https://c.vn/",
+			"https://d.vn/",
+		]);
+		expect(header().getAttribute("aria-sort")).toBe("none");
+	});
+
+	it("sorting: every column header is a sort button", async () => {
+		renderWithApi(<LinksPage />, fakeApi([view({ url: "https://a.vn/" })]));
+		await screen.findByText("https://a.vn/");
+		for (const col of [
+			"URL",
+			"Status",
+			"Domain",
+			"HTTP",
+			"Response",
+			"Last checked",
+			"Added",
+		])
+			expect(
+				screen.getByRole("button", { name: `Sort by ${col}` }),
+			).toBeTruthy();
 	});
 
 	it("URL column is pinned (sticky) in the header and every row for horizontal scrolling", async () => {
@@ -275,7 +358,7 @@ describe("LinksPage", () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		await screen.findByRole("button", { name: "Add" });
-		expect(screen.queryByLabelText(/URL/)).toBeNull();
+		expect(screen.queryByRole("textbox", { name: /URL/ })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Add link" })).toBeNull();
 		await openForm();
 		expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
@@ -289,7 +372,7 @@ describe("LinksPage", () => {
 	it("form: fields come before the actions and URL is focused on open", async () => {
 		renderWithApi(<LinksPage />, fakeApi());
 		await openForm();
-		const url = await screen.findByLabelText(/URL/);
+		const url = await screen.findByRole("textbox", { name: /URL/ });
 		const name = screen.getByLabelText(/Display name/);
 		const submit = screen.getByRole("button", { name: "Add link" });
 		const fields = url.closest("[data-form-fields]") as HTMLElement;
@@ -306,15 +389,17 @@ describe("LinksPage", () => {
 		renderWithApi(<LinksPage />, fakeApi());
 		await openForm();
 		await userEvent.type(
-			await screen.findByLabelText(/URL/),
+			await screen.findByRole("textbox", { name: /URL/ }),
 			"https://abc.com",
 		);
 		await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-		expect(screen.queryByLabelText(/URL/)).toBeNull();
+		expect(screen.queryByRole("textbox", { name: /URL/ })).toBeNull();
 		const add = screen.getByRole("button", { name: "Add" });
 		await waitFor(() => expect(document.activeElement).toBe(add));
 		await openForm();
-		expect((screen.getByLabelText(/URL/) as HTMLInputElement).value).toBe("");
+		expect(
+			(screen.getByRole("textbox", { name: /URL/ }) as HTMLInputElement).value,
+		).toBe("");
 	});
 
 	it("form: Cancel and Add link share one row, Cancel on the left", async () => {
@@ -340,8 +425,11 @@ describe("LinksPage", () => {
 	it("form: Escape closes the form", async () => {
 		renderWithApi(<LinksPage />, fakeApi());
 		await openForm();
-		await userEvent.type(await screen.findByLabelText(/URL/), "{Escape}");
-		expect(screen.queryByLabelText(/URL/)).toBeNull();
+		await userEvent.type(
+			await screen.findByRole("textbox", { name: /URL/ }),
+			"{Escape}",
+		);
+		expect(screen.queryByRole("textbox", { name: /URL/ })).toBeNull();
 		expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
 	});
 
@@ -349,7 +437,7 @@ describe("LinksPage", () => {
 		const api = fakeApi();
 		renderWithApi(<LinksPage />, api);
 		await openForm();
-		const url = await screen.findByLabelText(/URL/);
+		const url = await screen.findByRole("textbox", { name: /URL/ });
 		await userEvent.type(url, "https://abc.com/a");
 		await userEvent.click(screen.getByRole("button", { name: "Add link" }));
 		await waitFor(() => expect(api.createLink).toHaveBeenCalledTimes(1));

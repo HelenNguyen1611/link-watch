@@ -145,3 +145,19 @@ export const IconTrash = (p: P) => (
 		<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
 	</Icon>
 );
+export const IconArrowUp = (p: P) => (
+	<Icon {...p}>
+		<path d="M12 19V5M6 11l6-6 6 6" />
+	</Icon>
+);
+export const IconArrowDown = (p: P) => (
+	<Icon {...p}>
+		<path d="M12 5v14M6 13l6 6 6-6" />
+	</Icon>
+);
+/** Unsorted column: up/down chevrons. */
+export const IconSelector = (p: P) => (
+	<Icon {...p}>
+		<path d="M8 9l4-4 4 4M8 15l4 4 4-4" />
+	</Icon>
+);
