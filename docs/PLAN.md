@@ -337,7 +337,8 @@
 - **Xong khi:** test route pass; NFR-02: truy vấn tổng quan 500 domain dùng dữ liệu tổng hợp, không quét toàn bảng.
 - **Phụ thuộc:** 8c, 9b, 18b
 
-#### Bước 29 — SCR-06 Lịch
+#### Bước 29 — SCR-06 Lịch ✅
+- ✅ đã làm (30/09/2026): `/schedules/` — bảng lịch mẫu (lịch mặc định luôn đầu tiên, không xóa được), mô tả bằng chữ (`describeRule`), số domain/link đang dùng; hộp thoại tạo/sửa: tên, kiểu (Chu kỳ / Hàng ngày / Hàng tuần / Hàng tháng), chu kỳ 5 phút–12 giờ, giờ (giờ Việt Nam), chọn thứ, chọn ngày 1–31; xóa bấm 2 lần, đang dùng → thông báo lý do (409). Hộp thoại Sửa link có ô chọn lịch riêng hoặc "Kế thừa" (FR-13).
 - **FR/AC:** FR-11, FR-12, FR-13. **Phụ thuộc:** 20b, 23b
 
 #### Bước 25 — SCR-02 Domain (danh sách + `/domains/?d=`)

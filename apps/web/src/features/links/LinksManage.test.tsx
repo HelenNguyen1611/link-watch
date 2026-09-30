@@ -53,6 +53,20 @@ function fakeApi(links: LinkView[]) {
 			return next;
 		}),
 		exportCsv: vi.fn(async () => "url\r\nhttps://abc.com/p1\r\n"),
+		listSchedules: vi.fn(async () => ({
+			items: [
+				{
+					id: "default",
+					name: "Default",
+					rule: { kind: "daily" as const, at: "06:00" },
+				},
+				{
+					id: "S15",
+					name: "Quarter",
+					rule: { kind: "interval" as const, minutes: 15 as const },
+				},
+			],
+		})),
 	} satisfies Api;
 	return {
 		api,
@@ -186,6 +200,27 @@ describe("LinksPage — edit (FR-01, FR-04)", () => {
 			}),
 		);
 		expect(await screen.findByText("Pricing")).toBeTruthy();
+	});
+
+	it("FR-13: choose an own schedule for the link", async () => {
+		const { api } = fakeApi([view(1)]);
+		renderWithApi(<LinksPage />, api);
+		await userEvent.click(
+			await screen.findByRole("button", { name: "Edit https://abc.com/p1" }),
+		);
+		const dialog = within(await screen.findByRole("dialog"));
+		await userEvent.click(
+			dialog.getAllByLabelText(/^Schedule/)[0] as HTMLElement,
+		);
+		await userEvent.click(
+			await screen.findByRole("option", { name: "Quarter — Every 15 minutes" }),
+		);
+		await userEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+		await waitFor(() =>
+			expect(api.updateLink).toHaveBeenCalledWith("L001", {
+				scheduleId: "S15",
+			}),
+		);
 	});
 
 	it("FR-01: invalid codes or timeout are refused before calling the API", async () => {

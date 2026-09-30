@@ -385,7 +385,10 @@
 			"name": "Up to 200 characters",
 			"keyword": "Up to 200 characters",
 			"tags": "Up to 20 tags of 50 characters"
-		}
+		},
+		"schedule": "Schedule",
+		"scheduleHint": "Own schedule of this link; otherwise the domain schedule or the default one applies.",
+		"inheritSchedule": "Inherit (domain or default)"
 	},
 	"importLinks": {
 		"title": "Import links",
@@ -423,5 +426,83 @@
 			"failed": "Could not read the import. Try again.",
 			"partial": "The import stopped after {{count}} links. Preview again to import the rest."
 		}
+	},
+	"schedules": {
+		"subtitle": "Reusable check schedules. A link uses its own schedule, else its domain's, else the default one.",
+		"new": "New schedule",
+		"default": "System default",
+		"defaultHint": "Used by every link and domain without a schedule of its own.",
+		"col": {
+			"name": "Name",
+			"rule": "When",
+			"usedBy": "Used by"
+		},
+		"usedBy": "{{domains}} domains · {{links}} links",
+		"edit": "Edit",
+		"delete": "Delete",
+		"confirmDelete": "Confirm delete",
+		"deleted": "Schedule deleted.",
+		"saved": "Schedule saved.",
+		"inUse": "This schedule is used by {{domains}} domains and {{links}} links. Assign them another schedule first.",
+		"loadError": "Could not load schedules.",
+		"empty": "No schedule yet.",
+		"dialog": {
+			"newTitle": "New schedule",
+			"editTitle": "Edit schedule",
+			"name": "Name",
+			"kind": "Type",
+			"kinds": {
+				"interval": "Every…",
+				"daily": "Daily",
+				"weekly": "Weekly",
+				"monthly": "Monthly"
+			},
+			"interval": "Check every",
+			"at": "At (Vietnam time)",
+			"weekdays": "Weekdays",
+			"monthDays": "Days of the month",
+			"monthDaysHint": "Days 29–31 run on the last day of shorter months.",
+			"save": "Save",
+			"cancel": "Cancel"
+		},
+		"errors": {
+			"name": "Enter a name (up to 100 characters)",
+			"days": "Choose at least one day",
+			"time": "Enter a time as HH:mm",
+			"failed": "Could not save. Try again."
+		},
+		"intervals": {
+			"5": "5 minutes",
+			"15": "15 minutes",
+			"30": "30 minutes",
+			"60": "1 hour",
+			"360": "6 hours",
+			"720": "12 hours"
+		},
+		"weekdays": {
+			"1": "Mon",
+			"2": "Tue",
+			"3": "Wed",
+			"4": "Thu",
+			"5": "Fri",
+			"6": "Sat",
+			"7": "Sun"
+		},
+		"describe": {
+			"everyMinutes_one": "Every minute",
+			"everyMinutes_other": "Every {{count}} minutes",
+			"everyHours_one": "Every hour",
+			"everyHours_other": "Every {{count}} hours",
+			"daily": "Daily at {{at}}",
+			"weekly": "{{days}} at {{at}}",
+			"monthly": "Days {{days}} of the month at {{at}}"
+		},
+		"inherit": "Inherit ({{name}})",
+		"source": {
+			"link": "own schedule",
+			"domain": "from the domain",
+			"default": "default"
+		},
+		"defaultBadge": "Default"
 	}
 }

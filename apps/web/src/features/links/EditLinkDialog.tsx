@@ -7,15 +7,17 @@ import {
 	Modal,
 	NumberInput,
 	SegmentedControl,
+	Select,
 	Stack,
 	TagsInput,
 	Text,
 	TextInput,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { describeRule } from "@/features/schedules/describe";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { COLOR, PALETTE } from "@/lib/colors";
@@ -29,6 +31,8 @@ type FormValues = {
 	codes: string;
 	timeoutS: number | string;
 	keyword: string;
+	/** "" = inherit from the domain / default (FR-13). */
+	scheduleId: string;
 };
 
 const toForm = (l: LinkView): FormValues => ({
@@ -39,6 +43,7 @@ const toForm = (l: LinkView): FormValues => ({
 	codes: formatCodes(l.expectedCodes),
 	timeoutS: l.timeoutS,
 	keyword: l.keyword ?? "",
+	scheduleId: l.scheduleId ?? "",
 });
 
 /** Only the fields that changed; "" clears name / keyword. */
@@ -56,6 +61,8 @@ function diff(
 		out.expectedCodes = codes;
 	if (Number(v.timeoutS) !== link.timeoutS) out.timeoutS = Number(v.timeoutS);
 	if (v.keyword.trim() !== (link.keyword ?? "")) out.keyword = v.keyword;
+	if (v.scheduleId !== (link.scheduleId ?? ""))
+		out.scheduleId = v.scheduleId || null;
 	return out;
 }
 
@@ -99,6 +106,19 @@ function EditLinkForm({
 	const { t } = useTranslation();
 	const api = useApi();
 	const form = useForm<FormValues>({ defaultValues: toForm(link) });
+	const schedules = useQuery({
+		queryKey: ["schedules"],
+		queryFn: () => api.listSchedules(),
+	});
+	const scheduleOptions = [
+		{ value: "", label: t("editLink.inheritSchedule") },
+		...(schedules.data?.items ?? [])
+			.filter((s) => s.id !== "default")
+			.map((s) => ({
+				value: s.id,
+				label: `${s.name} — ${describeRule(s.rule, t)}`,
+			})),
+	];
 
 	const save = useMutation({
 		mutationFn: (input: LinkUpdateRaw) => api.updateLink(link.id, input),
@@ -225,6 +245,20 @@ function EditLinkForm({
 					description={t("editLink.codesHint")}
 					error={err("codes")}
 					{...form.register("codes")}
+				/>
+				<Controller
+					control={form.control}
+					name="scheduleId"
+					render={({ field }) => (
+						<Select
+							label={t("editLink.schedule")}
+							description={t("editLink.scheduleHint")}
+							data={scheduleOptions}
+							value={field.value}
+							onChange={(v) => field.onChange(v ?? "")}
+							allowDeselect={false}
+						/>
+					)}
 				/>
 				<TextInput
 					label={t("editLink.keyword")}

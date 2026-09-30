@@ -2,6 +2,8 @@ import type {
 	CheckNowInput,
 	CheckNowResult,
 	CheckView,
+	DomainSummary,
+	DomainUpdateRaw,
 	IncidentDetail,
 	IncidentPage,
 	IncidentView,
@@ -9,6 +11,9 @@ import type {
 	LinkPage,
 	LinkUpdateRaw,
 	LinkView,
+	RecipientView,
+	ScheduleRuleInput,
+	ScheduleView,
 	SettingsInput,
 	SettingsView,
 	UptimeSummary,
@@ -36,6 +41,8 @@ export type ApiOptions = {
 };
 
 export type TestEmailResult = { status: "sent"; to: string };
+
+export type DomainDetailView = DomainSummary & { uptimeDays: UptimeSummary };
 
 export type LinkSnapshotView = {
 	generatedAt: string;
@@ -137,6 +144,59 @@ export function createApi(opts: ApiOptions) {
 			if (!res.ok) throw new ApiError(res.status, {});
 			return res.text();
 		},
+		/** FR-11 / FR-12: schedule templates ("default" = system default). */
+		listSchedules: () => call<{ items: ScheduleView[] }>("/schedules"),
+		createSchedule: (input: { name: string; rule: ScheduleRuleInput }) =>
+			call<ScheduleView>("/schedules", {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		updateSchedule: (
+			id: string,
+			input: { name?: string; rule?: ScheduleRuleInput },
+		) =>
+			call<ScheduleView>(`/schedules/${encodeURIComponent(id)}`, {
+				method: "PATCH",
+				body: JSON.stringify(input),
+			}),
+		deleteSchedule: (id: string) =>
+			call<void>(`/schedules/${encodeURIComponent(id)}`, { method: "DELETE" }),
+		/** FR-08 / FR-10: domain overview, one domain, settings. */
+		listDomains: () =>
+			call<{ items: DomainSummary[]; generatedAt: string }>("/domains"),
+		getDomain: (name: string) =>
+			call<DomainDetailView>(`/domains/${encodeURIComponent(name)}`),
+		updateDomain: (name: string, input: DomainUpdateRaw) =>
+			call<DomainDetailView>(`/domains/${encodeURIComponent(name)}`, {
+				method: "PATCH",
+				body: JSON.stringify(input),
+			}),
+		/** FR-20: recipients of a domain or a link. */
+		listRecipients: (scope: "DOMAIN" | "LINK", target: string) =>
+			call<{ items: RecipientView[] }>(
+				`/recipients?${new URLSearchParams({ scope, target })}`,
+			),
+		addRecipient: (input: {
+			scope: "DOMAIN" | "LINK";
+			target: string;
+			email: string;
+			name?: string;
+		}) =>
+			call<RecipientView>("/recipients", {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		removeRecipient: (
+			scope: "DOMAIN" | "LINK",
+			target: string,
+			email: string,
+		) =>
+			call<void>(
+				`/recipients?${new URLSearchParams({ scope, target, email })}`,
+				{
+					method: "DELETE",
+				},
+			),
 		/** FR-18: one link and its history. */
 		getLink: (id: string) => call<LinkView>(`/links/${encodeURIComponent(id)}`),
 		linkChecks: (id: string, limit = 100) =>

@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { SchedulesPage } from "@/features/schedules/SchedulesPage";
 
 export default function Page() {
-	return <ComingSoon navKey="schedules" screen="SCR-06" milestone={3} />;
+	return <SchedulesPage />;
 }
