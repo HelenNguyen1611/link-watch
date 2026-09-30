@@ -1,7 +1,7 @@
 "use client";
 
 import type { LinkView } from "@linkwatch/core";
-import { Alert, Box, Button, Group, Loader, Text } from "@mantine/core";
+import { Alert, Button, Group, Loader, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,11 +53,9 @@ export function LinksPage() {
 			<PageHeader
 				title={t("links.title")}
 				description={t("links.subtitle")}
-				mb={24}
+				action={<AddLinkForm />}
+				mb={32}
 			/>
-			<Box pb={40}>
-				<AddLinkForm />
-			</Box>
 			<Group justify="space-between" mb="xs" gap="xs">
 				<Text size="sm" c="dimmed">
 					{t(

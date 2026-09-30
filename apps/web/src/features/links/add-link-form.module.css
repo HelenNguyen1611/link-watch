@@ -1,5 +1,6 @@
-/* Form slides in where the "+ Add" button was. */
+/* Form slides in below the page title, on its own full-width row of the header. */
 .form {
+	flex-basis: 100%;
 	animation: reveal 150ms ease-out;
 }
 

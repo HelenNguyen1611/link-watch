@@ -167,7 +167,7 @@ function Shell({
 					maw={contentMaxWidth(theme.other.maxViewportWidth)}
 					mx="auto"
 					px={{ base: "md", sm: 48 }}
-					pt={{ base: "lg", sm: 56 }}
+					pt={{ base: "lg", sm: 40 }}
 					pb="lg"
 					mih="calc(100dvh - var(--app-shell-header-height, 64px))"
 					style={{ display: "flex", flexDirection: "column" }}
