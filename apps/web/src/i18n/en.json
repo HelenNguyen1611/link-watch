@@ -593,5 +593,32 @@
 		"expired": "The link is older than 7 days or no longer valid. Open LinkWatch to see the current state.",
 		"loadError": "Could not load this page. Try again in a moment.",
 		"submitError": "Could not start the check. Try again."
+	},
+	"claims": {
+		"title": "Reported fixed",
+		"hint": "Fixed it? LinkWatch checks the link now, after 2 and after 5 minutes; the first success closes the incident.",
+		"note": "Note (optional)",
+		"button": "Fixed — check again",
+		"verifying": "Checking the reported fix…",
+		"none": "Nobody has reported this incident as fixed yet.",
+		"timeline": "Claim timeline",
+		"by": "{{by}} via {{channel}}, {{at}}",
+		"channel": {
+			"email": "email",
+			"app": "LinkWatch"
+		},
+		"outcome": {
+			"pending": "Checking",
+			"fixed": "Fixed",
+			"still_failing": "Still failing"
+		},
+		"attempt": "check {{n}}",
+		"started_one": "Checking the incident now, then after 2 and 5 minutes.",
+		"started_other": "Checking {{count}} incidents now, then after 2 and 5 minutes.",
+		"inProgress": "Already being checked.",
+		"recovered": "Already recovered — nothing to check.",
+		"failed": "Could not start the checks. Try again.",
+		"bulkLabel": "Actions on selected incidents",
+		"select": "Select {{url}}"
 	}
 }

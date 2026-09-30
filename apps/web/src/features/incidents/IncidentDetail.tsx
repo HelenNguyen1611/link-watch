@@ -24,6 +24,7 @@ import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { ClaimSection } from "./ClaimSection";
 import { incidentDurationMs, linkHref } from "./duration";
 import { IncidentStateBadge, IncidentTypeBadge } from "./IncidentBadges";
 
@@ -47,7 +48,13 @@ export function IncidentDetail({ id }: { id: string }) {
 	const query = useQuery({
 		queryKey: ["incident", id],
 		queryFn: () => api.getIncident(id),
-		refetchInterval: (q) => (q.state.data?.state === "closed" ? false : 60_000),
+		// While a claim is being verified, follow it closely (checks at 0, +2, +5 min).
+		refetchInterval: (q) =>
+			q.state.data?.state === "closed"
+				? false
+				: q.state.data?.state === "verifying"
+					? 5_000
+					: 60_000,
 	});
 
 	const back = (
@@ -127,6 +134,7 @@ export function IncidentDetail({ id }: { id: string }) {
 				</Field>
 			</SimpleGrid>
 
+			<ClaimSection incident={i} />
 			<Acknowledge incident={i} />
 			<Notifications incident={i} />
 		</Stack>

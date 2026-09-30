@@ -5,6 +5,7 @@ import {
 	Alert,
 	Anchor,
 	Button,
+	Checkbox,
 	Group,
 	Loader,
 	SegmentedControl,
@@ -20,6 +21,7 @@ import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { useResolveClaims } from "./ClaimSection";
 import { incidentDurationMs, incidentHref } from "./duration";
 import { IncidentStateBadge, IncidentTypeBadge } from "./IncidentBadges";
 
@@ -33,6 +35,9 @@ export function IncidentList() {
 	const { t } = useTranslation();
 	const api = useApi();
 	const [tab, setTab] = useState<Tab>("active");
+	// FR-41: several open incidents can be reported fixed at once.
+	const [selected, setSelected] = useState<string[]>([]);
+	const resolve = useResolveClaims(() => setSelected([]));
 	const query = useInfiniteQuery({
 		queryKey: ["incidents", tab],
 		queryFn: ({ pageParam }) =>
@@ -50,7 +55,10 @@ export function IncidentList() {
 		<Stack gap="md">
 			<SegmentedControl
 				value={tab}
-				onChange={(v) => setTab(v as Tab)}
+				onChange={(v) => {
+					setTab(v as Tab);
+					setSelected([]);
+				}}
 				data={[
 					{ value: "active", label: t("incidents.tabs.active") },
 					{ value: "closed", label: t("incidents.tabs.closed") },
@@ -68,26 +76,66 @@ export function IncidentList() {
 			) : items.length === 0 ? (
 				<Text c="dimmed">{t(`incidents.empty.${tab}`)}</Text>
 			) : (
-				<Table.ScrollContainer minWidth={760}>
-					<Table highlightOnHover verticalSpacing="sm" borderColor="gray.2">
-						<Table.Thead>
-							<Table.Tr>
-								{["url", "type", "state", "opened", "duration", "error"].map(
-									(k) => (
-										<Table.Th key={k} c="dimmed" fz="xs" fw={400}>
-											{t(`incidents.col.${k}`)}
-										</Table.Th>
-									),
-								)}
-							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>
-							{items.map((i) => (
-								<IncidentRow key={i.id} incident={i} now={now} />
-							))}
-						</Table.Tbody>
-					</Table>
-				</Table.ScrollContainer>
+				<>
+					{tab === "active" && selected.length > 0 && (
+						<Group gap="xs" role="toolbar" aria-label={t("claims.bulkLabel")}>
+							<Text size="sm" fw={500}>
+								{t("links.bulk.selected", { count: selected.length })}
+							</Text>
+							<Button
+								size="xs"
+								variant="light"
+								loading={resolve.isPending}
+								onClick={() => resolve.mutate({ ids: selected })}
+							>
+								{t("claims.button")}
+							</Button>
+							<Button
+								size="xs"
+								variant="subtle"
+								color="gray"
+								onClick={() => setSelected([])}
+							>
+								{t("links.bulk.clear")}
+							</Button>
+						</Group>
+					)}
+					<Table.ScrollContainer minWidth={760}>
+						<Table highlightOnHover verticalSpacing="sm" borderColor="gray.2">
+							<Table.Thead>
+								<Table.Tr>
+									{tab === "active" && <Table.Th w={1} />}
+									{["url", "type", "state", "opened", "duration", "error"].map(
+										(k) => (
+											<Table.Th key={k} c="dimmed" fz="xs" fw={400}>
+												{t(`incidents.col.${k}`)}
+											</Table.Th>
+										),
+									)}
+								</Table.Tr>
+							</Table.Thead>
+							<Table.Tbody>
+								{items.map((i) => (
+									<IncidentRow
+										key={i.id}
+										incident={i}
+										now={now}
+										selectable={tab === "active" && i.state === "open"}
+										selected={selected.includes(i.id)}
+										onToggle={() =>
+											setSelected((s) =>
+												s.includes(i.id)
+													? s.filter((x) => x !== i.id)
+													: [...s, i.id],
+											)
+										}
+										showSelect={tab === "active"}
+									/>
+								))}
+							</Table.Tbody>
+						</Table>
+					</Table.ScrollContainer>
+				</>
 			)}
 			{query.hasNextPage && (
 				<Group>
@@ -107,13 +155,33 @@ export function IncidentList() {
 function IncidentRow({
 	incident: i,
 	now,
+	showSelect,
+	selectable,
+	selected,
+	onToggle,
 }: {
 	incident: IncidentView;
 	now: Date;
+	showSelect: boolean;
+	selectable: boolean;
+	selected: boolean;
+	onToggle: () => void;
 }) {
 	const { t } = useTranslation();
 	return (
 		<Table.Tr>
+			{showSelect && (
+				<Table.Td>
+					{selectable && (
+						<Checkbox
+							size="xs"
+							checked={selected}
+							onChange={onToggle}
+							aria-label={t("claims.select", { url: i.url })}
+						/>
+					)}
+				</Table.Td>
+			)}
 			<Table.Td maw={320}>
 				<Anchor
 					component={Link}

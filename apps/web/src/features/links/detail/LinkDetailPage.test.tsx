@@ -111,6 +111,16 @@ function fakeApi(current: LinkView = link()) {
 		linkChecks: vi.fn(async () => ({ items: checks })),
 		linkUptime: vi.fn(async () => uptime),
 		linkIncidents: vi.fn(async () => ({ items: incidents })),
+		resolveClaims: vi.fn(async (ids: string[], _note?: string) => ({
+			items: ids.map((id) => ({
+				incident: {
+					...(incidents[0] as IncidentView),
+					id,
+					state: "verifying" as const,
+				},
+				decision: "started" as const,
+			})),
+		})),
 		checkNow: vi.fn(
 			async (): Promise<CheckNowResult> => ({
 				queued: [state.id],
@@ -223,6 +233,35 @@ describe("LinkDetailPage — Check now (FR-16)", () => {
 				}),
 			),
 		);
+	});
+});
+
+describe("LinkDetailPage — report fixed (FR-41)", () => {
+	it("FR-41: a link with an open incident has Fixed — check again", async () => {
+		const { api } = fakeApi(link({ status: "dead" }));
+		const open: IncidentView = {
+			...(incidents[0] as IncidentView),
+			id: "L1@2026-09-30T00:00:00.000Z",
+			state: "open",
+			openedAt: "2026-09-30T00:00:00.000Z",
+			closedAt: undefined,
+		};
+		api.linkIncidents.mockResolvedValue({ items: [open, ...incidents] });
+		renderWithApi(<LinkDetailPage />, api);
+		await userEvent.click(
+			await screen.findByRole("button", { name: "Fixed — check again" }),
+		);
+		await waitFor(() =>
+			expect(api.resolveClaims).toHaveBeenCalledWith([open.id], undefined),
+		);
+	});
+
+	it("FR-41: no open incident → no button", async () => {
+		renderWithApi(<LinkDetailPage />, fakeApi().api);
+		await screen.findByRole("button", { name: "Check now" });
+		expect(
+			screen.queryByRole("button", { name: "Fixed — check again" }),
+		).toBeNull();
 	});
 });
 

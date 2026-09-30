@@ -437,11 +437,11 @@
 - **Phụ thuộc:** 7, 9c, 14, 18b
 
 #### Bước 28 — SCR-05 Chi tiết link (`/links/detail/?id=`) ✅
-- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): trạng thái, lần check gần nhất/kế tiếp, **Check now** (hỏi lại riêng link mỗi 3 giây, tối đa 60 giây, xong thì làm mới lịch sử), biểu đồ thời gian phản hồi 100 lần check (Recharts, điểm lỗi màu đỏ), thanh uptime 30 ngày (xanh 100%, vàng ≥ 95%, đỏ < 95%, xám không có check), bảng 100 lần check, danh sách sự cố. Bảng link có liên kết "Details". **Còn lại cho Bước 22:** nút Đã khắc phục (FR-41).
+- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): trạng thái, lần check gần nhất/kế tiếp, **Check now** (hỏi lại riêng link mỗi 3 giây, tối đa 60 giây, xong thì làm mới lịch sử), biểu đồ thời gian phản hồi 100 lần check (Recharts, điểm lỗi màu đỏ), thanh uptime 30 ngày (xanh 100%, vàng ≥ 95%, đỏ < 95%, xám không có check), bảng 100 lần check, danh sách sự cố. Bảng link có liên kết "Details". ✅ FR-41 (30/09/2026): nút "Fixed — check again" khi link có sự cố đang mở.
 - **FR/AC:** FR-16, FR-17, FR-18 (Recharts thời gian phản hồi, thanh uptime 30 ngày, 100 check, sự cố), FR-41 (nút Đã khắc phục). **Phụ thuộc:** 21, 22, 23b
 
 #### Bước 30 — SCR-07 Sự cố ✅
-- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): `/incidents/` hai tab Đang mở / Đã đóng (Đã đóng có "Load more"), cột URL, loại, trạng thái (+ Acknowledged), mở lúc, thời lượng (đang mở = tính tới hiện tại), lỗi; `/incidents/?id=` (link trong email) — thông tin, link sang chi tiết link, Acknowledge + ghi chú (409 nếu đã đóng), bảng email đã gửi (người nhận, loại, trạng thái, lỗi). Tab Đang mở tự tải lại mỗi 60 giây. **Còn lại cho Bước 22:** chọn nhiều link + dòng thời gian claim (FR-41).
+- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): `/incidents/` hai tab Đang mở / Đã đóng (Đã đóng có "Load more"), cột URL, loại, trạng thái (+ Acknowledged), mở lúc, thời lượng (đang mở = tính tới hiện tại), lỗi; `/incidents/?id=` (link trong email) — thông tin, link sang chi tiết link, Acknowledge + ghi chú (409 nếu đã đóng), bảng email đã gửi (người nhận, loại, trạng thái, lỗi). Tab Đang mở tự tải lại mỗi 60 giây. ✅ FR-41 (30/09/2026): tab Đang mở chọn nhiều sự cố `open` (sự cố đang `verifying` không chọn được) → "Fixed — check again" hàng loạt; trang chi tiết có nút + ghi chú, dòng thời gian claim (ai, kênh, ghi chú, kết quả, từng lần check), `claimNote` khi còn lỗi; đang xác minh thì ẩn nút và tự tải lại mỗi 5 giây.
 - **FR/AC:** FR-19 (acknowledge, ghi chú), FR-41 (chọn nhiều link, dòng thời gian claim). **Phụ thuộc:** 21, 22, 23b
 
 #### Bước 32 — SCR-10 Trang xác nhận (mobile, `/confirm/?token=`, không cần đăng nhập) ✅

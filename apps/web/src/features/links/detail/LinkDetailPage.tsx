@@ -22,6 +22,7 @@ import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconChevronLeft, IconRefresh } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
+import { useResolveClaims } from "@/features/incidents/ClaimSection";
 import { incidentHref } from "@/features/incidents/duration";
 import {
 	IncidentStateBadge,
@@ -145,6 +146,9 @@ function LinkDetail({ id }: { id: string }) {
 		enabled: link.isSuccess,
 	});
 	const checkNow = useCheckNow(link.data, () => void link.refetch());
+	// FR-41: the open incident of this link can be reported fixed from here.
+	const resolve = useResolveClaims();
+	const openIncident = incidents.data?.items.find((i) => i.state === "open");
 
 	const back = (
 		<Anchor component={Link} href="/links/" size="sm" c="dimmed">
@@ -207,6 +211,16 @@ function LinkDetail({ id }: { id: string }) {
 					>
 						{t("linkDetail.checkNow.button")}
 					</Button>
+					{openIncident && (
+						<Button
+							variant="light"
+							color={PALETTE.success}
+							loading={resolve.isPending}
+							onClick={() => resolve.mutate({ ids: [openIncident.id] })}
+						>
+							{t("claims.button")}
+						</Button>
+					)}
 					<Button
 						variant="subtle"
 						component="a"

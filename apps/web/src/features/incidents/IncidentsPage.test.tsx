@@ -1,4 +1,5 @@
 import type { IncidentDetail, IncidentView } from "@linkwatch/core";
+import { notifications } from "@mantine/notifications";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -64,6 +65,12 @@ function fakeApi(
 				throw new ApiError(404, { error: "not_found" });
 			return opts.detail;
 		}),
+		resolveClaims: vi.fn(async (ids: string[], _note?: string) => ({
+			items: ids.map((id) => ({
+				incident: incident({ id, state: "verifying" }),
+				decision: "started" as const,
+			})),
+		})),
 		ackIncident: vi.fn(async (_id: string, note?: string) => ({
 			...(opts.detail as IncidentDetail),
 			ackedBy: "admin@abc.com",
@@ -250,5 +257,153 @@ describe("IncidentsPage — detail (FR-19, links in emails)", () => {
 		expect(
 			await screen.findByText(/This incident does not exist/),
 		).toBeTruthy();
+	});
+});
+
+describe("IncidentsPage — report fixed in the app (FR-41)", () => {
+	const detail: IncidentDetail = {
+		...incident(),
+		notifications: [],
+		claims: [],
+	};
+
+	it("FR-41: Fixed — check again with a note starts the checks for this incident", async () => {
+		const show = vi.spyOn(notifications, "show");
+		search = new URLSearchParams({ id: detail.id });
+		const api = fakeApi({ detail });
+		renderWithApi(<IncidentsPage />, api);
+		await userEvent.type(
+			await screen.findByLabelText("Note (optional)"),
+			"Restored the page",
+		);
+		await userEvent.click(
+			screen.getByRole("button", { name: "Fixed — check again" }),
+		);
+		await waitFor(() =>
+			expect(api.resolveClaims).toHaveBeenCalledWith(
+				[detail.id],
+				"Restored the page",
+			),
+		);
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(
+				expect.objectContaining({
+					message: "Checking the incident now, then after 2 and 5 minutes.",
+				}),
+			),
+		);
+	});
+
+	it("FR-41 / FR-38: timeline lists each claim with who, channel, note, outcome and checks", async () => {
+		search = new URLSearchParams({ id: detail.id });
+		const withClaims: IncidentDetail = {
+			...detail,
+			claimNote: "Still failing after the reported fix.",
+			claims: [
+				{
+					claimedAt: "2026-09-30T09:00:00.000Z",
+					byEmail: "dev@abc.com",
+					channel: "email",
+					note: "Fixed the CDN",
+					outcome: "still_failing",
+					attempts: [
+						{
+							attempt: 1,
+							at: "2026-09-30T09:00:05.000Z",
+							result: "dead",
+							httpCode: 404,
+						},
+						{
+							attempt: 2,
+							at: "2026-09-30T09:02:05.000Z",
+							result: "dead",
+							httpCode: 404,
+						},
+					],
+				},
+			],
+		};
+		renderWithApi(<IncidentsPage />, fakeApi({ detail: withClaims }));
+		expect(
+			await screen.findByText("dev@abc.com via email, 30/09/2026 16:00"),
+		).toBeTruthy();
+		expect(screen.getByText("“Fixed the CDN”")).toBeTruthy();
+		expect(
+			screen.getByText(
+				"Still failing — check 1: Dead link 404, check 2: Dead link 404",
+			),
+		).toBeTruthy();
+		expect(
+			screen.getByText("Still failing after the reported fix."),
+		).toBeTruthy();
+		// Not being verified any more → it can be reported again.
+		expect(
+			screen.getByRole("button", { name: "Fixed — check again" }),
+		).toBeTruthy();
+	});
+
+	it("FR-39: while a claim is being verified there is no second button", async () => {
+		search = new URLSearchParams({ id: detail.id });
+		const verifying: IncidentDetail = {
+			...detail,
+			state: "verifying",
+			claims: [
+				{
+					claimedAt: "2026-09-30T09:00:00.000Z",
+					byEmail: "admin@abc.com",
+					channel: "app",
+					outcome: "pending",
+					attempts: [],
+				},
+			],
+		};
+		renderWithApi(<IncidentsPage />, fakeApi({ detail: verifying }));
+		expect(await screen.findByText("Checking the reported fix…")).toBeTruthy();
+		expect(
+			screen.queryByRole("button", { name: "Fixed — check again" }),
+		).toBeNull();
+		expect(
+			screen.getByText("admin@abc.com via LinkWatch, 30/09/2026 16:00"),
+		).toBeTruthy();
+	});
+
+	it("FR-41: several open incidents are selected in the list and reported fixed at once", async () => {
+		const api = fakeApi({
+			active: [
+				incident(),
+				incident({ id: "L2@1", linkId: "L2", url: "https://b.vn/" }),
+				incident({
+					id: "L3@1",
+					linkId: "L3",
+					url: "https://c.vn/",
+					state: "verifying",
+				}),
+			],
+		});
+		renderWithApi(<IncidentsPage />, api);
+		await userEvent.click(
+			await screen.findByRole("checkbox", {
+				name: "Select https://watch.hueai.net/smoke/x.txt",
+			}),
+		);
+		await userEvent.click(
+			screen.getByRole("checkbox", { name: "Select https://b.vn/" }),
+		);
+		// An incident already being verified cannot be selected.
+		expect(
+			screen.queryByRole("checkbox", { name: "Select https://c.vn/" }),
+		).toBeNull();
+		const toolbar = within(screen.getByRole("toolbar"));
+		expect(toolbar.getByText("2 selected")).toBeTruthy();
+		await userEvent.click(
+			toolbar.getByRole("button", { name: "Fixed — check again" }),
+		);
+		await waitFor(() =>
+			expect(api.resolveClaims).toHaveBeenCalledWith(
+				[`L1@${OPENED}`, "L2@1"],
+				undefined,
+			),
+		);
+		await waitFor(() => expect(screen.queryByRole("toolbar")).toBeNull());
 	});
 });
