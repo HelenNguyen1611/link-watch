@@ -144,6 +144,8 @@ describe("ConfirmPage — SCR-10", () => {
 		).toBeTruthy();
 		expect(screen.getByText("Check 1: Up (HTTP 200)")).toBeTruthy();
 		expect(screen.getByText(/fixed by lan@abc.com/)).toBeTruthy();
+		// Closed by this claim, not "recovered before anyone reported it fixed".
+		expect(screen.queryByText("Already back up")).toBeNull();
 	});
 
 	it("FR-38: still failing after 3 checks → says only you were told; can report again", async () => {

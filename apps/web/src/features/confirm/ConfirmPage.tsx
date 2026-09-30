@@ -127,15 +127,17 @@ function Confirm({ token }: { token: string }) {
 		!submit.isSuccess;
 	return (
 		<Stack gap="md">
-			{v.status === "recovered" && (
-				<Alert
-					color={PALETTE.success}
-					variant="light"
-					title={t("confirm.recoveredTitle")}
-				>
-					{t("confirm.recovered")}
-				</Alert>
-			)}
+			{/* FR-42: closed without a successful claim; a claim that fixed it shows its own outcome. */}
+			{v.status === "recovered" &&
+				!v.items.some((i) => i.progress?.outcome === "fixed") && (
+					<Alert
+						color={PALETTE.success}
+						variant="light"
+						title={t("confirm.recoveredTitle")}
+					>
+						{t("confirm.recovered")}
+					</Alert>
+				)}
 			{v.items.map((item) => (
 				<IncidentCard key={item.incident.id} item={item} />
 			))}
