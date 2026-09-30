@@ -567,5 +567,31 @@
 			"duplicate": "This recipient is already listed.",
 			"invalid": "Enter a valid email address."
 		}
+	},
+	"confirm": {
+		"title": "Fixed — check again",
+		"intro": "Did you fix it? Confirm and LinkWatch checks the link right away, then again after 2 and 5 minutes if needed.",
+		"again": "The last check did not succeed. You can report it fixed again.",
+		"note": "Note (optional)",
+		"notePlaceholder": "e.g. Renewed the SSL certificate",
+		"button": "Confirm & check again",
+		"hint": "Only a real check can close the incident, so confirming by mistake changes nothing.",
+		"detected": "Detected {{at}}",
+		"recoveredAt": "Back up since {{at}}",
+		"fixedBy": "fixed by {{by}}",
+		"outcome": {
+			"pending": "Checking…",
+			"fixed": "Fixed — the link works again. Everyone was emailed.",
+			"still_failing": "Still failing after 3 checks. Only you were told; the incident stays open."
+		},
+		"attempt": "Check {{n}}",
+		"waiting": "waiting…",
+		"notNeeded": "not needed",
+		"recoveredTitle": "Already back up",
+		"recovered": "The link recovered before anyone reported it fixed. Nothing to do.",
+		"expiredTitle": "This link has expired",
+		"expired": "The link is older than 7 days or no longer valid. Open LinkWatch to see the current state.",
+		"loadError": "Could not load this page. Try again in a moment.",
+		"submitError": "Could not start the check. Try again."
 	}
 }

@@ -44,6 +44,33 @@ export type TestEmailResult = { status: "sent"; to: string };
 
 export type DomainDetailView = DomainSummary & { uptimeDays: UptimeSummary };
 
+/** FR-39: verification progress of one incident. */
+export type ClaimProgressDto = {
+	claimedAt: string;
+	outcome: "pending" | "fixed" | "still_failing";
+	done: boolean;
+	total: number;
+	attempts: {
+		attempt: number;
+		at: string;
+		result: string;
+		httpCode?: number;
+		errorType?: string;
+	}[];
+	byEmail: string;
+	channel: "email" | "app";
+	note?: string;
+};
+export type ClaimViewDto = {
+	incident: IncidentView;
+	progress?: ClaimProgressDto;
+	decision?: "started" | "in_progress" | "recovered";
+};
+export type TokenClaimView =
+	| { status: "expired" }
+	| { status: "recovered"; items: ClaimViewDto[] }
+	| { status: "open"; items: ClaimViewDto[]; recipient: string };
+
 export type LinkSnapshotView = {
 	generatedAt: string;
 	items: LinkView[];
@@ -216,6 +243,24 @@ export function createApi(opts: ApiOptions) {
 			call<CheckNowResult>("/links/check-now", {
 				method: "POST",
 				body: JSON.stringify(input),
+			}),
+		/** FR-35 / FR-39: confirmation page (token, no sign-in). GET only reads. */
+		getPublicClaim: (token: string) =>
+			call<TokenClaimView>(`/public/claims?${new URLSearchParams({ token })}`),
+		submitPublicClaim: (input: {
+			token: string;
+			note?: string;
+			incidentIds?: string[];
+		}) =>
+			call<TokenClaimView>("/public/claims", {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		/** FR-41: report incidents as fixed from the app. */
+		resolveClaims: (incidentIds: string[], note?: string) =>
+			call<{ items: ClaimViewDto[] }>("/incidents/resolve-claim", {
+				method: "POST",
+				body: JSON.stringify({ incidentIds, ...(note?.trim() && { note }) }),
 			}),
 		/** FR-19: incidents. Ids contain `@` and `:` → always URL-encoded. */
 		listIncidents: ({

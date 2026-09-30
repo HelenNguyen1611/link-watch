@@ -444,7 +444,8 @@
 - ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): `/incidents/` hai tab Đang mở / Đã đóng (Đã đóng có "Load more"), cột URL, loại, trạng thái (+ Acknowledged), mở lúc, thời lượng (đang mở = tính tới hiện tại), lỗi; `/incidents/?id=` (link trong email) — thông tin, link sang chi tiết link, Acknowledge + ghi chú (409 nếu đã đóng), bảng email đã gửi (người nhận, loại, trạng thái, lỗi). Tab Đang mở tự tải lại mỗi 60 giây. **Còn lại cho Bước 22:** chọn nhiều link + dòng thời gian claim (FR-41).
 - **FR/AC:** FR-19 (acknowledge, ghi chú), FR-41 (chọn nhiều link, dòng thời gian claim). **Phụ thuộc:** 21, 22, 23b
 
-#### Bước 32 — SCR-10 Trang xác nhận (mobile, `/confirm/?token=`, không cần đăng nhập)
+#### Bước 32 — SCR-10 Trang xác nhận (mobile, `/confirm/?token=`, không cần đăng nhập) ✅
+- ✅ đã làm (30/09/2026): trang công khai (đã nằm trong `PUBLIC_PATHS` từ 23b), rộng tối đa 480 px; GET chỉ hiển thị URL, loại lỗi, mã HTTP, thời điểm (AC-11); ghi chú + nút "Confirm & check again" (POST); sau khi bấm hiện tiến độ 3 lần check, tự tải lại mỗi 3 giây tới khi xong (FR-39); kết quả Fixed (kèm "fixed by") / Still failing (chỉ báo người bấm, cho bấm lại) / Already back up (FR-42) / Link hết hạn (AC-12).
 - **FR/AC:** FR-35 (GET chỉ hiển thị, nút POST), FR-39 (tự cập nhật mỗi 3 giây tới khi xong 3 lần), FR-42, AC-12 (trang hết hạn / "Đã hồi phục lúc …"). **Phụ thuộc:** 22, 23b
 
 #### Bước 33 — Integration test luồng claim
