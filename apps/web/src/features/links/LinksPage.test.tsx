@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { type Api, ApiError } from "@/lib/api";
 import { renderWithApi } from "@/test/render";
+import { stubApi } from "@/test/stub-api";
 import { LinksPage } from "./LinksPage";
 
 const view = (over: Partial<LinkView>): LinkView => ({
@@ -24,6 +25,7 @@ const view = (over: Partial<LinkView>): LinkView => ({
 function fakeApi(initial: LinkView[] = []) {
 	let links = [...initial];
 	const api = {
+		...stubApi(),
 		listLinks: vi.fn(async () => ({ items: links, cursor: null })),
 		createLink: vi.fn(async (input: LinkInputRaw) => {
 			if (links.some((l) => l.url === input.url)) {
@@ -40,9 +42,6 @@ function fakeApi(initial: LinkView[] = []) {
 		deleteLink: vi.fn(async (id: string) => {
 			links = links.filter((l) => l.id !== id);
 		}),
-		getSettings: vi.fn(),
-		updateSettings: vi.fn(),
-		sendTestEmail: vi.fn(),
 	} satisfies Api;
 	return api;
 }

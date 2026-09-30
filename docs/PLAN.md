@@ -421,7 +421,8 @@
 #### Bước 28 — SCR-05 Chi tiết link (`/links/detail/?id=`)
 - **FR/AC:** FR-16, FR-17, FR-18 (Recharts thời gian phản hồi, thanh uptime 30 ngày, 100 check, sự cố), FR-41 (nút Đã khắc phục). **Phụ thuộc:** 21, 22, 23b
 
-#### Bước 30 — SCR-07 Sự cố
+#### Bước 30 — SCR-07 Sự cố ✅
+- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): `/incidents/` hai tab Đang mở / Đã đóng (Đã đóng có "Load more"), cột URL, loại, trạng thái (+ Acknowledged), mở lúc, thời lượng (đang mở = tính tới hiện tại), lỗi; `/incidents/?id=` (link trong email) — thông tin, link sang chi tiết link, Acknowledge + ghi chú (409 nếu đã đóng), bảng email đã gửi (người nhận, loại, trạng thái, lỗi). Tab Đang mở tự tải lại mỗi 60 giây. **Còn lại cho Bước 22:** chọn nhiều link + dòng thời gian claim (FR-41).
 - **FR/AC:** FR-19 (acknowledge, ghi chú), FR-41 (chọn nhiều link, dòng thời gian claim). **Phụ thuộc:** 21, 22, 23b
 
 #### Bước 32 — SCR-10 Trang xác nhận (mobile, `/confirm/?token=`, không cần đăng nhập)

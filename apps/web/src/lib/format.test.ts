@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDateTime, formatMs } from "./format";
+import {
+	formatClock,
+	formatDateTime,
+	formatDuration,
+	formatMs,
+} from "./format";
 
 describe("format", () => {
 	it("NFR-10: times shown in Vietnam time as dd/MM/yyyy HH:mm", () => {
@@ -16,5 +21,13 @@ describe("format", () => {
 		expect(formatClock(Date.parse("2026-09-29T23:01:05.000Z"))).toBe(
 			"06:01:05",
 		);
+	});
+
+	it("FR-19: durations", () => {
+		expect(formatDuration(undefined)).toBe("—");
+		expect(formatDuration(20_000)).toBe("< 1 min");
+		expect(formatDuration(601_424)).toBe("10 min");
+		expect(formatDuration(125 * 60_000)).toBe("2 h 5 min");
+		expect(formatDuration((3 * 24 + 4) * 3_600_000)).toBe("3 d 4 h");
 	});
 });

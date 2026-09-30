@@ -1,9 +1,16 @@
 import type {
+	CheckNowInput,
+	CheckNowResult,
+	CheckView,
+	IncidentDetail,
+	IncidentPage,
+	IncidentView,
 	LinkInputRaw,
 	LinkPage,
 	LinkView,
 	SettingsInput,
 	SettingsView,
+	UptimeSummary,
 } from "@linkwatch/core";
 import { notifyUnauthorized } from "./auth";
 
@@ -60,6 +67,45 @@ export function createApi(opts: ApiOptions) {
 			call<LinkView>("/links", { method: "POST", body: JSON.stringify(input) }),
 		deleteLink: (id: string) =>
 			call<void>(`/links/${encodeURIComponent(id)}`, { method: "DELETE" }),
+		/** FR-18: one link and its history. */
+		getLink: (id: string) => call<LinkView>(`/links/${encodeURIComponent(id)}`),
+		linkChecks: (id: string, limit = 100) =>
+			call<{ items: CheckView[] }>(
+				`/links/${encodeURIComponent(id)}/checks?limit=${limit}`,
+			),
+		linkUptime: (id: string, days = 30) =>
+			call<UptimeSummary>(
+				`/links/${encodeURIComponent(id)}/uptime?days=${days}`,
+			),
+		linkIncidents: (id: string) =>
+			call<{ items: IncidentView[] }>(
+				`/links/${encodeURIComponent(id)}/incidents`,
+			),
+		/** FR-16: queue an immediate check. */
+		checkNow: (input: CheckNowInput) =>
+			call<CheckNowResult>("/links/check-now", {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		/** FR-19: incidents. Ids contain `@` and `:` → always URL-encoded. */
+		listIncidents: ({
+			state,
+			cursor,
+		}: {
+			state: "active" | "closed";
+			cursor?: string | null;
+		}) => {
+			const q = new URLSearchParams({ state });
+			if (cursor) q.set("cursor", cursor);
+			return call<IncidentPage>(`/incidents?${q}`);
+		},
+		getIncident: (id: string) =>
+			call<IncidentDetail>(`/incidents/${encodeURIComponent(id)}`),
+		ackIncident: (id: string, note?: string) =>
+			call<IncidentView>(`/incidents/${encodeURIComponent(id)}/ack`, {
+				method: "POST",
+				body: JSON.stringify(note === undefined ? {} : { note }),
+			}),
 		/** FR-20, FR-23, FR-26: effective email settings (stored values + deployment defaults). */
 		getSettings: () => call<SettingsView>("/settings"),
 		updateSettings: (input: SettingsInput) =>

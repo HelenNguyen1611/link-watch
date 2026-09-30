@@ -212,5 +212,68 @@
 			"validation": "Some values were rejected. Check the fields and try again.",
 			"unknown": "Could not save. Try again."
 		}
+	},
+	"incidents": {
+		"subtitle": "Open and closed incidents: how long a link was down, who was emailed, and notes.",
+		"tabs": {
+			"active": "Open",
+			"closed": "Closed"
+		},
+		"col": {
+			"url": "URL",
+			"type": "Type",
+			"state": "State",
+			"opened": "Opened",
+			"duration": "Duration",
+			"error": "Error"
+		},
+		"state": {
+			"open": "Open",
+			"verifying": "Verifying",
+			"closed": "Closed",
+			"acked": "Acknowledged"
+		},
+		"empty": {
+			"active": "No open incidents. Every link is working.",
+			"closed": "No closed incidents yet."
+		},
+		"loadError": "Could not load incidents.",
+		"loadMore": "Load more",
+		"back": "All incidents",
+		"notFound": "This incident does not exist (the link may be wrong).",
+		"viewLink": "Link details",
+		"openUrl": "Open URL",
+		"closedAt": "Closed",
+		"ack": {
+			"title": "Acknowledge",
+			"hint": "Acknowledge to tell the team you are on it. Reminders stop once acknowledged.",
+			"notNeeded": "This incident is closed.",
+			"by": "Acknowledged by {{by}} on {{at}}.",
+			"note": "Note",
+			"notePlaceholder": "What is being done, e.g. \"Deploying a fix\"",
+			"button": "Acknowledge",
+			"update": "Update note",
+			"saved": "Incident acknowledged.",
+			"closed": "This incident was closed in the meantime.",
+			"failed": "Could not save. Try again."
+		},
+		"emails": {
+			"title": "Emails sent",
+			"none": "No email has been sent about this incident yet (emails go out about 5 minutes after it opens).",
+			"sentAt": "Sent",
+			"kind": "Email",
+			"to": "To",
+			"status": "Status",
+			"kinds": {
+				"down": "Incident",
+				"recovery": "Recovery",
+				"reminder": "Reminder",
+				"verify_failed": "Still failing"
+			},
+			"statuses": {
+				"sent": "Sent",
+				"failed": "Failed"
+			}
+		}
 	}
 }

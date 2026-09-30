@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { type Api, ApiError } from "@/lib/api";
 import { renderWithApi, signedInAuth } from "@/test/render";
+import { stubApi } from "@/test/stub-api";
 import { EmailSettingsPage } from "./EmailSettingsPage";
 
 const DEFAULTS: SettingsView = {
@@ -20,9 +21,7 @@ const DEFAULTS: SettingsView = {
 function fakeApi(initial: SettingsView = DEFAULTS) {
 	let settings = { ...initial };
 	const api = {
-		listLinks: vi.fn(),
-		createLink: vi.fn(),
-		deleteLink: vi.fn(),
+		...stubApi(),
 		getSettings: vi.fn(async () => settings),
 		updateSettings: vi.fn(async (input: SettingsInput) => {
 			settings = { ...settings, ...input };
