@@ -1,3 +1,4 @@
+/** Server-only (node:crypto): import from "@linkwatch/core/token", never from the web app. */
 import { createHash, randomBytes } from "node:crypto";
 
 /** FR-34: token lifetime (also invalid as soon as the incident closes). */

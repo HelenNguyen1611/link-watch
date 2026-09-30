@@ -15,7 +15,8 @@
 		".": "./src/index.ts",
 		"./db": "./src/db/index.ts",
 		"./db/testing": "./src/db/testing.ts",
-		"./usecases": "./src/usecases/index.ts"
+		"./usecases": "./src/usecases/index.ts",
+		"./token": "./src/token.ts"
 	},
 	"sideEffects": false
 }

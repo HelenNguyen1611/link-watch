@@ -22,6 +22,5 @@ export * from "./schema/link-view";
 export * from "./schema/schedule";
 export * from "./schema/settings";
 export * from "./ssrf";
-export * from "./token";
 export * from "./uptime";
 export * from "./url";
