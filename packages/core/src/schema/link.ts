@@ -55,3 +55,34 @@ export const LinkInput = z.object({
 export type LinkInput = z.infer<typeof LinkInput>;
 /** Shape of the data before parsing (form, CSV). */
 export type LinkInputRaw = z.input<typeof LinkInput>;
+
+/** Text that can be cleared on edit: "" or null → remove the value. */
+const clearableText = (max: number) =>
+	z
+		.union([z.string().trim().max(max), z.null()])
+		.transform((v) => (v ? v : null));
+
+/**
+ * FR-04: partial edit of a link — only the fields sent change (no defaults, unlike `LinkInput`).
+ * `name` / `keyword` set to "" or null are removed.
+ */
+export const LinkUpdate = z
+	.object({
+		url: NormalizedUrl,
+		name: clearableText(200),
+		tags: z
+			.array(z.string().trim().max(50))
+			.max(20)
+			.transform((tags) => [...new Set(tags.filter(Boolean))]),
+		method: HttpMethod,
+		expectedCodes: z.array(HttpCodeRange).min(1).max(10),
+		timeoutS: z.number().int().min(1).max(60),
+		keyword: clearableText(200),
+	})
+	.partial()
+	.strict();
+export type LinkUpdate = z.infer<typeof LinkUpdate>;
+export type LinkUpdateRaw = z.input<typeof LinkUpdate>;
+
+/** FR-04: bulk actions take at most 100 link ids. */
+export const LinkIds = z.array(z.string().min(1)).min(1).max(100);

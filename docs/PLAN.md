@@ -346,7 +346,8 @@
 - **Xong khi:** test bảng 5.1 pass cả khi bật cờ (403 → không phải Link chết).
 - **Phụ thuộc:** 4a
 
-#### Bước 10b — Use case sửa, tạm dừng, xóa hàng loạt, nhập
+#### Bước 10b — Use case sửa, tạm dừng, xóa hàng loạt, nhập ✅
+- ✅ đã làm (30/09/2026): `updateLink` (sửa một phần; đổi URL → chống trùng, về Pending, check lượt kế; URL sang domain chính khác → chuyển item sang partition domain mới trong 1 transaction, **giữ id** nên lịch sử/incident còn nguyên; link tạm dừng vẫn tạm dừng), `setPaused` (≤ 100 id; tạm dừng bỏ `next_run_at`, tiếp tục check lượt kế), `deleteLinks`, nhập: `parseImport` (CSV có dòng tiêu đề chứa `url` hoặc mỗi dòng 1 URL, ≤ 1.000 dòng, trùng trong file) + `previewImport` (trùng link đã có) + `commitImport` (**≤ 25 dòng/lần**, web gửi theo lô), `linksToCsv` (cột giống file nhập, chống chèn công thức). AC-01 pass ở mức usecase.
 - **File:** `src/usecases/links.ts` (sửa; tạm dừng; xóa mềm hàng loạt), `src/usecases/import.ts` (xem trước CSV/dán ≤ 1.000 dòng: hợp lệ/trùng/lỗi; commit).
 - **FR/AC:** FR-03, FR-04.
 - **Xong khi:** `pnpm test:int` pass: nhập CSV có dòng trùng/lỗi, tạm dừng link thì Dispatcher bỏ qua.

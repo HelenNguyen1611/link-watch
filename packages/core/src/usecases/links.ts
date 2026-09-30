@@ -1,8 +1,15 @@
 import { createHash } from "node:crypto";
+import { toCsv } from "../csv";
 import type { Db } from "../db/index";
 import { rootDomainOf } from "../domain";
 import { newId } from "../id";
-import { LinkInput, type LinkInputRaw } from "../schema/link";
+import {
+	LinkIds,
+	LinkInput,
+	type LinkInputRaw,
+	LinkUpdate,
+	type LinkUpdateRaw,
+} from "../schema/link";
 
 export class DuplicateLinkError extends Error {
 	readonly code = "duplicate";
@@ -25,7 +32,8 @@ export class LinkNotFoundError extends Error {
 
 type Clock = { now?: Date };
 
-const urlHash = (url: string) => createHash("sha256").update(url).digest("hex");
+export const urlHash = (url: string) =>
+	createHash("sha256").update(url).digest("hex");
 
 const isConditionalFailure = (err: unknown) =>
 	/ConditionalCheckFailed|conditional request failed/i.test(
@@ -126,4 +134,217 @@ export async function deleteLink(
 		])
 		.go();
 	if (tx.canceled) throw new LinkNotFoundError(id);
+}
+
+/** Fields cleared when the URL changes: the last result belongs to the old URL. */
+const LAST_RESULT = [
+	"lastCheckedAt",
+	"lastHttpCode",
+	"lastResponseMs",
+	"lastErrorType",
+	"lastJobId",
+] as const;
+
+/**
+ * FR-04: edits a link (only the fields sent). A new URL is checked for duplicates, resets
+ * the status to Pending and is checked on the next tick. A URL on another root domain moves
+ * the item to that domain's partition (same id, so checks and incidents stay attached).
+ */
+export async function updateLink(
+	db: Db,
+	id: string,
+	raw: LinkUpdateRaw,
+	{ now = new Date() }: Clock = {},
+) {
+	const input = LinkUpdate.parse(raw);
+	const link = await getLink(db, id);
+	const { url, name, keyword, ...rest } = input;
+	const cleared = [
+		...(name === null ? (["name"] as const) : []),
+		...(keyword === null ? (["keyword"] as const) : []),
+	];
+	const set = {
+		...rest,
+		...(name ? { name } : {}),
+		...(keyword ? { keyword } : {}),
+	};
+
+	if (!url || url === link.url) {
+		let patch = db.Link.patch({ domain: link.domain, id }).set(set);
+		if (cleared.length) patch = patch.remove(cleared) as typeof patch;
+		await patch
+			.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
+			.go()
+			.catch((err) => {
+				if (isConditionalFailure(err)) throw new LinkNotFoundError(id);
+				throw err;
+			});
+		return getLink(db, id);
+	}
+
+	const hash = urlHash(url);
+	const existing = await db.UrlLock.get({ urlHash: hash }).go();
+	if (existing.data) throw new DuplicateLinkError(url, existing.data.linkId);
+	const domain = rootDomainOf(url);
+	const fresh = {
+		status: "pending" as const,
+		...(link.paused ? {} : { nextRunAt: now.toISOString() }),
+	};
+
+	if (domain === link.domain) {
+		const tx = await db.service.transaction
+			.write(({ Link, UrlLock }) => [
+				UrlLock.delete({ urlHash: urlHash(link.url) }).commit(),
+				UrlLock.create({ urlHash: hash, url, linkId: id, domain }).commit(),
+				Link.patch({ domain, id })
+					.set({ ...set, url, ...fresh })
+					.remove([...cleared, ...LAST_RESULT])
+					.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
+					.commit(),
+			])
+			.go();
+		if (tx.canceled) throw new DuplicateLinkError(url);
+		return getLink(db, id);
+	}
+
+	await ensureDomain(db, domain);
+	const { domain: _old, ...kept } = link;
+	const moved = Object.fromEntries(
+		Object.entries({ ...kept, ...set, url, ...fresh }).filter(
+			([k, v]) =>
+				v !== undefined &&
+				!(LAST_RESULT as readonly string[]).includes(k) &&
+				!(cleared as readonly string[]).includes(k) &&
+				!(link.paused && k === "nextRunAt"),
+		),
+	);
+	const tx = await db.service.transaction
+		.write(({ Link, UrlLock }) => [
+			UrlLock.delete({ urlHash: urlHash(link.url) }).commit(),
+			UrlLock.create({ urlHash: hash, url, linkId: id, domain }).commit(),
+			Link.delete({ domain: link.domain, id })
+				.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
+				.commit(),
+			Link.create({ ...(moved as typeof link), domain, id }).commit(),
+		])
+		.go();
+	if (tx.canceled) throw new DuplicateLinkError(url);
+	return getLink(db, id);
+}
+
+export type BulkResult = { updated: string[]; notFound: string[] };
+
+/**
+ * FR-04: pause or resume links. Paused links have no next_run_at (not checked, no alerts);
+ * resumed links are checked on the next tick.
+ */
+export async function setPaused(
+	db: Db,
+	rawIds: unknown,
+	paused: boolean,
+	{ now = new Date() }: Clock = {},
+): Promise<BulkResult> {
+	const ids = [...new Set(LinkIds.parse(rawIds))];
+	const result: BulkResult = { updated: [], notFound: [] };
+	for (const id of ids) {
+		try {
+			const link = await getLink(db, id);
+			const patch = db.Link.patch({ domain: link.domain, id });
+			const op = paused
+				? patch.set({ paused: true }).remove(["nextRunAt"])
+				: patch.set({ paused: false, nextRunAt: now.toISOString() });
+			await op
+				.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
+				.go();
+			result.updated.push(id);
+		} catch (err) {
+			if (err instanceof LinkNotFoundError || isConditionalFailure(err))
+				result.notFound.push(id);
+			else throw err;
+		}
+	}
+	return result;
+}
+
+/** FR-04: soft-deletes several links; unknown or already deleted ids are reported. */
+export async function deleteLinks(
+	db: Db,
+	rawIds: unknown,
+	{ now = new Date() }: Clock = {},
+): Promise<BulkResult> {
+	const ids = [...new Set(LinkIds.parse(rawIds))];
+	const result: BulkResult = { updated: [], notFound: [] };
+	for (const id of ids) {
+		try {
+			await deleteLink(db, id, { now });
+			result.updated.push(id);
+		} catch (err) {
+			if (err instanceof LinkNotFoundError) result.notFound.push(id);
+			else throw err;
+		}
+	}
+	return result;
+}
+
+/** FR-05: CSV export columns (same names as the import, plus the current state). */
+export const EXPORT_COLUMNS = [
+	"url",
+	"name",
+	"domain",
+	"tags",
+	"method",
+	"expected_codes",
+	"timeout_s",
+	"keyword",
+	"status",
+	"paused",
+	"last_checked_at",
+	"last_http_code",
+	"last_response_ms",
+	"last_error_type",
+	"created_at",
+] as const;
+
+type ExportableLink = {
+	url: string;
+	name?: string;
+	domain: string;
+	tags?: string[];
+	method: string;
+	expectedCodes: { from: number; to: number }[];
+	timeoutS: number;
+	keyword?: string;
+	status?: string;
+	paused?: boolean;
+	lastCheckedAt?: string;
+	lastHttpCode?: number;
+	lastResponseMs?: number;
+	lastErrorType?: string;
+	createdAt?: string;
+};
+
+/** FR-05: links and their current status as CSV (re-importable: same column names). */
+export function linksToCsv(links: readonly ExportableLink[]): string {
+	return toCsv([
+		[...EXPORT_COLUMNS],
+		...links.map((l) => [
+			l.url,
+			l.name,
+			l.domain,
+			(l.tags ?? []).join(";"),
+			l.method,
+			l.expectedCodes
+				.map((r) => (r.from === r.to ? `${r.from}` : `${r.from}-${r.to}`))
+				.join(";"),
+			l.timeoutS,
+			l.keyword,
+			l.status,
+			l.paused ? "yes" : "no",
+			l.lastCheckedAt,
+			l.lastHttpCode,
+			l.lastResponseMs,
+			l.lastErrorType,
+			l.createdAt,
+		]),
+	]);
 }
