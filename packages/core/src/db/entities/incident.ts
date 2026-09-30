@@ -35,6 +35,13 @@ export function incidentEntity(client: DynamoDBDocumentClient, table: string) {
 				downNotifiedAt: { type: "string" },
 				/** FR-21: the recovery email went out (a redelivered flush does not resend it). */
 				recoveryNotifiedAt: { type: "string" },
+				/** FR-36: who reported it fixed and when (while Verifying; kept for the verify-failed email). */
+				verifyingBy: { type: "string" },
+				verifyingClaimAt: { type: "string" },
+				/** FR-37: "Fixed by <email>" when a verification closed it. */
+				closedBy: { type: "string" },
+				/** FR-38: note after a claim whose checks all failed. */
+				claimNote: { type: "string" },
 				/** FR-23: last reminder email sent. */
 				lastReminderAt: { type: "string" },
 			},

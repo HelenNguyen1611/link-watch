@@ -5,6 +5,7 @@ import {
 	createRawClient,
 } from "./client";
 import { checkEntity } from "./entities/check";
+import { claimEntity } from "./entities/claim";
 import { dayStatEntity } from "./entities/day-stat";
 import { domainEntity } from "./entities/domain";
 import { domainDayStatEntity } from "./entities/domain-day-stat";
@@ -19,6 +20,7 @@ import { recipientEntity } from "./entities/recipient";
 import { scheduleEntity } from "./entities/schedule";
 import { settingsEntity } from "./entities/settings";
 import { tickEntity } from "./entities/tick";
+import { tokenEntity } from "./entities/token";
 import { urlLockEntity } from "./entities/url-lock";
 
 export * from "./client";
@@ -59,6 +61,8 @@ export function createDb(opts: DbOptions = {}) {
 		Tick: tickEntity(client, table),
 		Schedule: scheduleEntity(client, table),
 		DomainDayStat: domainDayStatEntity(client, table),
+		Token: tokenEntity(client, table),
+		Claim: claimEntity(client, table),
 	};
 	return {
 		table,

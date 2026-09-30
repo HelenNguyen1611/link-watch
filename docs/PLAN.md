@@ -400,7 +400,8 @@
 - **Xong khi:** test `FR-34…FR-40`, `AC-12`, `AC-13` pass.
 - **Phụ thuộc:** 5
 
-#### Bước 9c — ElectroDB: ResolveClaim, Token
+#### Bước 9c — ElectroDB: ResolveClaim, Token ✅
+- ✅ đã làm (30/09/2026): `Token` (PK `TOKEN#<sha256>`, SK `META`, `incidentIds` (1 = nút từng link, nhiều = nút cả nhóm), `recipientEmail`, `ttl` 7 ngày), `Claim` (PK `INC#<incidentId>`, SK `CLAIM#<claimedAt>`, người bấm, kênh email/app, ghi chú, `outcome` pending/fixed/still_failing, `attempts`). Incident thêm `verifyingBy`, `verifyingClaimAt`, `closedBy`, `claimNote`.
 - **File:** `src/db/entities/{claim,token}.ts` + int test.
 - **FR/AC:** FR-34 (TTL 7 ngày).
 - **Xong khi:** `pnpm test:int` pass: ghi token bản băm có `ttl`, ghi claim theo incident.
