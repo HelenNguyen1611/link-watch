@@ -1,13 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LinkStatus } from "@linkwatch/core";
 import { Button, Chip, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { IconSearch } from "@/components/icons";
 import { EMPTY_FILTER, isFilterActive, LinkFilter } from "./filter";
+import { STATUS_BY_SEVERITY } from "./status-style";
 
 export type LinkFiltersProps = {
 	/** Called with every valid change (live filtering, no submit button). */
@@ -82,7 +82,7 @@ export function LinkFilters({ onChange, shown, total }: LinkFiltersProps) {
 					render={({ field }) => (
 						<Chip.Group multiple value={field.value} onChange={field.onChange}>
 							<Group gap={6} role="group" aria-label={t("links.filter.status")}>
-								{LinkStatus.options.map((s) => (
+								{STATUS_BY_SEVERITY.map((s) => (
 									<Chip key={s} value={s} size="xs" variant="outline">
 										{t(`status.${s}`)}
 									</Chip>

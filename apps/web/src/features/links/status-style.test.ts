@@ -1,6 +1,12 @@
+import { LinkStatus } from "@linkwatch/core";
 import { describe, expect, it } from "vitest";
 import { COLOR } from "@/lib/colors";
-import { httpCodeColor, responseTimeColor, STATUS_STYLE } from "./status-style";
+import {
+	httpCodeColor,
+	responseTimeColor,
+	STATUS_BY_SEVERITY,
+	STATUS_STYLE,
+} from "./status-style";
 
 describe("status colours", () => {
 	it("SRS 5.1: each status has a colour and icon matching its meaning", () => {
@@ -47,5 +53,19 @@ describe("status colours", () => {
 	it("response time is highlighted only when the link is Slow", () => {
 		expect(responseTimeColor("slow")).toBe("yellow.8");
 		expect(responseTimeColor("up")).toBeUndefined();
+	});
+
+	it("FR-09: severity order lists every status once, worst first", () => {
+		expect(STATUS_BY_SEVERITY).toEqual([
+			"down",
+			"dead",
+			"suspect",
+			"slow",
+			"up",
+			"pending",
+		]);
+		expect([...STATUS_BY_SEVERITY].sort()).toEqual(
+			[...LinkStatus.options].sort(),
+		);
 	});
 });

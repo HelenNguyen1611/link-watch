@@ -1,4 +1,5 @@
 import type { LinkStatus, LinkView } from "@linkwatch/core";
+import { STATUS_BY_SEVERITY } from "./status-style";
 
 export type SortKey =
 	| "url"
@@ -27,14 +28,9 @@ export const FIRST_DIR: Record<SortKey, SortDir> = {
 };
 
 /** FR-09 severity: ascending = worst first. */
-const STATUS_RANK: Record<LinkStatus, number> = {
-	down: 0,
-	dead: 1,
-	suspect: 2,
-	slow: 3,
-	up: 4,
-	pending: 5,
-};
+const STATUS_RANK = Object.fromEntries(
+	STATUS_BY_SEVERITY.map((status, rank) => [status, rank]),
+) as Record<LinkStatus, number>;
 
 const collator = new Intl.Collator("en", {
 	sensitivity: "base",

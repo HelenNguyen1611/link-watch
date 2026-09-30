@@ -29,6 +29,19 @@ export const STATUS_STYLE: Record<
 	suspect: { color: "grape.7", icon: "help", Icon: IconHelp },
 };
 
+/**
+ * FR-09 severity, worst first: outage, broken link, failed once (awaiting the SRS 5.2 recheck),
+ * slow, healthy, not checked yet. Shared by the status filter chips and the Status sort.
+ */
+export const STATUS_BY_SEVERITY: readonly LinkStatus[] = [
+	"down",
+	"dead",
+	"suspect",
+	"slow",
+	"up",
+	"pending",
+];
+
 /** 4xx orange, 5xx red; success/redirect codes stay neutral. */
 export function httpCodeColor(code: number | undefined): string | undefined {
 	if (code === undefined) return undefined;
