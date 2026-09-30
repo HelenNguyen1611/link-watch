@@ -1,4 +1,5 @@
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
@@ -16,6 +17,8 @@ const S = dynamodb.AttributeType.STRING;
  */
 export class DataStack extends cdk.Stack {
 	readonly table: dynamodb.Table;
+	/** Step 19b: links snapshot for the list screen (derived data, rebuilt every 5 minutes). */
+	readonly snapshotBucket: s3.Bucket;
 
 	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
 		super(scope, id, props);
@@ -48,6 +51,16 @@ export class DataStack extends cdk.Stack {
 			parameterName: TABLE_NAME_PARAM,
 			stringValue: this.table.tableName,
 			description: "LinkWatch DynamoDB table name",
+		});
+
+		// Private: read only through the API (Cognito), written only by the Dispatcher.
+		this.snapshotBucket = new s3.Bucket(this, "SnapshotBucket", {
+			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+			encryption: s3.BucketEncryption.S3_MANAGED,
+			enforceSSL: true,
+			// Derived data: nothing to keep. RETAIN avoids an auto-delete custom resource.
+			removalPolicy: cdk.RemovalPolicy.RETAIN,
+			lifecycleRules: [{ noncurrentVersionExpiration: cdk.Duration.days(1) }],
 		});
 
 		new cdk.CfnOutput(this, "TableName", { value: this.table.tableName });

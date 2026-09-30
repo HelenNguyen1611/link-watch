@@ -353,7 +353,8 @@
 - **Xong khi:** `pnpm test:int` pass: nhập CSV có dòng trùng/lỗi, tạm dừng link thì Dispatcher bỏ qua.
 - **Phụ thuộc:** 10a
 
-#### Bước 19b — API sửa, tạm dừng, thao tác hàng loạt, tìm/lọc, nhập/xuất
+#### Bước 19b — API sửa, tạm dừng, thao tác hàng loạt, tìm/lọc, nhập/xuất ✅
+- ✅ đã làm (30/09/2026): `PATCH /api/links/:id`, `POST /api/links/bulk` `{action: pause|resume|delete, ids ≤ 100}`, `POST /api/links/import/preview` `{text}` + `POST /api/links/import` (≤ 25 dòng/lần, quá → 400 `import_too_large`), `GET /api/links/export.csv`, `POST /api/links/fresh` (≤ 100 khóa `{domain,id}` → dòng mới nhất, dùng để ghi đè snapshot), `GET /api/links/snapshot`. Snapshot: bucket S3 riêng `SnapshotBucket` (LinkWatch-Data, private, SSE, HTTPS-only), object `links/snapshot.json`; Dispatcher ghi lại sau mỗi lượt (lỗi snapshot không làm hỏng lượt), API chỉ đọc (chưa có → dựng tạm từ GSI3). Tìm/lọc theo domain/trạng thái/tag/lịch làm phía client trên snapshot (26b). Chỉ thêm 2 tài nguyên, không đổi logical ID.
 - **Đã chốt 30/09/2026 — hướng 2 (snapshot):** danh sách link cho SCR-03 lấy từ một file snapshot JSON gọn (toàn bộ link, chỉ các cột hiển thị) ghi lại sau mỗi lượt Dispatcher (5 phút), đọc qua API có đăng nhập; web sort/lọc/phân trang phía client như hiện tại (giữ sort mọi cột, tổng số, số trang). Link đang được theo dõi (vừa Check now, vừa thêm/sửa, Pending/Suspect, trang chi tiết) đọc trực tiếp theo khóa và ghi đè lên dòng trong snapshot → luôn mới. Lý do: GSI3 chỉ 8 RCU, đọc toàn bộ 5.000 link mỗi lần tải sẽ bị throttle; hướng 1 (phân trang + FilterExpression trên DynamoDB) mất sort theo cột và tổng số. Snapshot là thành phần mới của kiến trúc (S3 + quyền IAM), đã được người dùng đồng ý.
 - **File:** `src/routes/links.ts`, `src/routes/import.ts`.
 - **FR/AC:** FR-03 → FR-06 (tìm, lọc domain/trạng thái/tag/lịch, CSV xuất).

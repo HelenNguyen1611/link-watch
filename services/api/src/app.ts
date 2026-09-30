@@ -1,5 +1,5 @@
 import type { Db } from "@linkwatch/core/db";
-import type { SendPriorityJob } from "@linkwatch/core/usecases";
+import type { SendPriorityJob, SnapshotStore } from "@linkwatch/core/usecases";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type AuthMode, type AuthVariables, auth } from "./middleware/auth";
@@ -17,6 +17,8 @@ export type AppDeps = {
 	email: EmailDeps;
 	/** FR-16: sends Check now jobs to the priority queue; undefined → Check now answers 503. */
 	sendPriorityJob?: SendPriorityJob;
+	/** Step 19b: stored links snapshot; undefined → built on the fly (local API). */
+	snapshot?: SnapshotStore;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
 	/** Set only for local development (web :3000 → API :8787); production is same-origin via CloudFront. */
 	corsOrigins?: string[];
@@ -41,7 +43,7 @@ export function createApp(deps: AppDeps) {
 	app.onError(onError(log));
 	app.notFound((c) => c.json({ error: "not_found" }, 404));
 	app.get("/health", (c) => c.json({ ok: true }));
-	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob));
+	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob, deps.snapshot));
 	app.route("/incidents", incidentRoutes(deps.db));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));

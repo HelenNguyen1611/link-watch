@@ -231,3 +231,51 @@ describe("AC-02 — default 06:00 schedule", () => {
 		}
 	});
 });
+
+describe("Dispatcher — links snapshot (step 19b)", () => {
+	it("step 19b: rebuilds the snapshot after each tick", async () => {
+		let stored: string | null = null;
+		sqsMock.reset();
+		sqsMock
+			.on(SendMessageBatchCommand)
+			.resolves({ Successful: [], Failed: [] });
+		await createHandler({
+			db: t.db,
+			sqs: new SQSClient({ region: "local" }),
+			queueUrl: QUEUE_URL,
+			now: () => new Date("2026-09-29T12:00:00.000Z"),
+			snapshot: {
+				read: async () => stored,
+				write: async (body) => {
+					stored = body;
+				},
+			},
+		})();
+		const snap = JSON.parse(stored ?? "{}");
+		expect(snap.generatedAt).toBe("2026-09-29T12:00:00.000Z");
+		expect(snap.items.length).toBeGreaterThan(0);
+	});
+
+	it("step 19b: a snapshot failure does not fail the tick", async () => {
+		sqsMock.reset();
+		sqsMock
+			.on(SendMessageBatchCommand)
+			.resolves({ Successful: [], Failed: [] });
+		const logs: string[] = [];
+		const res = await createHandler({
+			db: t.db,
+			sqs: new SQSClient({ region: "local" }),
+			queueUrl: QUEUE_URL,
+			now: () => new Date("2026-09-29T12:05:00.000Z"),
+			log: (m) => logs.push(m),
+			snapshot: {
+				read: async () => null,
+				write: async () => {
+					throw new Error("AccessDenied");
+				},
+			},
+		})();
+		expect(res).toHaveProperty("dispatched");
+		expect(logs).toContain("Snapshot refresh failed");
+	});
+});

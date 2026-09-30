@@ -183,4 +183,14 @@ describe("Link management API — FR-03, FR-04, FR-05", () => {
 		]);
 		expect((await call("/api/links/fresh", json("POST", []))).status).toBe(400);
 	});
+
+	it("step 19b: GET /api/links/snapshot — built on the fly when no snapshot is stored (local)", async () => {
+		const res = await call("/api/links/snapshot");
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.stored).toBe(false);
+		expect(body.items.map((l: { url: string }) => l.url)).toContain(
+			"https://a.imp.com/x",
+		);
+	});
 });

@@ -1,6 +1,7 @@
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as eventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import type * as s3 from "aws-cdk-lib/aws-s3";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as sqs from "aws-cdk-lib/aws-sqs";
@@ -13,6 +14,8 @@ import { grantSendEmail } from "./ses";
 export interface WorkersStackProps extends cdk.StackProps {
 	/** Needs the table stream (NEW_AND_OLD_IMAGES) for the Alert Lambda. */
 	table: dynamodb.ITable;
+	/** Step 19b: the Dispatcher rewrites the links snapshot after each tick. */
+	snapshotBucket: s3.IBucket;
 }
 
 /**
@@ -64,8 +67,11 @@ export class WorkersStack extends cdk.Stack {
 			environment: {
 				TABLE_NAME: props.table.tableName,
 				CHECK_QUEUE_URL: this.checkQueue.queueUrl,
+				SNAPSHOT_BUCKET: props.snapshotBucket.bucketName,
 			},
 		});
+		// Only the snapshot object prefix.
+		props.snapshotBucket.grantPut(dispatcher, "links/*");
 		props.table.grantReadWriteData(dispatcher);
 		this.checkQueue.grantSendMessages(dispatcher);
 

@@ -4,6 +4,7 @@ import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import type * as lambda from "aws-cdk-lib/aws-lambda";
+import type * as s3 from "aws-cdk-lib/aws-s3";
 import type * as sqs from "aws-cdk-lib/aws-sqs";
 import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
@@ -15,6 +16,8 @@ export interface ApiStackProps extends cdk.StackProps {
 	table: dynamodb.ITable;
 	/** FR-16: Check now jobs go to the Workers priority queue (step 21). */
 	priorityQueue: sqs.IQueue;
+	/** Step 19b: the API reads the links snapshot (read-only). */
+	snapshotBucket: s3.IBucket;
 }
 
 /**
@@ -42,10 +45,12 @@ export class ApiStack extends cdk.Stack {
 				SENDER_EMAIL: config.senderEmail,
 				DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
 				PRIORITY_QUEUE_URL: props.priorityQueue.queueUrl,
+				SNAPSHOT_BUCKET: props.snapshotBucket.bucketName,
 			},
 		});
 		this.apiFunction = fn;
 		props.priorityQueue.grantSendMessages(fn);
+		props.snapshotBucket.grantRead(fn, "links/*");
 		props.table.grantReadWriteData(fn);
 		// FR-26: test email from the Settings screen.
 		grantSendEmail(fn);

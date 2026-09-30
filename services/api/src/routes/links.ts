@@ -15,7 +15,9 @@ import {
 	listAllLinks,
 	listLinks,
 	previewImport,
+	readLinkSnapshot,
 	type SendPriorityJob,
+	type SnapshotStore,
 	setPaused,
 	updateLink,
 } from "@linkwatch/core/usecases";
@@ -47,9 +49,17 @@ const UptimeQuery = z.object({
  * export CSV (FR-03, FR-05); one link, its checks, uptime and incidents (FR-17, FR-18); Check now (FR-16).
  * `sendPriorityJob` is undefined when no priority queue is configured (local API).
  */
-export function linkRoutes(db: Db, sendPriorityJob?: SendPriorityJob) {
+export function linkRoutes(
+	db: Db,
+	sendPriorityJob?: SendPriorityJob,
+	snapshot?: SnapshotStore,
+) {
 	return (
 		new Hono()
+			// Step 19b: every link for the list screen (rebuilt after each Dispatcher tick).
+			.get("/snapshot", async (c) =>
+				c.json(await readLinkSnapshot(db, snapshot)),
+			)
 			// FR-05: CSV export of every link with its current status.
 			.get("/export.csv", async (c) => {
 				const csv = linksToCsv(await listAllLinks(db));

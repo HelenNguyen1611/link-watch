@@ -15,11 +15,13 @@ const data = new DataStack(app, "LinkWatch-Data", { env });
 const workers = new WorkersStack(app, "LinkWatch-Workers", {
 	env,
 	table: data.table,
+	snapshotBucket: data.snapshotBucket,
 });
 const api = new ApiStack(app, "LinkWatch-Api", {
 	env,
 	table: data.table,
 	priorityQueue: workers.priorityQueue,
+	snapshotBucket: data.snapshotBucket,
 });
 new WebStack(app, "LinkWatch-Web", {
 	env,

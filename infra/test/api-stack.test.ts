@@ -16,12 +16,14 @@ describe("LinkWatch-Api", () => {
 		const workers = new WorkersStack(app, "LinkWatch-Workers", {
 			env,
 			table: data.table,
+			snapshotBucket: data.snapshotBucket,
 		});
 		template = Template.fromStack(
 			new ApiStack(app, "LinkWatch-Api", {
 				env,
 				table: data.table,
 				priorityQueue: workers.priorityQueue,
+				snapshotBucket: data.snapshotBucket,
 			}),
 		);
 	});
@@ -40,6 +42,7 @@ describe("LinkWatch-Api", () => {
 					SENDER_EMAIL: config.senderEmail,
 					DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
 					PRIORITY_QUEUE_URL: Match.anyValue(),
+					SNAPSHOT_BUCKET: Match.anyValue(),
 				}),
 			},
 		});
@@ -122,6 +125,13 @@ describe("LinkWatch-Api", () => {
 				ThrottlingBurstLimit: 20,
 			},
 		});
+	});
+
+	it("step 19b: the API reads the snapshot objects only (no write)", () => {
+		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+		expect(policies).toContain("s3:GetObject*");
+		expect(policies).toContain("/links/*");
+		expect(policies).not.toContain("s3:PutObject");
 	});
 
 	it("FR-16: the API may send Check now jobs to the priority queue (and nothing else on SQS)", () => {

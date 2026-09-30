@@ -131,4 +131,20 @@ describe("LinkWatch-Data", () => {
 			template.resourceCountIs(type, 0);
 		}
 	});
+
+	it("step 19b: private, encrypted, HTTPS-only bucket for the links snapshot", () => {
+		template.hasResourceProperties("AWS::S3::Bucket", {
+			PublicAccessBlockConfiguration: {
+				BlockPublicAcls: true,
+				BlockPublicPolicy: true,
+				IgnorePublicAcls: true,
+				RestrictPublicBuckets: true,
+			},
+			BucketEncryption: Match.objectLike({}),
+		});
+		const policies = JSON.stringify(
+			template.findResources("AWS::S3::BucketPolicy"),
+		);
+		expect(policies).toContain("aws:SecureTransport");
+	});
 });

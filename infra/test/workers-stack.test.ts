@@ -23,6 +23,7 @@ describe("LinkWatch-Workers", () => {
 		const workers = new WorkersStack(app, "LinkWatch-Workers", {
 			env,
 			table: data.table,
+			snapshotBucket: data.snapshotBucket,
 		});
 		template = Template.fromStack(workers);
 		fns = template.findResources("AWS::Lambda::Function") as Record<string, Fn>;
@@ -194,6 +195,19 @@ describe("LinkWatch-Workers", () => {
 		);
 		expect(Object.keys(envOf(fn("checker")))).toContain("TABLE_NAME");
 		expect(Object.keys(envOf(fn("checker")))).not.toContain("CHECK_QUEUE_URL");
+	});
+
+	it("step 19b: the Dispatcher may only write the snapshot objects (links/*) and knows the bucket", () => {
+		const env = (
+			fn("dispatcher").Properties.Environment as {
+				Variables: Record<string, unknown>;
+			}
+		).Variables;
+		expect(env).toHaveProperty("SNAPSHOT_BUCKET");
+		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+		expect(policies).toContain("s3:PutObject");
+		expect(policies).toContain("/links/*");
+		expect(policies).not.toContain("s3:DeleteObject");
 	});
 
 	it("least-privilege IAM: the Dispatcher can send to the queue; nobody can delete the table", () => {

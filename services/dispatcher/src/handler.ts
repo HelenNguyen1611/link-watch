@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { SendMessageBatchCommand, type SQSClient } from "@aws-sdk/client-sqs";
 import { MAX_LINKS_PER_JOB, type ScheduledJob } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
-import { recordTick } from "@linkwatch/core/usecases";
+import {
+	recordTick,
+	refreshLinkSnapshot,
+	type SnapshotStore,
+} from "@linkwatch/core/usecases";
 import pLimit from "p-limit";
 
 /**
@@ -21,6 +25,8 @@ export type DispatcherDeps = {
 	queueUrl: string;
 	now?: () => Date;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
+	/** Step 19b: links snapshot rebuilt after each tick; undefined → not maintained. */
+	snapshot?: SnapshotStore;
 };
 
 type DueLink = { domain: string; id: string; nextRunAt: string };
@@ -147,6 +153,16 @@ export function createHandler(deps: DispatcherDeps) {
 			messages: jobs.length,
 		};
 		log("Dispatch finished", summary);
+
+		// Step 19b: the list screen reads this snapshot; a failure must not fail the tick.
+		if (deps.snapshot) {
+			try {
+				const links = await refreshLinkSnapshot(deps.db, deps.snapshot, tick);
+				log("Snapshot refreshed", { links });
+			} catch (err) {
+				log("Snapshot refresh failed", { error: String(err) });
+			}
+		}
 		return summary;
 	};
 }

@@ -16,11 +16,13 @@ describe("SES references (step 38b, FR-26)", () => {
 		const workers = new WorkersStack(app, "LinkWatch-Workers", {
 			env,
 			table: data.table,
+			snapshotBucket: data.snapshotBucket,
 		});
 		const api = new ApiStack(app, "LinkWatch-Api", {
 			env,
 			table: data.table,
 			priorityQueue: workers.priorityQueue,
+			snapshotBucket: data.snapshotBucket,
 		});
 		// Build every stack before the first synth (Template.fromStack synthesizes the app).
 		stacks = {

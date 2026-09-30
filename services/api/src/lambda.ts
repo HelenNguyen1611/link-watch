@@ -1,9 +1,11 @@
 import { Logger } from "@aws-lambda-powertools/logger";
+import { S3Client } from "@aws-sdk/client-s3";
 import { SESv2Client } from "@aws-sdk/client-sesv2";
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { createDb } from "@linkwatch/core/db";
 import { handle } from "hono/aws-lambda";
 import { createApp } from "./app";
+import { s3SnapshotStore } from "./snapshot-store";
 
 const logger = new Logger({ serviceName: "api" });
 
@@ -19,6 +21,7 @@ const priorityQueueUrl = env("PRIORITY_QUEUE_URL");
 const app = createApp({
 	db: createDb(),
 	auth: { kind: "apiGateway" },
+	snapshot: s3SnapshotStore(new S3Client({}), env("SNAPSHOT_BUCKET")),
 	// FR-16: no delay — the Checker picks the job up within seconds.
 	sendPriorityJob: async (job) => {
 		await sqs.send(
