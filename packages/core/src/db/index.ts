@@ -15,6 +15,7 @@ export { OUTBOX_KINDS, type OutboxKind } from "./entities/outbox";
 
 import { outboxEntity, outboxWindowEntity } from "./entities/outbox";
 import { recipientEntity } from "./entities/recipient";
+import { scheduleEntity } from "./entities/schedule";
 import { settingsEntity } from "./entities/settings";
 import { tickEntity } from "./entities/tick";
 import { urlLockEntity } from "./entities/url-lock";
@@ -55,6 +56,7 @@ export function createDb(opts: DbOptions = {}) {
 		Outbox: outboxEntity(client, table),
 		OutboxWindow: outboxWindowEntity(client, table),
 		Tick: tickEntity(client, table),
+		Schedule: scheduleEntity(client, table),
 	};
 	return {
 		table,

@@ -6,4 +6,5 @@ export * from "./import";
 export * from "./incidents";
 export * from "./links";
 export * from "./recipients";
+export * from "./schedules";
 export * from "./snapshot";

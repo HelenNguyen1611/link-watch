@@ -315,7 +315,8 @@
 - **Xong khi:** test `FR-12`, `FR-13`, `AC-03` pass (gồm case cuối tháng, ngày 31).
 - **Phụ thuộc:** 3a
 
-#### Bước 8c — ElectroDB: Schedule
+#### Bước 8c — ElectroDB: Schedule ✅
+- ✅ đã làm (30/09/2026): entity `Schedule` (PK `SCHED#<id>`, SK `META`, GSI3 pk `SCHED`; `rule` lưu dạng map, kiểm tra bằng `ScheduleRule` trước khi ghi), `loadScheduleTemplates` (id → rule, bỏ qua rule hỏng).
 - **File:** `src/db/entities/schedule.ts` + int test.
 - **FR/AC:** FR-12.
 - **Xong khi:** `pnpm test:int` pass: tạo/đọc lịch mẫu.
