@@ -414,7 +414,8 @@
 - **Xong khi:** test render pass; mỗi link có URL `/confirm/?token=…`.
 - **Phụ thuộc:** 7, 15a
 
-#### Bước 16b — Alert: tạo token cho từng người nhận
+#### Bước 16b — Alert: tạo token cho từng người nhận ✅
+- ✅ đã làm (30/09/2026): khi gửi email Sự cố, Alert tạo cho **mỗi người nhận** 1 token/link + 1 token nhóm (nếu > 1 link), lưu `Token` (chỉ hash, TTL 7 ngày) trước khi gửi. Nhánh verify-failed: Bước 17b.
 - **File:** `services/alert/src/handler.ts` (thêm sự kiện verify-failed), tạo token cho từng người nhận.
 - **FR/AC:** FR-33, FR-34.
 - **Xong khi:** test int: email Sự cố chứa token hợp lệ, DB chỉ lưu bản băm.

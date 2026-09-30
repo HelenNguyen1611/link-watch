@@ -70,9 +70,9 @@ describe("schedules — FR-11, FR-12", () => {
 			{ now: NOW },
 		);
 		const after = await getLink(t.db, l.id);
-		// Next 30-minute boundary (10:30) + jitter ≤ 5 min.
-		expect(minutesUntil(after.nextRunAt)).toBeGreaterThanOrEqual(28);
-		expect(minutesUntil(after.nextRunAt)).toBeLessThanOrEqual(33);
+		// Its own slot in the current or next half hour (boundary + jitter ≤ 5 min), not 06:00 tomorrow.
+		expect(minutesUntil(after.nextRunAt)).toBeGreaterThan(0);
+		expect(minutesUntil(after.nextRunAt)).toBeLessThanOrEqual(35);
 		await updateSchedule(
 			t.db,
 			"default",

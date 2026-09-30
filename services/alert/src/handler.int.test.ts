@@ -124,6 +124,7 @@ const emails = () =>
 			from: input.FromEmailAddress,
 			subject: input.Content?.Simple?.Subject?.Data ?? "",
 			text: input.Content?.Simple?.Body?.Text?.Data ?? "",
+			html: input.Content?.Simple?.Body?.Html?.Data ?? "",
 		};
 	});
 
@@ -279,6 +280,53 @@ describe("Alert — incident email (FR-20 → FR-22, FR-25)", () => {
 		await handlerAt(at(8))(flush);
 		await handlerAt(at(8))(flush);
 		expect(emails()).toHaveLength(1);
+	});
+});
+
+describe("Alert — Fixed — check again tokens (FR-33, FR-34)", () => {
+	it("FR-33 / FR-34: each recipient gets its own tokens (per link + group); only hashes are stored", async () => {
+		const links = await addLinks("tok.vn", 2, "owner@tok.vn");
+		await t.db.Recipient.put({
+			scope: "DOMAIN",
+			target: "tok.vn",
+			email: "dev@tok.vn",
+		}).go();
+		const inserts = [];
+		for (const link of links) inserts.push(await openIncident(link, at(200)));
+		await handlerAt(at(203))(streamEvent(...inserts));
+		await deliverFlushes(at(208));
+		const sent = emails();
+		expect(sent.map((e) => e.to[0]).sort()).toEqual([
+			"dev@tok.vn",
+			"owner@tok.vn",
+		]);
+		const tokensOf = (html: string) =>
+			[...html.matchAll(/confirm\/\?token=([A-Za-z0-9_-]+)/g)].map(
+				(m) => m[1] as string,
+			);
+		const owner = tokensOf(
+			sent.find((e) => e.to[0] === "owner@tok.vn")?.html ?? "",
+		);
+		const dev = tokensOf(
+			sent.find((e) => e.to[0] === "dev@tok.vn")?.html ?? "",
+		);
+		// 2 link buttons + 1 group button each, all different.
+		expect(new Set(owner).size).toBe(3);
+		expect(owner.some((tok) => dev.includes(tok))).toBe(false);
+		const { hashToken } = await import("@linkwatch/core/token");
+		const records = await Promise.all(
+			owner.map((tok) => t.db.Token.get({ tokenHash: hashToken(tok) }).go()),
+		);
+		expect(records.map((r) => r.data?.recipientEmail)).toEqual([
+			"owner@tok.vn",
+			"owner@tok.vn",
+			"owner@tok.vn",
+		]);
+		expect(records.map((r) => r.data?.incidentIds.length).sort()).toEqual([
+			1, 1, 2,
+		]);
+		const raw = await t.db.Token.get({ tokenHash: owner[0] as string }).go();
+		expect(raw.data).toBeNull(); // the raw token is never a key
 	});
 });
 

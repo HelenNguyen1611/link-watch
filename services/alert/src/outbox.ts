@@ -7,6 +7,7 @@ import {
 	type SettingsDefaults,
 } from "@linkwatch/core";
 import type { Db, NotificationLogKind } from "@linkwatch/core/db";
+import { hashToken, newToken, tokenTtl } from "@linkwatch/core/token";
 import {
 	claimOutageNotice,
 	findRecentOutage,
@@ -83,7 +84,7 @@ export async function sendGrouped(
 	sender: Sender,
 	incidents: Incident[],
 	kind: NotificationLogKind,
-	render: (items: Incident[]) => Promise<RenderedEmail>,
+	render: (items: Incident[], to: string) => Promise<RenderedEmail>,
 	now: Date,
 ): Promise<Incident[]> {
 	const recipients = new Map<string, string[]>();
@@ -104,7 +105,7 @@ export async function sendGrouped(
 	const delivered = new Set<string>();
 	const sentAt = now.toISOString();
 	for (const [to, items] of byRecipient) {
-		const email = await render(items);
+		const email = await render(items, to);
 		const result = await sendEmail(
 			{ ses: deps.ses, ...(deps.sleep && { sleep: deps.sleep }) },
 			{ from: sender.from, to, ...email },
@@ -179,12 +180,8 @@ export async function flushOutbox(
 					sender,
 					pending,
 					"down",
-					(items) =>
-						renderIncidentEmail({
-							domain: key.domain,
-							appUrl: deps.config.appUrl,
-							items: items.map(toIncidentItem),
-						}),
+					(items, to) =>
+						renderIncidentEmailWithTokens(deps, key.domain, items, to, now),
 					now,
 				);
 				await markIncidents(deps, delivered, {
@@ -216,6 +213,44 @@ export async function flushOutbox(
 		}
 	}
 	await taken.done();
+}
+
+/**
+ * FR-33 / FR-34: incident email with this recipient's "Fixed — check again" tokens — one per
+ * link, plus one for the whole group when several links are listed. Only hashes are stored.
+ */
+async function renderIncidentEmailWithTokens(
+	deps: AlertDeps,
+	domain: string,
+	items: Incident[],
+	to: string,
+	now: Date,
+): Promise<RenderedEmail> {
+	const issue = async (incidentIds: string[]) => {
+		const token = newToken();
+		await deps.db.Token.put({
+			tokenHash: hashToken(token),
+			incidentIds,
+			recipientEmail: to,
+			issuedAt: now.toISOString(),
+			ttl: tokenTtl(now),
+		}).go();
+		return token;
+	};
+	const withTokens = [];
+	for (const i of items)
+		withTokens.push({
+			...toIncidentItem(i),
+			confirmToken: await issue([idOf(i)]),
+		});
+	const groupToken =
+		items.length > 1 ? await issue(items.map(idOf)) : undefined;
+	return renderIncidentEmail({
+		domain,
+		appUrl: deps.config.appUrl,
+		items: withTokens,
+		...(groupToken && { groupToken }),
+	});
 }
 
 export async function markIncidents(
