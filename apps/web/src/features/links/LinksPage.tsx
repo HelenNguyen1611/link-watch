@@ -3,12 +3,15 @@
 import type { LinkView } from "@linkwatch/core";
 import { Alert, Box, Group, Loader, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { PALETTE } from "@/lib/colors";
 import { AddLinkForm } from "./AddLinkForm";
+import { EMPTY_FILTER, filterLinks, type LinkFilter } from "./filter";
+import { LinkFilters } from "./LinkFilters";
 import { LinkTable } from "./LinkTable";
 
 /** Auto-refresh to pick up new check results (the Dispatcher runs every 5 minutes). */
@@ -34,6 +37,10 @@ export function LinksPage() {
 		},
 		refetchInterval: REFRESH_MS,
 	});
+
+	const [filter, setFilter] = useState<LinkFilter>(EMPTY_FILTER);
+	const all = links.data ?? [];
+	const shown = useMemo(() => filterLinks(all, filter), [all, filter]);
 
 	// 401: the API client signs out and the gate shows the sign-in page; no error box.
 	const unauthorized =
@@ -62,7 +69,19 @@ export function LinksPage() {
 					{t("links.loadError")}
 				</Alert>
 			) : (
-				<LinkTable links={links.data ?? []} />
+				<>
+					{all.length > 0 && (
+						<LinkFilters
+							onChange={setFilter}
+							shown={shown.length}
+							total={all.length}
+						/>
+					)}
+					<LinkTable
+						links={shown}
+						emptyText={all.length > 0 ? t("links.noMatch") : undefined}
+					/>
+				</>
 			)}
 		</>
 	);

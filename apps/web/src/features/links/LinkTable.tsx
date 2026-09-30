@@ -103,11 +103,19 @@ const ariaSort = (sort: SortState, column: SortKey) =>
 		: "none";
 
 /** FR-17: status, HTTP code, response time and last check of each link; every column sorts. */
-export function LinkTable({ links }: { links: LinkView[] }) {
+export function LinkTable({
+	links,
+	emptyText,
+}: {
+	links: LinkView[];
+	/** Shown instead of the default "no links yet" text, e.g. when filters match nothing. */
+	emptyText?: string;
+}) {
 	const { t } = useTranslation();
 	const [sort, setSort] = useState<SortState>(null);
 	const rows = useMemo(() => sortLinks(links, sort), [links, sort]);
-	if (links.length === 0) return <Text c="dimmed">{t("links.empty")}</Text>;
+	if (links.length === 0)
+		return <Text c="dimmed">{emptyText ?? t("links.empty")}</Text>;
 	const onSort = (key: SortKey) => setSort((s) => nextSort(s, key));
 	const th = (key: SortKey) => (
 		<Table.Th

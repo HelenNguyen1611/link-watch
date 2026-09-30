@@ -119,6 +119,20 @@
 			"added": "Added"
 		},
 		"sortBy": "Sort by {{column}}",
+		"noMatch": "No links match the filters.",
+		"filter": {
+			"title": "Filter links",
+			"search": "Search",
+			"searchPlaceholder": "URL, domain or name",
+			"status": "Status",
+			"checkedFrom": "Checked from",
+			"checkedTo": "Checked to",
+			"clear": "Clear filters",
+			"count": "Showing {{shown}} of {{total}} links",
+			"errors": {
+				"dateRange": "Must be on or after the start date"
+			}
+		},
 		"subtitle": "Add links to monitor and see their latest check results."
 	},
 	"linkForm": {

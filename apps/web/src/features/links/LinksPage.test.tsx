@@ -320,6 +320,119 @@ describe("LinksPage", () => {
 		expect(header().getAttribute("aria-sort")).toBe("none");
 	});
 
+	describe("filters", () => {
+		const data = () =>
+			fakeApi([
+				view({
+					id: "a",
+					url: "https://shop.abc.com/pricing",
+					domain: "abc.com",
+					status: "up",
+					lastCheckedAt: "2026-09-29T23:01:00.000Z", // 30/09 06:01 VN
+				}),
+				view({
+					id: "b",
+					url: "https://xyz.vn/blog",
+					domain: "xyz.vn",
+					status: "dead",
+					lastCheckedAt: "2026-09-28T23:01:00.000Z", // 29/09 06:01 VN
+				}),
+				view({ id: "c", url: "https://xyz.vn/new", domain: "xyz.vn" }),
+			]);
+		const urls = () =>
+			screen
+				.queryAllByRole("row")
+				.slice(1)
+				.map((r) => within(r).getByRole("link").textContent);
+
+		it("FR-17: search by URL or domain filters the rows live and shows the count", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			expect(screen.getByText("Showing 3 of 3 links")).toBeTruthy();
+			await userEvent.type(
+				screen.getByRole("textbox", { name: "Search" }),
+				"XYZ",
+			);
+			await waitFor(() =>
+				expect(urls()).toEqual(["https://xyz.vn/blog", "https://xyz.vn/new"]),
+			);
+			expect(screen.getByText("Showing 2 of 3 links")).toBeTruthy();
+		});
+
+		it("FR-17: status chips keep only the chosen statuses", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			const chips = within(screen.getByRole("group", { name: "Status" }));
+			await userEvent.click(chips.getByText("Dead link"));
+			await waitFor(() => expect(urls()).toEqual(["https://xyz.vn/blog"]));
+		});
+
+		it("FR-17: check date range keeps links last checked on those days", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			await userEvent.type(screen.getByLabelText("Checked from"), "2026-09-30");
+			await waitFor(() =>
+				expect(urls()).toEqual(["https://shop.abc.com/pricing"]),
+			);
+		});
+
+		it("FR-17: an end date before the start date shows an error and keeps the last valid filter", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			await userEvent.type(screen.getByLabelText("Checked from"), "2026-09-30");
+			await userEvent.type(screen.getByLabelText("Checked to"), "2026-09-01");
+			expect(
+				await screen.findByText("Must be on or after the start date"),
+			).toBeTruthy();
+			expect(urls()).toEqual(["https://shop.abc.com/pricing"]);
+		});
+
+		it("no match → says so; Clear filters shows every link again", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			await userEvent.type(
+				screen.getByRole("textbox", { name: "Search" }),
+				"nothing-here",
+			);
+			expect(
+				await screen.findByText("No links match the filters."),
+			).toBeTruthy();
+			await userEvent.click(
+				screen.getByRole("button", { name: "Clear filters" }),
+			);
+			await waitFor(() => expect(urls()).toHaveLength(3));
+			expect(
+				(screen.getByRole("textbox", { name: "Search" }) as HTMLInputElement)
+					.value,
+			).toBe("");
+		});
+
+		it("filters and sorting work together", async () => {
+			renderWithApi(<LinksPage />, data());
+			await screen.findByText("https://xyz.vn/blog");
+			await userEvent.type(
+				screen.getByRole("textbox", { name: "Search" }),
+				"xyz",
+			);
+			await userEvent.click(
+				screen.getByRole("button", { name: "Sort by URL" }),
+			);
+			await waitFor(() =>
+				expect(urls()).toEqual(["https://xyz.vn/blog", "https://xyz.vn/new"]),
+			);
+			await userEvent.click(
+				screen.getByRole("button", { name: "Sort by URL" }),
+			);
+			expect(urls()).toEqual(["https://xyz.vn/new", "https://xyz.vn/blog"]);
+		});
+
+		it("no links at all → no filter form, the usual empty prompt", async () => {
+			renderWithApi(<LinksPage />, fakeApi([]));
+			expect(await screen.findByText(/add your first link/i)).toBeTruthy();
+			expect(screen.queryByRole("search")).toBeNull();
+		});
+	});
+
 	it("sorting: every column header is a sort button", async () => {
 		renderWithApi(<LinksPage />, fakeApi([view({ url: "https://a.vn/" })]));
 		await screen.findByText("https://a.vn/");

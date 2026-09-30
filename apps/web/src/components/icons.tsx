@@ -161,3 +161,9 @@ export const IconSelector = (p: P) => (
 		<path d="M8 9l4-4 4 4M8 15l4 4 4-4" />
 	</Icon>
 );
+export const IconSearch = (p: P) => (
+	<Icon {...p}>
+		<circle cx="11" cy="11" r="6.5" />
+		<path d="M20 20l-4.2-4.2" />
+	</Icon>
+);
