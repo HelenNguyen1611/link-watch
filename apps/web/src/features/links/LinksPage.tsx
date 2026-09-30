@@ -57,7 +57,7 @@ export function LinksPage() {
 				mb={32}
 			/>
 			<Group justify="space-between" mb="xs" gap="xs">
-				<Text size="sm" c="dimmed">
+				<Text size="xs" c="dimmed">
 					{t(
 						links.data && !isWaitingForResult(links.data)
 							? "links.refresh.slow"
