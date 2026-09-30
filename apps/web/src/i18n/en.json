@@ -204,18 +204,6 @@
 			"unknown": "Could not add the link. Please try again."
 		}
 	},
-	"comingSoon": {
-		"status": "Screen {{screen}} is under construction — planned for milestone {{milestone}}.",
-		"goLinks": "Go to link list",
-		"desc": {
-			"overview": "Health per domain: links by status, 7/30-day uptime, last check.",
-			"domains": "Links grouped by root domain, alert recipients and per-domain schedules.",
-			"schedules": "Default 06:00 schedule and schedule profiles for domains or links.",
-			"incidents": "Open and closed incidents, duration, notified recipients, notes.",
-			"settingsEmail": "Verified SES sender, default admin email, test email.",
-			"settingsAccount": "Your sign-in account."
-		}
-	},
 	"settingsEmail": {
 		"subtitle": "Who sends LinkWatch alerts, who receives them by default, and how often reminders go out.",
 		"loadError": "Could not load the email settings.",
@@ -620,5 +608,35 @@
 		"failed": "Could not start the checks. Try again.",
 		"bulkLabel": "Actions on selected incidents",
 		"select": "Select {{url}}"
+	},
+	"overview": {
+		"subtitle": "Health of every domain at a glance.",
+		"loadError": "Could not load the overview.",
+		"empty": "No links yet. Add links to start monitoring.",
+		"addLinks": "Add links",
+		"allNormal": "Every domain is Normal.",
+		"attention": "Domains needing attention",
+		"allDomains": "All domains",
+		"openIncidents": "Open incidents",
+		"allIncidents": "All incidents",
+		"stat": {
+			"domains": "Domains",
+			"domainsDetail": "Down {{down}} · Error {{error}} · Warning {{warning}} · Normal {{normal}}",
+			"links": "Active links",
+			"linksDetail": "Up {{up}} · Slow {{slow}} · Paused {{paused}}",
+			"failing": "Failing links",
+			"failingDetail": "Site down {{down}} · Dead {{dead}} · Suspect {{suspect}}",
+			"uptime": "Uptime 7 days",
+			"uptimeDetail": "Weighted by active links"
+		}
+	},
+	"account": {
+		"subtitle": "Your sign-in account.",
+		"email": "Email",
+		"role": "Role",
+		"admin": "Admin — every signed-in user can manage links, domains, schedules and settings.",
+		"password": "To change your password, sign out and use “Forgot password?” on the sign-in page.",
+		"users": "Users are invited and removed by the system owner in Amazon Cognito (see RUNBOOK). Managing users in the app comes in phase 2.",
+		"signOut": "Sign out"
 	}
 }

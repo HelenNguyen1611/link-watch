@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { AccountPage } from "@/features/account/AccountPage";
 
 export default function Page() {
-	return <ComingSoon navKey="settingsAccount" screen="SCR-09" milestone={3} />;
+	return <AccountPage />;
 }

@@ -388,9 +388,11 @@
 
 #### Bước 24 — SCR-01 Tổng quan
 - **FR/AC:** FR-09, FR-10, NFR-02. **Phụ thuộc:** 20b, 23b
+- ✅ đã làm (30/09/2026): `/` dùng lại `GET /api/domains` (tổng hợp sẵn, NFR-02) + sự cố đang mở. 4 thẻ: số domain theo trạng thái, link đang bật (Up/Slow/Paused), link lỗi (Site down/Dead/Suspect), uptime 7 ngày (bình quân theo số link đang bật). Bảng "Domains needing attention" (domain bật, khác Normal, Down → Error → Warning, tối đa 10) và "Open incidents" (tối đa 10). Chưa có link → nút Add links. Bỏ `ComingSoon` vì mọi màn đã có.
 
 #### Bước 31b — SCR-09 Tài khoản
 - **FR/AC:** SCR-09 MVP chỉ hiện tài khoản hiện tại (FR-29 để giai đoạn 2). **Phụ thuộc:** 23b
+- ✅ đã làm (30/09/2026): email đang đăng nhập, vai trò Admin, hướng dẫn đổi mật khẩu (Forgot password), người dùng do chủ hệ thống quản lý trong Cognito (RUNBOOK), nút Sign out.
 
 ### Luồng "Đã khắc phục"
 

@@ -1,6 +1,6 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { OverviewPage } from "@/features/overview/OverviewPage";
 
-// SCR-01 per-domain overview is built in step 24 (milestone 3).
+// SCR-01: per-domain overview (step 24).
 export default function Page() {
-	return <ComingSoon navKey="overview" screen="SCR-01" milestone={3} />;
+	return <OverviewPage />;
 }
