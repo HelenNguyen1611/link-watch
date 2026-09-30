@@ -14,8 +14,38 @@ import { useTranslation } from "react-i18next";
 import { isActive, MAIN_NAV, type NavItem, SETTINGS_NAV } from "@/lib/nav";
 import { IconChevronLeft, IconChevronRight, IconSettings } from "./icons";
 
+/** Expanded sidebar: 248 px on wide screens, shrinking to 180 px at the `sm` breakpoint. */
 export const SIDEBAR_WIDTH = 248;
+export const SIDEBAR_MIN_WIDTH = 180;
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
+/** Viewport widths between which the expanded sidebar grows from min to max (sm = 48em). */
+export const SIDEBAR_FLUID_FROM = 768;
+export const SIDEBAR_FLUID_TO = 1440;
+
+/**
+ * CSS width growing linearly from `min` px at a `from` px viewport to `max` px at `to` px,
+ * clamped outside that range: `clamp(min, a px + b vw, max)`.
+ */
+export function fluidWidth(
+	min: number,
+	max: number,
+	from: number,
+	to: number,
+): string {
+	const slope = (max - min) / (to - from);
+	const intercept = min - slope * from;
+	const px = Math.round(intercept * 100) / 100;
+	const vw = Math.round(slope * 100 * 10_000) / 10_000;
+	return `clamp(${min}px, ${px}px + ${vw}vw, ${max}px)`;
+}
+
+/** Expanded sidebar width on desktop (the mobile drawer keeps SIDEBAR_WIDTH). */
+export const SIDEBAR_FLUID_WIDTH = fluidWidth(
+	SIDEBAR_MIN_WIDTH,
+	SIDEBAR_WIDTH,
+	SIDEBAR_FLUID_FROM,
+	SIDEBAR_FLUID_TO,
+);
 
 type Props = {
 	pathname: string;

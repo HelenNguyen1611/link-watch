@@ -25,6 +25,7 @@ import {
 	ICON_SIZE,
 	SHELL_GUTTER,
 	SIDEBAR_COLLAPSED_WIDTH,
+	SIDEBAR_FLUID_WIDTH,
 	SIDEBAR_WIDTH,
 	Sidebar,
 } from "./Sidebar";
@@ -119,7 +120,7 @@ function Shell({
 			navbar={{
 				width: {
 					base: SIDEBAR_WIDTH,
-					sm: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
+					sm: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_FLUID_WIDTH,
 				},
 				breakpoint: "sm",
 				collapsed: { mobile: !mobileOpened },

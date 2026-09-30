@@ -6,7 +6,12 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Api } from "@/lib/api";
 import { renderWithApi } from "@/test/render";
-import { SHELL_GUTTER, Sidebar } from "./Sidebar";
+import {
+	fluidWidth,
+	SHELL_GUTTER,
+	SIDEBAR_FLUID_WIDTH,
+	Sidebar,
+} from "./Sidebar";
 
 vi.mock("next/link", () => ({
 	default: ({
@@ -108,6 +113,21 @@ describe("Sidebar", () => {
 			svg.getAttribute("width"),
 		);
 		expect(new Set(svgs)).toEqual(new Set(["20"]));
+	});
+
+	it("expanded width shrinks with the screen: 180 px at the sm breakpoint (768), 248 px from 1440", () => {
+		expect(SIDEBAR_FLUID_WIDTH).toBe(
+			"clamp(180px, 102.29px + 10.119vw, 248px)",
+		);
+		// The linear part hits both ends (within rounding).
+		const at = (vw: number) => 102.29 + (10.119 * vw) / 100;
+		expect(at(768)).toBeCloseTo(180, 0);
+		expect(at(1440)).toBeCloseTo(248, 0);
+		expect(at(1100)).toBeGreaterThan(180);
+		expect(at(1100)).toBeLessThan(248);
+		expect(fluidWidth(100, 200, 1000, 2000)).toBe(
+			"clamp(100px, 0px + 10vw, 200px)",
+		);
 	});
 
 	it("menu items use the same left inset as the header logo", () => {
