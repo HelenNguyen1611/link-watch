@@ -40,3 +40,26 @@ export const DomainInput = z.object({
 	ignoreWaf403: z.boolean().default(false),
 });
 export type DomainInput = z.infer<typeof DomainInput>;
+
+const clearable = (max: number) =>
+	z
+		.union([z.string().trim().max(max), z.null()])
+		.transform((v) => (v ? v : null));
+
+/** FR-08 / FR-13 / SRS 3.4: partial edit of a domain ("" or null clears a text or the schedule). */
+export const DomainUpdate = z
+	.object({
+		displayName: clearable(200),
+		description: clearable(1000),
+		owner: z
+			.union([z.literal(""), z.null(), Email])
+			.transform((v) => (v ? v : null)),
+		scheduleId: z.union([z.string().min(1), z.null()]),
+		enabled: z.boolean(),
+		slowAlert: z.boolean(),
+		ignoreWaf403: z.boolean(),
+	})
+	.partial()
+	.strict();
+export type DomainUpdate = z.infer<typeof DomainUpdate>;
+export type DomainUpdateRaw = z.input<typeof DomainUpdate>;

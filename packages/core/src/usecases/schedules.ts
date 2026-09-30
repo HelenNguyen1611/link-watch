@@ -17,3 +17,32 @@ export async function loadScheduleTemplates(
 	}
 	return map;
 }
+
+export class ScheduleNotFoundError extends Error {
+	readonly code = "not_found";
+	constructor(readonly id: string) {
+		super(`Schedule not found: ${id}`);
+		this.name = "ScheduleNotFoundError";
+	}
+}
+
+export class ScheduleInUseError extends Error {
+	readonly code = "schedule_in_use";
+	constructor(
+		readonly id: string,
+		readonly usedBy: { domains: number; links: number },
+	) {
+		super(
+			`Schedule ${id} is used by ${usedBy.domains} domains and ${usedBy.links} links`,
+		);
+		this.name = "ScheduleInUseError";
+	}
+}
+
+export class DefaultScheduleError extends Error {
+	readonly code = "default_schedule";
+	constructor() {
+		super("The default schedule cannot be deleted");
+		this.name = "DefaultScheduleError";
+	}
+}

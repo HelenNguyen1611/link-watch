@@ -13,6 +13,8 @@ export const LinkView = z.object({
 	expectedCodes: z.array(HttpCodeRange),
 	timeoutS: z.number(),
 	keyword: z.string().optional(),
+	/** FR-13: own schedule template; absent → inherits from the domain / default. */
+	scheduleId: z.string().optional(),
 	status: LinkStatus,
 	paused: z.boolean(),
 	nextRunAt: z.string().optional(),

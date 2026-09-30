@@ -78,6 +78,8 @@ export const LinkUpdate = z
 		expectedCodes: z.array(HttpCodeRange).min(1).max(10),
 		timeoutS: z.number().int().min(1).max(60),
 		keyword: clearableText(200),
+		/** FR-13: own schedule; null → inherit from the domain / default. */
+		scheduleId: z.union([z.string().min(1), z.null()]),
 	})
 	.partial()
 	.strict();

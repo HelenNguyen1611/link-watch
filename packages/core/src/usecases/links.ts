@@ -11,6 +11,8 @@ import {
 	LinkUpdate,
 	type LinkUpdateRaw,
 } from "../schema/link";
+import { rescheduleLinks } from "./reschedule";
+import { assertScheduleExists } from "./schedule-admin";
 
 export class DuplicateLinkError extends Error {
 	readonly code = "duplicate";
@@ -159,16 +161,21 @@ export async function updateLink(
 ) {
 	const input = LinkUpdate.parse(raw);
 	const link = await getLink(db, id);
-	const { url, name, keyword, ...rest } = input;
+	const { url, name, keyword, scheduleId, ...rest } = input;
+	if (scheduleId) await assertScheduleExists(db, scheduleId);
 	const cleared = [
 		...(name === null ? (["name"] as const) : []),
 		...(keyword === null ? (["keyword"] as const) : []),
+		...(scheduleId === null ? (["scheduleId"] as const) : []),
 	];
 	const set = {
 		...rest,
 		...(name ? { name } : {}),
 		...(keyword ? { keyword } : {}),
+		...(scheduleId ? { scheduleId } : {}),
 	};
+	const scheduleChanged =
+		scheduleId !== undefined && (scheduleId ?? undefined) !== link.scheduleId;
 
 	if (!url || url === link.url) {
 		let patch = db.Link.patch({ domain: link.domain, id }).set(set);
@@ -180,6 +187,9 @@ export async function updateLink(
 				if (isConditionalFailure(err)) throw new LinkNotFoundError(id);
 				throw err;
 			});
+		// FR-13: the new effective schedule applies now.
+		if (scheduleChanged)
+			await rescheduleLinks(db, [await getLink(db, id)], { now });
 		return getLink(db, id);
 	}
 

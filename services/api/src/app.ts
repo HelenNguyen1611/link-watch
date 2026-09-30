@@ -4,9 +4,11 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type AuthMode, type AuthVariables, auth } from "./middleware/auth";
 import { onError } from "./middleware/error";
+import { domainRoutes } from "./routes/domains";
 import { incidentRoutes } from "./routes/incidents";
 import { linkRoutes } from "./routes/links";
 import { recipientRoutes } from "./routes/recipients";
+import { scheduleRoutes } from "./routes/schedules";
 import { type EmailDeps, settingsRoutes } from "./routes/settings";
 
 export type AppDeps = {
@@ -45,6 +47,8 @@ export function createApp(deps: AppDeps) {
 	app.get("/health", (c) => c.json({ ok: true }));
 	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob, deps.snapshot));
 	app.route("/incidents", incidentRoutes(deps.db));
+	app.route("/schedules", scheduleRoutes(deps.db));
+	app.route("/domains", domainRoutes(deps.db));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));
 	return app;

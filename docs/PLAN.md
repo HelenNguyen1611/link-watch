@@ -330,6 +330,7 @@
 - **Phụ thuộc:** 8c, 13a
 
 #### Bước 20b — API Domain và Lịch
+- ✅ phần 1 (30/09/2026): `GET/POST /api/schedules`, `PATCH/DELETE /api/schedules/:id` (lịch `default` luôn có trong danh sách = FR-11, sửa lần đầu thì tạo; xóa `default` → 400; đang dùng → 409 `schedule_in_use` kèm `usedBy`), `GET/PATCH /api/domains/:name` (tên hiển thị, mô tả, người phụ trách, lịch, bật/tắt, cảnh báo chậm, bỏ qua 403 WAF), `PATCH /api/links/:id` nhận `scheduleId` (null = kế thừa). Mọi thay đổi lịch **tính lại `next_run_at` ngay** (`rescheduleLinks`) cho link bị ảnh hưởng (bỏ qua link tạm dừng). `LinkView` có `scheduleId`.
 - **File:** `src/routes/{domains,schedules}.ts`.
 - **FR/AC:** FR-08, FR-10 (số link theo trạng thái, uptime 7/30 ngày từ DayStat, lần check gần nhất/kế tiếp), FR-11 → FR-13.
 - **Xong khi:** test route pass; NFR-02: truy vấn tổng quan 500 domain dùng dữ liệu tổng hợp, không quét toàn bảng.

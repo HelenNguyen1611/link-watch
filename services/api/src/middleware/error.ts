@@ -23,6 +23,17 @@ export function onError(
 				},
 				409,
 			);
+		if (code === "schedule_in_use")
+			return c.json(
+				{
+					error: "schedule_in_use",
+					message: err.message,
+					...pick(err, "usedBy"),
+				},
+				409,
+			);
+		if (code === "default_schedule")
+			return c.json({ error: "default_schedule", message: err.message }, 400);
 		if (code === "import_too_large")
 			return c.json({ error: "import_too_large", message: err.message }, 400);
 		if (code === "incident_closed")
