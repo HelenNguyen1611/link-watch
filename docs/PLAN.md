@@ -322,7 +322,8 @@
 - **Xong khi:** `pnpm test:int` pass: tạo/đọc lịch mẫu.
 - **Phụ thuộc:** 8a, 3b
 
-#### Bước 13b — Dispatcher và Checker dùng lịch hiệu lực
+#### Bước 13b — Dispatcher và Checker dùng lịch hiệu lực ✅
+- ✅ đã làm (30/09/2026): Checker nạp lịch mẫu một lần mỗi lần gọi, đọc domain một lần mỗi job, tính `next_run_at` theo `resolveEffectiveSchedule` (Link > Domain > Mặc định); Dispatcher không cần đổi (chỉ lấy link đến hạn). AC-03 pass ở test int (Dispatcher mỗi 5 phút × 2 giờ, đếm giờ thứ hai: link theo domain 15 phút → 4 lần, link hàng tuần → 0). Đổi lịch → tính lại `next_run_at` ngay: Bước 20b.
 - **File:** `services/dispatcher/src/handler.ts`, `services/checker/src/handler.ts` (tính `next_run_at` theo lịch hiệu lực).
 - **FR/AC:** FR-13; **AC-03** (mô phỏng đồng hồ: chạy dispatcher mỗi 5 phút trong 1 giờ).
 - **Xong khi:** `pnpm test:int` có `AC-03` pass.

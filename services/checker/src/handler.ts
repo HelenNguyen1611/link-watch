@@ -1,6 +1,16 @@
-import { CheckJob, classify, type ProbeResult } from "@linkwatch/core";
+import {
+	CheckJob,
+	classify,
+	type ProbeResult,
+	resolveEffectiveSchedule,
+	type Schedule,
+} from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
-import { addTickFailure, recordCheck } from "@linkwatch/core/usecases";
+import {
+	addTickFailure,
+	loadScheduleTemplates,
+	recordCheck,
+} from "@linkwatch/core/usecases";
 import type {
 	SQSBatchItemFailure,
 	SQSBatchResponse,
@@ -42,18 +52,22 @@ export function createHandler(deps: CheckerDeps) {
 	const log = deps.log ?? (() => {});
 
 	async function checkLink(
-		domain: string,
+		domainName: string,
 		id: string,
 		jobId: string,
 		/** dispatchedAt of a scheduled job (5.2 step 5 run), undefined for priority jobs. */
 		tick: string | undefined,
-		/** Step 4b: domain setting — a 403 from a WAF is not a dead link. */
-		ignoreWaf403: boolean,
+		domain: { ignoreWaf403?: boolean; scheduleId?: string } | null,
+		/** FR-12 / FR-13: schedule templates of this invocation. */
+		templates: ReadonlyMap<string, Schedule>,
 	): Promise<void> {
-		const { data: link } = await deps.db.Link.get({ domain, id }).go();
+		const { data: link } = await deps.db.Link.get({
+			domain: domainName,
+			id,
+		}).go();
 		if (!link || link.deletedAt || link.paused) {
 			log("Skipping link", {
-				domain,
+				domain: domainName,
 				id,
 				reason: link ? "paused/deleted" : "not_found",
 			});
@@ -61,7 +75,11 @@ export function createHandler(deps: CheckerDeps) {
 		}
 		// SQS redelivery of a job already recorded: no second request to the site.
 		if (link.lastJobId === jobId) {
-			log("Skipping link", { domain, id, reason: "duplicate_job" });
+			log("Skipping link", {
+				domain: domainName,
+				id,
+				reason: "duplicate_job",
+			});
 			return;
 		}
 		const raw = await probe(
@@ -76,21 +94,33 @@ export function createHandler(deps: CheckerDeps) {
 		const checked = classify(raw, {
 			expectedCodes: link.expectedCodes,
 			keyword: link.keyword,
-			ignoreWaf403,
+			// Step 4b: domain setting — a 403 from a WAF is not a dead link.
+			ignoreWaf403: domain?.ignoreWaf403 ?? false,
 		});
+		// FR-13: Link > Domain > Default decides the next scheduled run.
+		const schedule = resolveEffectiveSchedule(
+			link,
+			domain ?? undefined,
+			templates,
+		).rule;
 		const outcome = await recordCheck(deps.db, link, checked, {
 			now: now(),
 			jobId,
+			schedule,
 		});
 		if (outcome.kind === "skipped") {
-			log("Check not recorded", { domain, id, reason: outcome.reason });
+			log("Check not recorded", {
+				domain: domainName,
+				id,
+				reason: outcome.reason,
+			});
 			return;
 		}
 		if (tick && (checked.result === "dead" || checked.result === "down"))
 			await addTickFailure(deps.db, tick);
 		if (outcome.evaluation.action.kind !== "none")
 			log("Incident action", {
-				domain,
+				domain: domainName,
 				id,
 				action: outcome.evaluation.action.kind,
 			});
@@ -100,7 +130,7 @@ export function createHandler(deps: CheckerDeps) {
 					deps.priorityQueue,
 					{
 						kind: "recheck",
-						domain,
+						domain: domainName,
 						linkIds: [id],
 						dueAt: outcome.recheck.dueAt,
 					},
@@ -108,7 +138,11 @@ export function createHandler(deps: CheckerDeps) {
 				);
 			} catch (err) {
 				// The check is already recorded: the Dispatcher fallback (next_run_at) covers a lost recheck.
-				log("Recheck not queued", { domain, id, error: String(err) });
+				log("Recheck not queued", {
+					domain: domainName,
+					id,
+					error: String(err),
+				});
 			}
 		}
 	}
@@ -123,6 +157,8 @@ export function createHandler(deps: CheckerDeps) {
 			return created;
 		};
 		const failures: SQSBatchItemFailure[] = [];
+		// FR-12 / FR-13: a handful of templates, read once per invocation.
+		const templates = await loadScheduleTemplates(deps.db);
 		for (const record of event.Records) {
 			// FIFO: return a failed message and every later one to keep ordering within the group.
 			// The priority Standard queue has no ordering, so only the failed message is returned.
@@ -145,7 +181,8 @@ export function createHandler(deps: CheckerDeps) {
 								id,
 								record.messageId,
 								job.kind === "scheduled" ? job.dispatchedAt : undefined,
-								domain?.ignoreWaf403 ?? false,
+								domain,
+								templates,
 							),
 						),
 					),

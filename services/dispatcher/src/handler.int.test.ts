@@ -279,3 +279,95 @@ describe("Dispatcher — links snapshot (step 19b)", () => {
 		expect(logs).toContain("Snapshot refresh failed");
 	});
 });
+
+describe("AC-03 — domain and link schedules (FR-13)", () => {
+	it("AC-03: domain every 15 min, one link weekly → in 1 hour the others are checked 4 times, that link not at all", async () => {
+		const own = await createTestDb();
+		try {
+			await own.db.Schedule.create({
+				id: "every15",
+				name: "Every 15 minutes",
+				rule: { kind: "interval", minutes: 15 },
+			}).go();
+			await own.db.Schedule.create({
+				id: "weekly",
+				name: "Mondays 08:00",
+				rule: { kind: "weekly", days: [1], at: "08:00" },
+			}).go();
+			// Wednesday 30/09/2026, 09:00 Vietnam time.
+			const t0 = Date.parse("2026-09-30T02:00:00.000Z");
+			const ids: string[] = [];
+			for (let i = 0; i < 4; i++)
+				ids.push(
+					(
+						await createLink(
+							own.db,
+							{ url: `https://ac03.vn/p${i}` },
+							{ now: new Date(t0) },
+						)
+					).id,
+				);
+			await own.db.Domain.patch({ name: "ac03.vn" })
+				.set({ scheduleId: "every15" })
+				.go();
+			const weeklyId = ids[0] as string;
+			await own.db.Link.patch({ domain: "ac03.vn", id: weeklyId })
+				.set({ scheduleId: "weekly" })
+				.go();
+
+			const checks: Record<string, number[]> = {};
+			const probe = async () => ({
+				httpCode: 200,
+				responseMs: 50,
+				redirectCount: 0,
+			});
+			const runTick = async (at: Date) => {
+				sqsMock.reset();
+				sqsMock.on(SendMessageBatchCommand).callsFake((input) => ({
+					Successful: input.Entries.map((e: { Id: string }) => ({
+						Id: e.Id,
+						MessageId: e.Id,
+					})),
+					Failed: [],
+				}));
+				await createHandler({
+					db: own.db,
+					sqs: new SQSClient({ region: "local" }),
+					queueUrl: QUEUE_URL,
+					now: () => at,
+				})();
+				const checkAt = new Date(at.getTime() + 60_000);
+				const records = sentEntries().map((e) => ({
+					messageId: `${at.toISOString()}-${e.Id}`,
+					body: e.MessageBody,
+				}));
+				await createChecker({ db: own.db, now: () => checkAt, probe })({
+					Records: records,
+				} as SQSEvent);
+				for (const r of records)
+					for (const id of (JSON.parse(r.body) as ScheduledJob).linkIds)
+						checks[id] = [...(checks[id] ?? []), checkAt.getTime()];
+			};
+
+			// Dispatcher every 5 minutes for 2 hours; count the second hour (steady state).
+			for (let m = 0; m <= 120; m += 5)
+				await runTick(new Date(t0 + m * 60_000));
+			const inWindow = (id: string) =>
+				(checks[id] ?? []).filter(
+					(at) => at >= t0 + 60 * 60_000 && at < t0 + 120 * 60_000,
+				).length;
+			for (const id of ids.slice(1)) expect(inWindow(id), id).toBe(4);
+			expect(inWindow(weeklyId)).toBe(0);
+			// The weekly link waits for Monday 05/10 08:00 (+ jitter).
+			const { data } = await own.db.Link.get({
+				domain: "ac03.vn",
+				id: weeklyId,
+			}).go();
+			expect(Date.parse(data?.nextRunAt ?? "")).toBeGreaterThanOrEqual(
+				Date.parse("2026-10-05T01:00:00.000Z"),
+			);
+		} finally {
+			await own.drop();
+		}
+	}, 60_000);
+});
