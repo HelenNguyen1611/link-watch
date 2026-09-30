@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	applyJitter,
 	computeNextRun,
 	DEFAULT_SCHEDULE,
 	nextRunAt,
@@ -131,6 +132,26 @@ describe("nextRunAt — FR-14 jitter", () => {
 	});
 });
 
+describe("nextRunAt — checked before its own slot", () => {
+	it("FR-11: a daily link checked early (new link / Check now) runs next day, not minutes later", () => {
+		const rule: Schedule = { kind: "daily", at: "06:00" };
+		for (const id of ["a", "b", "c", "d", "e"]) {
+			const at = nextRunAt(rule, id, vn("2026-09-30T06:01")).getTime();
+			expect(at).toBeGreaterThanOrEqual(vn("2026-10-01T06:00").getTime());
+			expect(at).toBeLessThan(vn("2026-10-01T06:05").getTime());
+		}
+	});
+
+	it("FR-14: a 5-minute interval checked a few seconds after its slot keeps the 5-minute cadence", () => {
+		const rule: Schedule = { kind: "interval", minutes: 5 };
+		const slot = nextRunAt(rule, "L9", vn("2026-09-30T06:00"));
+		const late = new Date(slot.getTime() + 20_000);
+		expect(nextRunAt(rule, "L9", late).getTime() - slot.getTime()).toBe(
+			5 * 60_000,
+		);
+	});
+});
+
 describe("resolveEffectiveSchedule — FR-13", () => {
 	const templates = new Map<string, Schedule>([
 		["default", { kind: "daily", at: "06:00" }],
@@ -187,7 +208,8 @@ describe("AC-03 (function level)", () => {
 			const rule = resolveEffectiveSchedule(link, domain, templates).rule;
 			const start = vn("2026-09-30T10:00").getTime(); // Wednesday
 			const end = start + 60 * 60_000;
-			let at = nextRunAt(rule, link.id, new Date(start));
+			// The link's own first slot in the window (as left by its previous check).
+			let at = applyJitter(computeNextRun(rule, new Date(start - 1)), link.id);
 			let runs = 0;
 			while (at.getTime() <= end) {
 				runs++;

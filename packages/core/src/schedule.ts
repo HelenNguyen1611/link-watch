@@ -110,7 +110,12 @@ export function applyJitter(
 export function nextRunAt(schedule: Schedule, linkId: string, now: Date): Date {
 	const max = jitterMax(schedule);
 	const offset = applyJitter(new Date(0), linkId, max).getTime();
-	const base = computeNextRun(schedule, new Date(now.getTime() - offset));
+	let base = computeNextRun(schedule, new Date(now.getTime() - offset));
+	// Checked before its own slot (new link, Check now, recheck): do not run again moments later.
+	// Fixed-time schedules skip the whole jitter window; intervals only half, to keep the cadence.
+	const minGap = schedule.kind === "interval" ? max / 2 : max;
+	if (base.getTime() + offset < now.getTime() + minGap)
+		base = computeNextRun(schedule, base);
 	return new Date(base.getTime() + offset);
 }
 
