@@ -455,3 +455,34 @@ describe("Checker handler — system-wide outage counter (5.2 step 5)", () => {
 		expect(data?.failed).toBe(1);
 	});
 });
+
+describe("Checker handler — ignore WAF 403 (step 4b, SRS 3.4)", () => {
+	it("4b: with the domain flag on, a 403 is recorded as Up (no suspect, no incident)", async () => {
+		const link = await createLink(t.db, { url: `${base}/403?waf` }, { now });
+		await t.db.Domain.patch({ name: link.domain })
+			.set({ ignoreWaf403: true })
+			.go();
+		await handler()(event(record(job(link.domain, [link.id]))));
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data).toMatchObject({ status: "up", lastHttpCode: 403 });
+		await t.db.Domain.patch({ name: link.domain })
+			.set({ ignoreWaf403: false })
+			.go();
+	});
+
+	it("4b: without the flag the same 403 is a failure (Suspect after the first check)", async () => {
+		const link = await createLink(t.db, { url: `${base}/403?nowaf` }, { now });
+		await handler()(event(record(job(link.domain, [link.id]))));
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data).toMatchObject({
+			status: "suspect",
+			lastErrorType: "http_4xx",
+		});
+	});
+});

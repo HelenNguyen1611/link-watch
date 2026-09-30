@@ -46,7 +46,9 @@ export function createHandler(deps: CheckerDeps) {
 		id: string,
 		jobId: string,
 		/** dispatchedAt of a scheduled job (5.2 step 5 run), undefined for priority jobs. */
-		tick?: string,
+		tick: string | undefined,
+		/** Step 4b: domain setting — a 403 from a WAF is not a dead link. */
+		ignoreWaf403: boolean,
 	): Promise<void> {
 		const { data: link } = await deps.db.Link.get({ domain, id }).go();
 		if (!link || link.deletedAt || link.paused) {
@@ -74,6 +76,7 @@ export function createHandler(deps: CheckerDeps) {
 		const checked = classify(raw, {
 			expectedCodes: link.expectedCodes,
 			keyword: link.keyword,
+			ignoreWaf403,
 		});
 		const outcome = await recordCheck(deps.db, link, checked, {
 			now: now(),
@@ -130,6 +133,10 @@ export function createHandler(deps: CheckerDeps) {
 			try {
 				const job = CheckJob.parse(JSON.parse(record.body));
 				const limit = limitFor(job.domain);
+				// One domain per job (FR-14): read its settings once.
+				const { data: domain } = await deps.db.Domain.get({
+					name: job.domain,
+				}).go();
 				await Promise.all(
 					job.linkIds.map((id) =>
 						limit(() =>
@@ -138,6 +145,7 @@ export function createHandler(deps: CheckerDeps) {
 								id,
 								record.messageId,
 								job.kind === "scheduled" ? job.dispatchedAt : undefined,
+								domain?.ignoreWaf403 ?? false,
 							),
 						),
 					),

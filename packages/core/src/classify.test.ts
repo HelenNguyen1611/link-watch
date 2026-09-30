@@ -231,3 +231,37 @@ describe("classify — SRS 5.1 Slow and Up", () => {
 		).toMatchObject({ sslExpiresAt: "2027-01-01T00:00:00.000Z" });
 	});
 });
+
+describe("classify — step 4b: ignore WAF 403 per domain (SRS 3.4)", () => {
+	const waf: ClassifyConfig = { ...config, ignoreWaf403: true };
+
+	it("5.1 + 4b: without the flag a 403 is a dead link", () => {
+		expect(classify(http(403), config)).toMatchObject({
+			result: "dead",
+			errorType: "http_4xx",
+		});
+	});
+
+	it("4b: with the flag a 403 counts as reachable (Up), code kept, reason noted", () => {
+		expect(classify(http(403), waf)).toMatchObject({
+			result: "up",
+			httpCode: 403,
+			errorMessage: "HTTP 403 ignored (domain WAF setting)",
+		});
+		expect(classify(http(403), waf).errorType).toBeUndefined();
+	});
+
+	it("4b: a slow 403 is Slow; the keyword is not required on the WAF page", () => {
+		expect(classify(http(403, { responseMs: 7200 }), waf).result).toBe("slow");
+		expect(
+			classify(http(403, { keywordFound: false }), { ...waf, keyword: "Buy" })
+				.result,
+		).toBe("up");
+	});
+
+	it("4b: only 403 — 404, 401 and 5xx keep their meaning", () => {
+		expect(classify(http(404), waf).result).toBe("dead");
+		expect(classify(http(401), waf).result).toBe("dead");
+		expect(classify(http(503), waf).result).toBe("down");
+	});
+});

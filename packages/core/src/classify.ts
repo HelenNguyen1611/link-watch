@@ -21,6 +21,11 @@ export type ClassifyConfig = {
 	expectedCodes: HttpCodeRange[];
 	keyword?: string;
 	slowThresholdMs?: number;
+	/**
+	 * SRS 3.4 (step 4b): the domain blocks AWS IP ranges with a WAF → a 403 means "reachable"
+	 * rather than a dead link. Set per domain.
+	 */
+	ignoreWaf403?: boolean;
 };
 
 export type ClassifiedCheck = {
@@ -87,6 +92,19 @@ export function classify(
 		return { ...base, ...errorTypeOf(error.code), errorMessage: error.message };
 	}
 	const code = probe.httpCode;
+	const slow = probe.responseMs > (config.slowThresholdMs ?? SLOW_THRESHOLD_MS);
+	if (
+		code === 403 &&
+		config.ignoreWaf403 &&
+		!isExpected(code, config.expectedCodes)
+	) {
+		// The WAF page never holds the keyword: the keyword check is skipped too.
+		return {
+			...base,
+			result: slow ? "slow" : "up",
+			errorMessage: "HTTP 403 ignored (domain WAF setting)",
+		};
+	}
 	if (!isExpected(code, config.expectedCodes)) {
 		const errorType: CheckErrorType =
 			code >= 500 ? "http_5xx" : code >= 400 ? "http_4xx" : "unexpected_status";
@@ -105,6 +123,5 @@ export function classify(
 			errorMessage: `Missing keyword "${config.keyword}"`,
 		};
 	}
-	const slow = probe.responseMs > (config.slowThresholdMs ?? SLOW_THRESHOLD_MS);
 	return { ...base, result: slow ? "slow" : "up" };
 }

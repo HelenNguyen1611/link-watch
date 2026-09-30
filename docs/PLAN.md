@@ -340,7 +340,8 @@
 
 ### Quản lý link đầy đủ
 
-#### Bước 4b — Cờ "bỏ qua 403 WAF" theo domain
+#### Bước 4b — Cờ "bỏ qua 403 WAF" theo domain ✅
+- ✅ đã làm (30/09/2026): `classify(…, { ignoreWaf403 })` — 403 (ngoài danh sách mong đợi) thành Up/Chậm, giữ mã 403 + ghi chú "HTTP 403 ignored (domain WAF setting)", bỏ kiểm tra từ khóa; 404/401/5xx không đổi. Checker đọc `Domain.ignoreWaf403` một lần mỗi job. Bật/tắt cờ: API + SCR-02 (Bước 20b/25).
 - **File:** `src/classify.ts`.
 - **FR/AC:** cờ "bỏ qua 403 WAF" theo domain (SRS 3.4).
 - **Xong khi:** test bảng 5.1 pass cả khi bật cờ (403 → không phải Link chết).
