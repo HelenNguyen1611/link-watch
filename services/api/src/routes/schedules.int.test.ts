@@ -109,4 +109,18 @@ describe("Schedules API — FR-11, FR-12, FR-13", () => {
 		).toBe(404);
 		expect((await call("/api/domains/nope.vn")).status).toBe(404);
 	});
+
+	it("FR-10: GET /api/domains lists domain overviews; GET /api/domains/:name has the uptime bar", async () => {
+		const list = await (await call("/api/domains")).json();
+		const d = list.items.find(
+			(x: { name: string }) => x.name === "sched-api.vn",
+		);
+		expect(d).toMatchObject({
+			total: 1,
+			displayName: "Sched",
+			schedule: { source: "domain" },
+		});
+		const detail = await (await call("/api/domains/sched-api.vn")).json();
+		expect(detail.uptimeDays.days).toHaveLength(30);
+	});
 });

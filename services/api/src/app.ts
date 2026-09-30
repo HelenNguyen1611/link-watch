@@ -48,7 +48,7 @@ export function createApp(deps: AppDeps) {
 	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob, deps.snapshot));
 	app.route("/incidents", incidentRoutes(deps.db));
 	app.route("/schedules", scheduleRoutes(deps.db));
-	app.route("/domains", domainRoutes(deps.db));
+	app.route("/domains", domainRoutes(deps.db, deps.snapshot));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));
 	return app;

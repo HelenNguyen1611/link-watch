@@ -1,6 +1,7 @@
 import {
 	CheckJob,
 	classify,
+	nextRunAt,
 	type ProbeResult,
 	resolveEffectiveSchedule,
 	type Schedule,
@@ -57,7 +58,11 @@ export function createHandler(deps: CheckerDeps) {
 		jobId: string,
 		/** dispatchedAt of a scheduled job (5.2 step 5 run), undefined for priority jobs. */
 		tick: string | undefined,
-		domain: { ignoreWaf403?: boolean; scheduleId?: string } | null,
+		domain: {
+			ignoreWaf403?: boolean;
+			scheduleId?: string;
+			enabled?: boolean;
+		} | null,
 		/** FR-12 / FR-13: schedule templates of this invocation. */
 		templates: ReadonlyMap<string, Schedule>,
 	): Promise<void> {
@@ -79,6 +84,19 @@ export function createHandler(deps: CheckerDeps) {
 				domain: domainName,
 				id,
 				reason: "duplicate_job",
+			});
+			return;
+		}
+		// FR-08: a disabled domain is not checked; only its next run moves on.
+		if (domain?.enabled === false) {
+			const rule = resolveEffectiveSchedule(link, domain, templates).rule;
+			await deps.db.Link.patch({ domain: domainName, id })
+				.set({ nextRunAt: nextRunAt(rule, id, now()).toISOString() })
+				.go();
+			log("Skipping link", {
+				domain: domainName,
+				id,
+				reason: "domain_disabled",
 			});
 			return;
 		}

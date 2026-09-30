@@ -7,6 +7,7 @@ import {
 import { checkEntity } from "./entities/check";
 import { dayStatEntity } from "./entities/day-stat";
 import { domainEntity } from "./entities/domain";
+import { domainDayStatEntity } from "./entities/domain-day-stat";
 import { incidentEntity } from "./entities/incident";
 import { linkEntity } from "./entities/link";
 import { notificationEntity } from "./entities/notification";
@@ -57,6 +58,7 @@ export function createDb(opts: DbOptions = {}) {
 		OutboxWindow: outboxWindowEntity(client, table),
 		Tick: tickEntity(client, table),
 		Schedule: scheduleEntity(client, table),
+		DomainDayStat: domainDayStatEntity(client, table),
 	};
 	return {
 		table,

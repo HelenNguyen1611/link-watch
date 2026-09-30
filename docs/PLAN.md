@@ -329,8 +329,9 @@
 - **Xong khi:** `pnpm test:int` có `AC-03` pass.
 - **Phụ thuộc:** 8c, 13a
 
-#### Bước 20b — API Domain và Lịch
+#### Bước 20b — API Domain và Lịch ✅
 - ✅ phần 1 (30/09/2026): `GET/POST /api/schedules`, `PATCH/DELETE /api/schedules/:id` (lịch `default` luôn có trong danh sách = FR-11, sửa lần đầu thì tạo; xóa `default` → 400; đang dùng → 409 `schedule_in_use` kèm `usedBy`), `GET/PATCH /api/domains/:name` (tên hiển thị, mô tả, người phụ trách, lịch, bật/tắt, cảnh báo chậm, bỏ qua 403 WAF), `PATCH /api/links/:id` nhận `scheduleId` (null = kế thừa). Mọi thay đổi lịch **tính lại `next_run_at` ngay** (`rescheduleLinks`) cho link bị ảnh hưởng (bỏ qua link tạm dừng). `LinkView` có `scheduleId`.
+- ✅ phần 2 (30/09/2026): entity `DomainDayStat` (PK `DOMAIN#<tên>`, SK `DAY#<ngày>`, TTL 2 năm) — Checker cộng dồn cùng lúc với DayStat của link (+1 lượt ghi/check, xem Bước 35b); snapshot mang thêm uptime 7/30 ngày mỗi domain, tính lại tối đa mỗi giờ; `GET /api/domains` = `summarizeDomains` (số link theo trạng thái, tạm dừng, trạng thái FR-09, phản hồi trung bình, lần check gần nhất/kế tiếp, uptime 7/30, lịch hiệu lực + nguồn) từ snapshot → NFR-02 không quét bảng; `GET /api/domains/:name` thêm thanh uptime 30 ngày; PATCH trả chi tiết. Domain tắt (`enabled=false`): Checker không gọi HTTP, chỉ dời `next_run_at`.
 - **File:** `src/routes/{domains,schedules}.ts`.
 - **FR/AC:** FR-08, FR-10 (số link theo trạng thái, uptime 7/30 ngày từ DayStat, lần check gần nhất/kế tiếp), FR-11 → FR-13.
 - **Xong khi:** test route pass; NFR-02: truy vấn tổng quan 500 domain dùng dữ liệu tổng hợp, không quét toàn bảng.

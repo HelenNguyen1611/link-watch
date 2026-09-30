@@ -2,6 +2,7 @@ export * from "./classify";
 export * from "./csv";
 export * from "./domain";
 export * from "./domain-status";
+export * from "./domain-summary";
 export * from "./email-subject";
 export * from "./id";
 export * from "./import";

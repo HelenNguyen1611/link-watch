@@ -128,6 +128,15 @@ export async function recordCheck(
 			})
 			.set({ ttl: dayStatTtl(day) })
 			.go(),
+		// FR-10 / NFR-02: domain-level counters for the overview (no per-link history reads).
+		db.DomainDayStat.update({ domain: link.domain, day })
+			.add({
+				checks: 1,
+				[checked.result]: 1,
+				totalResponseMs: checked.responseMs,
+			})
+			.set({ ttl: dayStatTtl(day) })
+			.go(),
 		applyIncidentAction(db, link, checked, evaluation),
 	]);
 	return {

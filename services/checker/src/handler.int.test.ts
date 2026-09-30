@@ -486,3 +486,31 @@ describe("Checker handler — ignore WAF 403 (step 4b, SRS 3.4)", () => {
 		});
 	});
 });
+
+describe("Checker handler — disabled domain (FR-08)", () => {
+	it("FR-08: links of a disabled domain are not probed; their next run moves on", async () => {
+		const link = await createLink(
+			t.db,
+			{ url: `${base}/200?disabled` },
+			{ now },
+		);
+		await t.db.Domain.patch({ name: link.domain }).set({ enabled: false }).go();
+		let probes = 0;
+		await createHandler({
+			db: t.db,
+			now: () => now,
+			probe: async () => {
+				probes++;
+				return { httpCode: 200, responseMs: 1, redirectCount: 0 };
+			},
+		})(event(record(job(link.domain, [link.id]))));
+		expect(probes).toBe(0);
+		const { data } = await t.db.Link.get({
+			domain: link.domain,
+			id: link.id,
+		}).go();
+		expect(data?.status).toBe("pending");
+		expect(Date.parse(data?.nextRunAt ?? "")).toBeGreaterThan(now.getTime());
+		await t.db.Domain.patch({ name: link.domain }).set({ enabled: true }).go();
+	});
+});
