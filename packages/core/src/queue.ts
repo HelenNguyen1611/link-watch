@@ -37,6 +37,9 @@ export const PriorityJob = z.object({
 	dueAt: z.iso.datetime(),
 	/** FR-37: verification attempt (1–3); only for `verify`. */
 	attempt: z.number().int().min(1).max(3).optional(),
+	/** FR-36: the claim being verified; only for `verify`. */
+	incidentId: z.string().min(1).optional(),
+	claimedAt: z.iso.datetime().optional(),
 });
 
 export const CheckJob = z.discriminatedUnion("kind", [
