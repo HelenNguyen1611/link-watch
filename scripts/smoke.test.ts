@@ -4,7 +4,7 @@ import { defaultSamples, runSmoke } from "./smoke";
 
 type FakeOptions = {
 	/** Status each link gets once "checked"; missing = stays pending. */
-	checkedAs?: (url: string) => LinkStatus | undefined;
+	checkedAs?: (url: string, poll: number) => LinkStatus | undefined;
 	/** Number of polls before links leave pending. */
 	checkAfterPolls?: number;
 	healthStatus?: number;
@@ -44,7 +44,7 @@ function fakeApi(o: FakeOptions = {}) {
 		if (url.pathname === "/api/links" && method === "GET") {
 			if (++polls > (o.checkAfterPolls ?? 1))
 				for (const l of links.values())
-					l.status = o.checkedAs?.(l.url) ?? l.status;
+					l.status = o.checkedAs?.(l.url, polls) ?? l.status;
 			// One link per page to exercise cursor paging.
 			const all = [...links.values()];
 			const i = Number(url.searchParams.get("cursor") ?? 0);
@@ -130,8 +130,42 @@ describe("smoke test (steps 40a, 40b)", () => {
 		const report = await runSmoke(opts(api));
 		expect(report.ok).toBe(false);
 		expect(report.failures).toHaveLength(4);
-		expect(report.failures[0]).toContain("not checked within");
+		expect(report.failures[0]).toContain("still pending after");
 		expect(api.deleted).toHaveLength(4);
+	});
+
+	it("5.2: a failing link is Suspect after the first check; the smoke test waits for the recheck", async () => {
+		const api = fakeApi({
+			// Poll 2: first check (failures are Suspect); poll 4: recheck confirms them.
+			checkedAs: (u, poll) => {
+				const expected = expectedByUrl(u);
+				if (expected === "dead" || expected === "down")
+					return poll < 4 ? "suspect" : expected;
+				return expected;
+			},
+			checkAfterPolls: 1,
+		});
+		const report = await runSmoke(opts(api));
+		expect(report.failures).toEqual([]);
+		expect(report.links.map((l) => l.actual)).toEqual([
+			"up",
+			"slow",
+			"dead",
+			"down",
+		]);
+	});
+
+	it("5.2: a link still Suspect at the deadline fails with a clear message", async () => {
+		const api = fakeApi({
+			checkedAs: (u) =>
+				expectedByUrl(u) === "dead" ? "suspect" : expectedByUrl(u),
+		});
+		const report = await runSmoke(opts(api));
+		expect(report.failures).toEqual([
+			expect.stringContaining(
+				"status/404?linkwatch-smoke=run1: still suspect after",
+			),
+		]);
 	});
 
 	it("step 37c: fails when an API 404 is not JSON through CloudFront", async () => {

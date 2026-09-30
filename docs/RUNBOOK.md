@@ -99,11 +99,11 @@ Chạy sau mỗi lần push `main` khi workflow deploy đã xanh, bằng credent
 AWS_PROFILE=linkwatch SMOKE_EMAIL=smoke@watch.hueai.net SMOKE_PASSWORD='<mật khẩu>' pnpm smoke
 ```
 
-Phần Mốc 1 (~10 phút):
+Phần Mốc 1 (~10–15 phút):
 
 1. `GET /api/health` → 200; `GET /api/links` không có token → 401.
 2. Bước 37c: `DELETE /api/links/<không có>` → 404 JSON `{"error":"not_found"}` (không bị CloudFront đổi thành trang HTML); một trang web không tồn tại vẫn ra trang 404 (HTML).
-3. Tạo 4 link mẫu (tag `smoke`, query `?linkwatch-smoke=<run>`): `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down. Chờ tối đa 10 phút rồi so trạng thái; luôn xóa link mẫu.
+3. Tạo 4 link mẫu (tag `smoke`, query `?linkwatch-smoke=<run>`): `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down. Link lỗi ở lần check đầu là **Nghi ngờ** (Suspect), 2 phút sau check lại mới thành Link chết/Site down (SRS 5.2), nên script chờ tới khi không còn link Pending/Suspect (tối đa 15 phút) rồi so trạng thái; luôn xóa link mẫu.
 
 Phần Mốc 2 (~20–35 phút, bỏ qua bằng `SMOKE_SKIP_INCIDENT=1`):
 
@@ -113,7 +113,7 @@ Phần Mốc 2 (~20–35 phút, bỏ qua bằng `SMOKE_SKIP_INCIDENT=1`):
 7. Upload file đó lên bucket web → link trả 200 → chờ incident đóng và email `recovery` `sent` (AC-07).
 8. Luôn dọn: xóa file trong bucket, xóa link, xóa người nhận nếu do smoke tạo. Kiểm tra hộp thư: có 2 email `[LinkWatch][DOWN] hueai.net — 1 broken link` và `[LinkWatch][RECOVERED] …`.
 
-- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`), `SMOKE_TIMEOUT_MS` (phần Mốc 1, mặc định 600000), `SMOKE_RECIPIENT`, `SMOKE_SKIP_INCIDENT=1`.
+- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`), `SMOKE_TIMEOUT_MS` (phần Mốc 1, mặc định 900000), `SMOKE_RECIPIENT`, `SMOKE_SKIP_INCIDENT=1`.
 - Quyền IAM cần: `cloudformation:DescribeStacks`, `cloudformation:DescribeStackResource`, `cognito-idp:AdminInitiateAuth`, `ssm:GetParameter` (`/linkwatch/table-name`), đọc DynamoDB, `s3:PutObject`/`s3:DeleteObject` trên bucket web.
 - Mã thoát: 0 = pass, 1 = fail, 2 = thiếu `SMOKE_EMAIL`/`SMOKE_PASSWORD`.
 - Fail ở "incident email": xem log Lambda Alert, `AlertDlqUrl`, và `MAIL#` (`status = failed` + `error`, thường là người nhận chưa xác thực trong sandbox). Fail ở "incident opened": xem log Checker/Dispatcher và `PriorityDlqUrl`.

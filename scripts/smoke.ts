@@ -5,7 +5,8 @@
  *
  * Milestone 1 part: /api/health → request without a token gets 401 → API errors stay JSON
  * through CloudFront (step 37c) → add 4 sample links → wait for the Dispatcher/Checker
- * (up to 10 minutes) → each link has the expected status → delete the sample links.
+ * (up to 15 minutes: failures are Suspect first and confirmed by the 2-minute recheck, SRS 5.2)
+ * → each link has the expected status → delete the sample links.
  * Milestone 2 part (smoke-incident.ts): 404 link → incident → email → fix → recovery email.
  */
 import { pathToFileURL } from "node:url";
@@ -19,6 +20,12 @@ import { loadAwsEnvironment } from "./aws";
 import { runIncidentSmoke } from "./smoke-incident";
 
 export type SmokeSample = { expected: LinkStatus; input: LinkInputRaw };
+
+/**
+ * Not a final result yet: never checked, or failed once and waiting for the SRS 5.2
+ * recheck (Suspect) — a dead/down link only gets its status after the second failure.
+ */
+const UNSETTLED: ReadonlySet<LinkStatus> = new Set(["pending", "suspect"]);
 
 /** One public URL per SRS 5.1 result. A unique query string avoids duplicates left by an earlier run. */
 export function defaultSamples(runId: string): SmokeSample[] {
@@ -64,7 +71,8 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 		opts.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
 	const now = opts.now ?? Date.now;
 	const log = opts.log ?? (() => {});
-	const timeoutMs = opts.timeoutMs ?? 10 * 60_000;
+	// First check on the next tick (≤ 5 min) + SRS 5.2 recheck 2 min later for failures, plus slack.
+	const timeoutMs = opts.timeoutMs ?? 15 * 60_000;
 	const pollMs = opts.pollMs ?? 15_000;
 	const base = `${opts.baseUrl.replace(/\/+$/, "")}/api`;
 	const failures: string[] = [];
@@ -140,12 +148,12 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 		const deadline = now() + timeoutMs;
 		while (created.length) {
 			latest = await findLinks(call, ids);
-			const pending = created.filter(
-				(c) => (latest.get(c.link.id)?.status ?? "pending") === "pending",
+			const pending = created.filter((c) =>
+				UNSETTLED.has(latest.get(c.link.id)?.status ?? "pending"),
 			);
 			if (!pending.length) break;
 			if (now() >= deadline) break;
-			log(`waiting for ${pending.length} link(s) to be checked…`);
+			log(`waiting for ${pending.length} link(s) to get a confirmed result…`);
 			await sleep(pollMs);
 		}
 
@@ -155,9 +163,9 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 			url: link.url,
 		}));
 		for (const l of links) {
-			if (l.actual === "pending")
+			if (l.actual && UNSETTLED.has(l.actual))
 				failures.push(
-					`${l.url}: not checked within ${Math.round(timeoutMs / 1000)} s`,
+					`${l.url}: still ${l.actual} after ${Math.round(timeoutMs / 1000)} s`,
 				);
 			else if (l.actual !== l.expected)
 				failures.push(
@@ -222,7 +230,7 @@ async function main() {
 		token,
 		checkWebNotFound: true,
 		samples: defaultSamples(runId),
-		timeoutMs: Number(process.env.SMOKE_TIMEOUT_MS ?? 10 * 60_000),
+		timeoutMs: Number(process.env.SMOKE_TIMEOUT_MS ?? 15 * 60_000),
 		log: (m) => console.log(`  ${m}`),
 	});
 	for (const l of report.links)
