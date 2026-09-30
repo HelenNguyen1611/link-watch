@@ -4,7 +4,7 @@ import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Api } from "@/lib/api";
 import { renderWithApi, signedInAuth } from "@/test/render";
-import { AppLayout, SIDEBAR_STORAGE_KEY } from "./AppLayout";
+import { AppLayout, contentMaxWidth, SIDEBAR_STORAGE_KEY } from "./AppLayout";
 
 const nav = vi.hoisted(() => ({ pathname: "/links/", replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -58,6 +58,18 @@ describe("AppLayout", () => {
 		expect(getComputedStyle(shell).minHeight).toContain("100dvh");
 		expect((footer.previousElementSibling as HTMLElement).style.flex).toContain(
 			"1",
+		);
+	});
+
+	it("content fills the width up to a 1920 px screen, then is capped (minus the sidebar) and centred", async () => {
+		renderWithApi(<AppLayout>wide</AppLayout>, {} as Api);
+		const footer = await screen.findByRole("contentinfo");
+		const content = footer.parentElement as HTMLElement;
+		expect(getComputedStyle(content).maxWidth).toBe(
+			"calc(1920px - var(--app-shell-navbar-offset, 0px))",
+		);
+		expect(contentMaxWidth(1920)).toBe(
+			"calc(1920px - var(--app-shell-navbar-offset, 0px))",
 		);
 	});
 

@@ -43,7 +43,12 @@ export const theme = createTheme({
 		},
 	},
 	shadows: { xs: "none", sm: "none", md: "none", lg: "none", xl: "none" },
-	other: { border: "#E6E6E6", dimmed: "#8C8C8C", maxWidth: 1152 },
+	other: {
+		border: "#E6E6E6",
+		dimmed: "#8C8C8C",
+		/** Content fills the width up to this viewport width, then stops growing (AppLayout). */
+		maxViewportWidth: 1920,
+	},
 });
 
 /**

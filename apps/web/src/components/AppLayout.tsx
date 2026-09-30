@@ -31,6 +31,14 @@ import {
 
 export const SIDEBAR_STORAGE_KEY = "linkwatch.sidebarCollapsed";
 
+/**
+ * Below `viewport` px the content fills the screen minus the sidebar and padding; above it,
+ * it stays as wide as at exactly `viewport` px (no jump). The navbar offset is the expanded or
+ * collapsed sidebar width, and 0 on mobile where the sidebar is a drawer.
+ */
+export const contentMaxWidth = (viewport: number) =>
+	`calc(${viewport}px - var(--app-shell-navbar-offset, 0px))`;
+
 /** Signed-in email (desktop) and Sign out, at the right of the header. */
 function UserMenu() {
 	const { t } = useTranslation();
@@ -76,7 +84,8 @@ function UserMenu() {
 }
 
 /**
- * Page shell: slim header, collapsible left sidebar, centred content up to 1152 px wide.
+ * Page shell: slim header, collapsible left sidebar, content as wide as the screen up to a
+ * 1920 px viewport, then capped and centred.
  * Public pages (sign-in, emailed "Fixed" link) render without the shell and without sign-in.
  */
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -154,7 +163,7 @@ function Shell({
 			<AppShell.Main>
 				{/* Full viewport height minus the header, so the footer always sits at the bottom. */}
 				<Box
-					maw={1152}
+					maw={contentMaxWidth(theme.other.maxViewportWidth)}
 					mx="auto"
 					px={{ base: "md", sm: 48 }}
 					pt={{ base: "lg", sm: 56 }}
