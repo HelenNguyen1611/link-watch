@@ -26,7 +26,15 @@ function fakeApi(initial: LinkView[] = []) {
 	let links = [...initial];
 	const api = {
 		...stubApi(),
-		listLinks: vi.fn(async () => ({ items: links, cursor: null })),
+		// Step 19b: the list comes from the snapshot.
+		getSnapshot: vi.fn(async () => ({
+			generatedAt: "2026-09-29T00:00:00.000Z",
+			items: links,
+			stored: true,
+		})),
+		freshLinks: vi.fn(async (keys: { domain: string; id: string }[]) => ({
+			items: links.filter((l) => keys.some((k) => k.id === l.id)),
+		})),
 		createLink: vi.fn(async (input: LinkInputRaw) => {
 			if (links.some((l) => l.url === input.url)) {
 				throw new ApiError(409, { error: "duplicate", existingId: "L0" });
@@ -168,11 +176,11 @@ describe("LinksPage", () => {
 
 	it("FR-28: expired session (401) → no error box (the API client signs out, the gate shows sign-in)", async () => {
 		const api = fakeApi();
-		api.listLinks.mockRejectedValue(
+		api.getSnapshot.mockRejectedValue(
 			new ApiError(401, { error: "unauthorized" }),
 		);
 		renderWithApi(<LinksPage />, api);
-		await waitFor(() => expect(api.listLinks).toHaveBeenCalled());
+		await waitFor(() => expect(api.getSnapshot).toHaveBeenCalled());
 		expect(screen.queryByText(/could not load/i)).toBeNull();
 		expect(screen.queryByRole("alert")).toBeNull();
 	});
@@ -352,10 +360,10 @@ describe("LinksPage", () => {
 			renderWithApi(<LinksPage />, api);
 			await screen.findByText("https://a.vn/");
 			expect(screen.getByText(/^Updated \d\d:\d\d:\d\d$/)).toBeTruthy();
-			const calls = api.listLinks.mock.calls.length;
+			const calls = api.getSnapshot.mock.calls.length;
 			await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
 			await waitFor(() =>
-				expect(api.listLinks.mock.calls.length).toBeGreaterThan(calls),
+				expect(api.getSnapshot.mock.calls.length).toBeGreaterThan(calls),
 			);
 		});
 	});

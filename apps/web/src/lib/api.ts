@@ -7,6 +7,7 @@ import type {
 	IncidentView,
 	LinkInputRaw,
 	LinkPage,
+	LinkUpdateRaw,
 	LinkView,
 	SettingsInput,
 	SettingsView,
@@ -35,6 +36,32 @@ export type ApiOptions = {
 };
 
 export type TestEmailResult = { status: "sent"; to: string };
+
+export type LinkSnapshotView = {
+	generatedAt: string;
+	items: LinkView[];
+	stored: boolean;
+};
+
+export type ImportRowView = {
+	line: number;
+	url: string;
+	status: "valid" | "duplicate" | "error";
+	error?:
+		| "invalid_url"
+		| "invalid_field"
+		| "duplicate_in_file"
+		| "duplicate_existing";
+	field?: string;
+};
+export type ImportPreviewView = {
+	rows: ImportRowView[];
+	summary: { valid: number; duplicate: number; error: number };
+};
+export type ImportCommitView = {
+	created: { line: number; id: string; url: string }[];
+	rejected: ImportRowView[];
+};
 
 /** Typed API client sharing schemas with the backend (@linkwatch/core). */
 export function createApi(opts: ApiOptions) {
@@ -67,6 +94,49 @@ export function createApi(opts: ApiOptions) {
 			call<LinkView>("/links", { method: "POST", body: JSON.stringify(input) }),
 		deleteLink: (id: string) =>
 			call<void>(`/links/${encodeURIComponent(id)}`, { method: "DELETE" }),
+		/** Step 19b: every link for the list screen (rebuilt after each Dispatcher tick). */
+		getSnapshot: () => call<LinkSnapshotView>("/links/snapshot"),
+		/** Step 19b: current rows of links the screen is watching (≤ 100). */
+		freshLinks: (keys: { domain: string; id: string }[]) =>
+			call<{ items: LinkView[] }>("/links/fresh", {
+				method: "POST",
+				body: JSON.stringify(keys),
+			}),
+		/** FR-04: partial edit. */
+		updateLink: (id: string, input: LinkUpdateRaw) =>
+			call<LinkView>(`/links/${encodeURIComponent(id)}`, {
+				method: "PATCH",
+				body: JSON.stringify(input),
+			}),
+		/** FR-04: pause / resume / delete up to 100 links. */
+		bulkLinks: (action: "pause" | "resume" | "delete", ids: string[]) =>
+			call<{ updated: string[]; notFound: string[] }>("/links/bulk", {
+				method: "POST",
+				body: JSON.stringify({ action, ids }),
+			}),
+		/** FR-03: import preview and commit (≤ 25 rows per commit call). */
+		previewImport: (text: string) =>
+			call<ImportPreviewView>("/links/import/preview", {
+				method: "POST",
+				body: JSON.stringify({ text }),
+			}),
+		commitImport: (text: string) =>
+			call<ImportCommitView>("/links/import", {
+				method: "POST",
+				body: JSON.stringify({ text }),
+			}),
+		/** FR-05: CSV export (text; the page turns it into a download). */
+		exportCsv: async () => {
+			const headers = new Headers();
+			const token = await opts.getToken();
+			if (token) headers.set("authorization", `Bearer ${token}`);
+			const res = await doFetch(`${opts.baseUrl}/api/links/export.csv`, {
+				headers,
+			});
+			if (res.status === 401) (opts.onUnauthorized ?? notifyUnauthorized)();
+			if (!res.ok) throw new ApiError(res.status, {});
+			return res.text();
+		},
 		/** FR-18: one link and its history. */
 		getLink: (id: string) => call<LinkView>(`/links/${encodeURIComponent(id)}`),
 		linkChecks: (id: string, limit = 100) =>

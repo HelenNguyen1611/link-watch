@@ -1,8 +1,8 @@
 "use client";
 
-import type { LinkView } from "@linkwatch/core";
 import { Alert, Button, Group, Loader, Text } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
+import { notifications } from "@mantine/notifications";
+import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconRefresh } from "@/components/icons";
@@ -12,80 +12,94 @@ import { useApi } from "@/lib/api-context";
 import { PALETTE } from "@/lib/colors";
 import { formatClock } from "@/lib/format";
 import { AddLinkForm } from "./AddLinkForm";
-import { EMPTY_FILTER, filterLinks, type LinkFilter } from "./filter";
+import {
+	EMPTY_FILTER,
+	filterLinks,
+	filterOptions,
+	type LinkFilter,
+} from "./filter";
 import { LinkFilters } from "./LinkFilters";
 import { LinkTable } from "./LinkTable";
-import { isWaitingForResult, refreshInterval } from "./refresh";
+import { LinksDataProvider, useLinksData } from "./links-data";
 
-const MAX_PAGES = 20;
-
-/** Milestone 1: link list + add form (reduced from SCR-03/SCR-04). */
-export function LinksPage() {
+/** FR-05: download the CSV built by the API (it needs the Bearer token, so no plain link). */
+function ExportButton() {
 	const { t } = useTranslation();
 	const api = useApi();
-	const links = useQuery({
-		queryKey: ["links"],
-		queryFn: async () => {
-			const all: LinkView[] = [];
-			let cursor: string | null = null;
-			for (let i = 0; i < MAX_PAGES; i++) {
-				const page = await api.listLinks({ cursor });
-				all.push(...page.items);
-				cursor = page.cursor;
-				if (!cursor) break;
-			}
-			return all;
+	const exportCsv = useMutation({
+		mutationFn: () => api.exportCsv(),
+		onSuccess: (csv) => {
+			const url = URL.createObjectURL(
+				new Blob([csv], { type: "text/csv;charset=utf-8" }),
+			);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `linkwatch-links-${new Date().toISOString().slice(0, 10)}.csv`;
+			a.click();
+			URL.revokeObjectURL(url);
 		},
-		// Adaptive: 30 s while a link waits for a result, otherwise 5 min (each reload reads every link).
-		refetchInterval: (query) => refreshInterval(query.state.data),
+		onError: (err) => {
+			if (err instanceof ApiError && err.status === 401) return;
+			notifications.show({
+				color: PALETTE.danger,
+				message: t("links.exportFailed"),
+			});
+		},
 	});
+	return (
+		<Button
+			size="xs"
+			variant="subtle"
+			loading={exportCsv.isPending}
+			onClick={() => exportCsv.mutate()}
+		>
+			{t("links.export")}
+		</Button>
+	);
+}
 
+function LinksContent() {
+	const { t } = useTranslation();
+	const data = useLinksData();
 	const [filter, setFilter] = useState<LinkFilter>(EMPTY_FILTER);
-	const all = links.data ?? [];
+	const all = data?.rows ?? [];
 	const shown = useMemo(() => filterLinks(all, filter), [all, filter]);
+	const options = useMemo(() => filterOptions(all), [all]);
+	if (!data) return null;
 
 	// 401: the API client signs out and the gate shows the sign-in page; no error box.
 	const unauthorized =
-		links.error instanceof ApiError && links.error.status === 401;
+		data.error instanceof ApiError && data.error.status === 401;
 
 	return (
 		<>
-			<PageHeader
-				title={t("links.title")}
-				description={t("links.subtitle")}
-				action={<AddLinkForm />}
-				mb={32}
-			/>
 			<Group justify="space-between" mb="xs" gap="xs">
 				<Text size="xs" c="dimmed">
-					{t(
-						links.data && !isWaitingForResult(links.data)
-							? "links.refresh.slow"
-							: "links.refresh.fast",
-					)}
+					{t(data.waiting ? "links.refresh.fast" : "links.refresh.slow")}
 				</Text>
 				<Group gap="xs">
-					{links.dataUpdatedAt > 0 && (
+					{data.updatedAt > 0 && (
 						<Text size="xs" c="dimmed">
 							{t("links.refresh.updated", {
-								time: formatClock(links.dataUpdatedAt),
+								time: formatClock(data.updatedAt),
 							})}
 						</Text>
 					)}
+					<ExportButton />
 					<Button
 						size="xs"
 						variant="subtle"
 						leftSection={<IconRefresh size={16} />}
-						loading={links.isFetching}
-						onClick={() => links.refetch()}
+						loading={data.isFetching}
+						onClick={data.refresh}
 					>
 						{t("links.refresh.button")}
 					</Button>
 				</Group>
 			</Group>
-			{links.isPending ? (
+			{data.isPending ? (
 				<Loader />
-			) : links.isError && !unauthorized ? (
+			) : data.error && !unauthorized ? (
 				<Alert color={PALETTE.danger} variant="light">
 					{t("links.loadError")}
 				</Alert>
@@ -96,14 +110,33 @@ export function LinksPage() {
 							onChange={setFilter}
 							shown={shown.length}
 							total={all.length}
+							domains={options.domains}
+							tags={options.tags}
 						/>
 					)}
 					<LinkTable
 						links={shown}
 						emptyText={all.length > 0 ? t("links.noMatch") : undefined}
+						resetKey={JSON.stringify(filter)}
 					/>
 				</>
 			)}
 		</>
+	);
+}
+
+/** SCR-03: link list from the snapshot (step 19b) + add form, filters, bulk actions. */
+export function LinksPage() {
+	const { t } = useTranslation();
+	return (
+		<LinksDataProvider>
+			<PageHeader
+				title={t("links.title")}
+				description={t("links.subtitle")}
+				action={<AddLinkForm />}
+				mb={32}
+			/>
+			<LinksContent />
+		</LinksDataProvider>
 	);
 }

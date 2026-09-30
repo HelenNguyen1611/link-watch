@@ -1,7 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Chip, Group, Stack, Text, TextInput } from "@mantine/core";
+import {
+	Button,
+	Chip,
+	Group,
+	MultiSelect,
+	Select,
+	Stack,
+	Text,
+	TextInput,
+} from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -14,10 +23,19 @@ export type LinkFiltersProps = {
 	onChange: (filter: LinkFilter) => void;
 	shown: number;
 	total: number;
+	/** FR-06: choices found in the loaded links. */
+	domains?: string[];
+	tags?: string[];
 };
 
-/** FR-17: search by URL / domain / name, filter by status and by last check date. */
-export function LinkFilters({ onChange, shown, total }: LinkFiltersProps) {
+/** FR-06, FR-17: search by URL / domain / name; filter by status, domain, tag, paused, last check date. */
+export function LinkFilters({
+	onChange,
+	shown,
+	total,
+	domains = [],
+	tags = [],
+}: LinkFiltersProps) {
 	const { t } = useTranslation();
 	const form = useForm<LinkFilter>({
 		defaultValues: EMPTY_FILTER,
@@ -58,6 +76,59 @@ export function LinkFilters({ onChange, shown, total }: LinkFiltersProps) {
 					placeholder={t("links.filter.searchPlaceholder")}
 					leftSection={<IconSearch size={16} />}
 					style={{ flex: "1 1 260px" }}
+				/>
+				<Controller
+					control={form.control}
+					name="domain"
+					render={({ field }) => (
+						<Select
+							label={t("links.filter.domain")}
+							placeholder={t("links.filter.allDomains")}
+							data={domains}
+							value={field.value || null}
+							onChange={(v) => field.onChange(v ?? "")}
+							searchable
+							clearable
+							style={{ flex: "0 1 200px" }}
+						/>
+					)}
+				/>
+				{tags.length > 0 && (
+					<Controller
+						control={form.control}
+						name="tags"
+						render={({ field }) => (
+							<MultiSelect
+								label={t("links.filter.tags")}
+								placeholder={
+									field.value.length ? undefined : t("links.filter.anyTag")
+								}
+								data={tags}
+								value={field.value}
+								onChange={field.onChange}
+								searchable
+								clearable
+								style={{ flex: "0 1 220px" }}
+							/>
+						)}
+					/>
+				)}
+				<Controller
+					control={form.control}
+					name="paused"
+					render={({ field }) => (
+						<Select
+							label={t("links.filter.paused")}
+							data={(["any", "active", "paused"] as const).map((v) => ({
+								value: v,
+								label: t(`links.filter.pausedOptions.${v}`),
+							}))}
+							value={field.value}
+							onChange={(v) => field.onChange(v ?? "any")}
+							allowDeselect={false}
+							style={{ flex: "0 1 150px" }}
+						/>
+					)}
 				/>
 				<TextInput
 					{...form.register("checkedFrom")}

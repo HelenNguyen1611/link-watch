@@ -11,6 +11,12 @@ export const LinkFilter = z
 		q: z.string(),
 		/** Empty = every status. */
 		statuses: z.array(LinkStatus),
+		/** FR-06: root domain; "" = every domain. */
+		domain: z.string(),
+		/** FR-06: links having any of these tags; empty = no tag filter. */
+		tags: z.array(z.string()),
+		/** FR-04: all links, only active ones or only paused ones. */
+		paused: z.enum(["any", "active", "paused"]),
 		/** Last check between these days (inclusive), in Asia/Saigon time. */
 		checkedFrom: day,
 		checkedTo: day,
@@ -27,6 +33,9 @@ export type LinkFilter = z.infer<typeof LinkFilter>;
 export const EMPTY_FILTER: LinkFilter = {
 	q: "",
 	statuses: [],
+	domain: "",
+	tags: [],
+	paused: "any",
 	checkedFrom: "",
 	checkedTo: "",
 };
@@ -34,6 +43,9 @@ export const EMPTY_FILTER: LinkFilter = {
 export const isFilterActive = (f: LinkFilter) =>
 	f.q.trim() !== "" ||
 	f.statuses.length > 0 ||
+	f.domain !== "" ||
+	f.tags.length > 0 ||
+	f.paused !== "any" ||
 	f.checkedFrom !== "" ||
 	f.checkedTo !== "";
 
@@ -60,6 +72,14 @@ export function filterLinks(
 		)
 			return false;
 		if (statuses.size > 0 && !statuses.has(l.status)) return false;
+		if (filter.domain && l.domain !== filter.domain) return false;
+		if (
+			filter.tags.length > 0 &&
+			!filter.tags.some((tag) => l.tags.includes(tag))
+		)
+			return false;
+		if (filter.paused === "active" && l.paused) return false;
+		if (filter.paused === "paused" && !l.paused) return false;
 		if (from !== undefined || to !== undefined) {
 			if (!l.lastCheckedAt) return false;
 			const at = Date.parse(l.lastCheckedAt);
@@ -68,4 +88,13 @@ export function filterLinks(
 		}
 		return true;
 	});
+}
+
+/** Filter options found in the loaded links, sorted. */
+export function filterOptions(links: readonly LinkView[]) {
+	const domains = [...new Set(links.map((l) => l.domain))].sort();
+	const tags = [...new Set(links.flatMap((l) => l.tags))].sort((a, b) =>
+		a.localeCompare(b),
+	);
+	return { domains, tags };
 }

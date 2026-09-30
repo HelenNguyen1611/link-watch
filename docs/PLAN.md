@@ -361,7 +361,8 @@
 - **Xong khi:** test route pass trên DynamoDB Local, gồm thao tác hàng loạt và export CSV.
 - **Phụ thuộc:** 10b, 19a
 
-#### Bước 26b — SCR-03 Danh sách link đầy đủ
+#### Bước 26b — SCR-03 Danh sách link đầy đủ ✅
+- ✅ đã làm (30/09/2026): dữ liệu = snapshot (tải lại 5 phút) + lớp ghi đè phía web (link vừa thêm/sửa/tạm dừng/xóa hiện ngay; link Pending/Suspect đọc lại bằng `/api/links/fresh` mỗi 30 giây; ghi đè cũ hơn snapshot tự bỏ); phân trang 25/50/100 (về trang 1 khi đổi lọc/sort, tự lùi khi trang không còn); lọc thêm domain, tag, Đang theo dõi/Tạm dừng (FR-06; lọc theo lịch làm cùng nhóm Lịch); chọn nhiều dòng (cả trang) → Tạm dừng / Tiếp tục / Check now / Xóa (bấm 2 lần); hộp thoại Sửa đủ trường FR-01 (mã HTTP dạng `200-399, 404`, gửi đúng các trường đổi); Export CSV.
 - **FR/AC:** FR-04 (thao tác hàng loạt), FR-05, FR-06. **Phụ thuộc:** 19b, 26a
 
 #### Bước 27 — SCR-04 Thêm/nhập link

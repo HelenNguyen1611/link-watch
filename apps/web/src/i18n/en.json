@@ -138,11 +138,54 @@
 			"count": "Showing {{shown}} of {{total}} links",
 			"errors": {
 				"dateRange": "Must be on or after the start date"
+			},
+			"domain": "Domain",
+			"allDomains": "All domains",
+			"tags": "Tags",
+			"anyTag": "Any tag",
+			"paused": "Monitoring",
+			"pausedOptions": {
+				"any": "All",
+				"active": "Active",
+				"paused": "Paused"
 			}
 		},
 		"subtitle": "Add links to monitor and see their latest check results.",
 		"details": "Details",
-		"detailsFor": "Details of {{url}}"
+		"detailsFor": "Details of {{url}}",
+		"edit": "Edit",
+		"editFor": "Edit {{url}}",
+		"pausedTag": "Paused",
+		"bulk": {
+			"label": "Actions on selected links",
+			"selected": "{{count}} selected",
+			"selectPage": "Select all links on this page",
+			"select": "Select {{url}}",
+			"pause": "Pause",
+			"resume": "Resume",
+			"check": "Check now",
+			"delete": "Delete",
+			"confirmDelete": "Delete {{count}} links",
+			"clear": "Clear selection",
+			"checkQueued": "{{count}} links queued for a check.",
+			"done": {
+				"pause": "{{count}} links paused.",
+				"resume": "{{count}} links resumed.",
+				"delete": "{{count}} links deleted."
+			},
+			"failed": "The action failed. Try again."
+		},
+		"page": {
+			"showing": "Showing {{from}}–{{to}} of {{total}}",
+			"size": "Rows per page",
+			"perPage": "{{count}} / page",
+			"first": "First page",
+			"last": "Last page",
+			"next": "Next page",
+			"previous": "Previous page"
+		},
+		"export": "Export CSV",
+		"exportFailed": "Could not export the links."
 	},
 	"linkForm": {
 		"url": "URL",
@@ -320,6 +363,27 @@
 				"response": "Response",
 				"error": "Error"
 			}
+		}
+	},
+	"editLink": {
+		"title": "Edit link",
+		"save": "Save changes",
+		"saved": "Link saved.",
+		"urlChangeHint": "A new URL starts again as Pending and is checked within 5 minutes.",
+		"tags": "Tags",
+		"tagsHint": "Press Enter after each tag.",
+		"method": "Method",
+		"timeout": "Timeout",
+		"codes": "Expected HTTP codes",
+		"codesHint": "Codes or ranges, e.g. 200-399, 404",
+		"keyword": "Required keyword",
+		"keywordHint": "The page must contain this text (not case-sensitive).",
+		"errors": {
+			"codes": "Enter codes or ranges between 100 and 599, e.g. 200-399, 404",
+			"timeoutS": "Enter a whole number of seconds between 1 and 60",
+			"name": "Up to 200 characters",
+			"keyword": "Up to 200 characters",
+			"tags": "Up to 20 tags of 50 characters"
 		}
 	}
 }

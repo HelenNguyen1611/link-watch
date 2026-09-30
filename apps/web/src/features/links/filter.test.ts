@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	EMPTY_FILTER,
 	filterLinks,
+	filterOptions,
 	isFilterActive,
 	LinkFilter,
 } from "./filter";
@@ -121,5 +122,44 @@ describe("LinkFilter schema", () => {
 				f({ checkedFrom: "2026-09-30", checkedTo: "2026-09-30" }),
 			).success,
 		).toBe(true);
+	});
+});
+
+describe("filterLinks — FR-06 domain, tags, paused", () => {
+	const links = [
+		link("a", { domain: "abc.com", tags: ["shop", "vip"] }),
+		link("b", { domain: "abc.com", tags: ["blog"], paused: true }),
+		link("c", { domain: "xyz.vn", tags: [] }),
+	];
+
+	it("FR-06: by domain", () => {
+		expect(ids(filterLinks(links, f({ domain: "abc.com" })))).toEqual([
+			"a",
+			"b",
+		]);
+	});
+
+	it("FR-06: by tag — any of the chosen tags", () => {
+		expect(ids(filterLinks(links, f({ tags: ["vip", "blog"] })))).toEqual([
+			"a",
+			"b",
+		]);
+		expect(ids(filterLinks(links, f({ tags: ["none"] })))).toEqual([]);
+	});
+
+	it("FR-04: only active or only paused links", () => {
+		expect(ids(filterLinks(links, f({ paused: "paused" })))).toEqual(["b"]);
+		expect(ids(filterLinks(links, f({ paused: "active" })))).toEqual([
+			"a",
+			"c",
+		]);
+		expect(isFilterActive(f({ paused: "paused" }))).toBe(true);
+	});
+
+	it("options: domains and tags found in the links, sorted", () => {
+		expect(filterOptions(links)).toEqual({
+			domains: ["abc.com", "xyz.vn"],
+			tags: ["blog", "shop", "vip"],
+		});
 	});
 });

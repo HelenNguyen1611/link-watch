@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import classes from "./add-link-form.module.css";
+import { useLinksData } from "./links-data";
 
 type FormValues = { url: string; name: string };
 type Issue = {
@@ -41,6 +42,7 @@ export function AddLinkForm() {
 	const { t } = useTranslation();
 	const api = useApi();
 	const queryClient = useQueryClient();
+	const data = useLinksData();
 	// Collapsed: a single "+ Add" button. Open: the fields with "Add link" and Cancel.
 	const [open, setOpen] = useState(false);
 	const addButton = useRef<HTMLButtonElement>(null);
@@ -88,7 +90,9 @@ export function AddLinkForm() {
 
 	const create = useMutation({
 		mutationFn: (input: LinkInputRaw) => api.createLink(input),
-		onSuccess: () => {
+		onSuccess: (created) => {
+			// Shown at once, before the next snapshot contains it.
+			data?.upsert(created);
 			// Stay open so several links can be added in a row.
 			form.reset();
 			setAdded((n) => n + 1);
