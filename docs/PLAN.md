@@ -472,6 +472,7 @@
 #### Bước 39 — CI trên Pull Request
 - `.github/workflows/ci.yml`: install (cache pnpm) → lint → typecheck → test → test:int (DynamoDB Local service container) → web build → synth → `cdk diff` qua OIDC.
 - **Xong khi:** PR thử chạy xanh. **Phụ thuộc:** 38b
+- ✅ đã viết (30/09/2026), **chưa chạy trên GitHub**: `.github/workflows/ci.yml` chạy khi có PR vào `main` (và chạy tay): DynamoDB Local (service container) → lint → typecheck → test → test:int → cài Chromium → `pnpm e2e` (build web + Playwright) → synth; lỗi thì tải trace Playwright lên. **Không có `cdk diff`/OIDC** (người dùng chọn 30/09/2026): synth không cần credential AWS, không phải sửa role `linkwatch-github-deploy`. Còn lại: mở một PR thử để xác nhận xanh.
 
 #### Bước 40c — Smoke test đầy đủ + heartbeat
 - Mở rộng `scripts/smoke.ts` (lịch riêng, Check now, luồng "Đã khắc phục"); heartbeat healthchecks.io (NFR-05).

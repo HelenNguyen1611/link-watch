@@ -1,0 +1,66 @@
+name: CI
+
+# Step 39: checks every pull request to main. No AWS access (synth needs no credentials);
+# deploying stays in deploy.yml on push to main.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local
+        ports:
+          - 8000:8000 # the default endpoint of the int tests and the E2E server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0 # matches pnpm on the dev Mac
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit + web tests
+        run: pnpm test
+
+      - name: Integration tests (DynamoDB Local)
+        run: pnpm test:int
+
+      - name: Install Chromium for E2E
+        run: pnpm --filter @linkwatch/web exec playwright install --with-deps chromium
+
+      - name: Build web + E2E (SCR-10)
+        run: pnpm e2e
+
+      - name: CDK synth
+        run: pnpm synth
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7
