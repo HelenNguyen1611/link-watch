@@ -24,3 +24,7 @@ export function formatDuration(ms: number): string {
 /** Link to the incident page of the web app (static export → query string). */
 export const incidentUrl = (appUrl: string, incidentId: string) =>
 	`${appUrl.replace(/\/+$/, "")}/incidents/?id=${encodeURIComponent(incidentId)}`;
+
+/** FR-33 / FR-35: confirmation page of a token (GET only shows it; the button there does the POST). */
+export const confirmUrl = (appUrl: string, token: string) =>
+	`${appUrl.replace(/\/+$/, "")}/confirm/?token=${encodeURIComponent(token)}`;

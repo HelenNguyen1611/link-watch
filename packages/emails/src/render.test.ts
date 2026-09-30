@@ -5,6 +5,7 @@ import {
 	renderOutageEmail,
 	renderRecoveryEmail,
 	renderReminderEmail,
+	renderStillFailingEmail,
 	renderTestEmail,
 } from "./render";
 import type { IncidentItem } from "./types";
@@ -164,5 +165,88 @@ describe("renderTestEmail — FR-26", () => {
 		expect(email.subject).toBe("[LinkWatch] Test email");
 		expect(email.text).toContain("sent from noreply@watch.hueai.net");
 		expect(email.text).toContain("Requested by helen@wootech.co.");
+	});
+});
+
+describe("Fixed — check again (FR-33, FR-37, FR-38)", () => {
+	it("FR-33: each link has its own button to /confirm/?token=…, plus one for the whole group", async () => {
+		const withTokens = items.map((i, n) => ({ ...i, confirmToken: `tok${n}` }));
+		const { html, text } = await renderIncidentEmail({
+			domain: "abc.com",
+			appUrl: APP,
+			items: withTokens,
+			groupToken: "group-tok",
+		});
+		for (let n = 0; n < withTokens.length; n++)
+			expect(html).toContain(`${APP}/confirm/?token=tok${n}`);
+		expect(html).toContain(`${APP}/confirm/?token=group-tok`);
+		expect(text).toContain("Fixed — check again");
+		expect(text).toContain("All fixed — check all again");
+	});
+
+	it("FR-33: a single-link email has no group button", async () => {
+		const { html } = await renderIncidentEmail({
+			domain: "abc.com",
+			appUrl: APP,
+			items: [{ ...items[0], confirmToken: "t1" } as (typeof items)[number]],
+			groupToken: "g",
+		});
+		expect(html).not.toContain("token=g");
+	});
+
+	it("FR-37: recovery email names who fixed it", async () => {
+		const { text } = await renderRecoveryEmail({
+			domain: "abc.com",
+			appUrl: APP,
+			items: [
+				{
+					incidentId: "L1@x",
+					url: "https://abc.com/pricing",
+					recoveredAt: "2026-09-30T00:09:00.000Z",
+					downtimeMs: 60_000,
+					fixedBy: "lan@abc.com",
+				},
+			],
+		});
+		expect(text).toContain("Fixed by: lan@abc.com");
+	});
+
+	it("FR-38: still-failing email lists the three checks", async () => {
+		const email = await renderStillFailingEmail({
+			domain: "abc.com",
+			appUrl: APP,
+			url: "https://abc.com/pricing",
+			incidentId: "L1@x",
+			claimedAt: "2026-09-30T03:00:00.000Z",
+			attempts: [
+				{
+					attempt: 1,
+					at: "2026-09-30T03:00:05.000Z",
+					result: "dead",
+					httpCode: 404,
+					errorType: "http_4xx",
+				},
+				{
+					attempt: 2,
+					at: "2026-09-30T03:02:05.000Z",
+					result: "dead",
+					httpCode: 404,
+					errorType: "http_4xx",
+				},
+				{
+					attempt: 3,
+					at: "2026-09-30T03:05:05.000Z",
+					result: "down",
+					errorType: "timeout",
+				},
+			],
+		});
+		expect(email.subject).toBe(
+			"[LinkWatch][STILL FAILING] abc.com — 1 link still failing after your fix",
+		);
+		expect(email.text).toContain(
+			"Check 3 (2026-09-30 10:05 (GMT+7)): Timed out",
+		);
+		expect(email.text).toContain("Only you receive this email");
 	});
 });

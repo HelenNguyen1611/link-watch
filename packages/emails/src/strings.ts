@@ -39,6 +39,21 @@ export const en = {
 			`This test email was sent from ${sender}. If you can read it, alerts will reach this address.`,
 		requestedBy: (email: string) => `Requested by ${email}.`,
 	},
+	confirm: {
+		button: "Fixed — check again",
+		groupButton: "All fixed — check all again",
+		hint: "Fixed it? The button opens a page where you confirm; LinkWatch then checks the link right away.",
+	},
+	stillFailing: {
+		preview: (url: string) => `Still failing after your fix: ${url}`,
+		heading: "The link still fails",
+		intro: (url: string) =>
+			`You reported ${url} as fixed, but it failed all three checks (right away, after 2 and after 5 minutes). The incident is open again.`,
+		attempt: (n: number) => `Check ${n}`,
+		onlyYou:
+			"Only you receive this email; the other recipients were not notified again.",
+	},
+	fixedBy: "Fixed by",
 	fields: {
 		type: "Type",
 		error: "Error",

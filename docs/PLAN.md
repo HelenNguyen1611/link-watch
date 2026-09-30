@@ -407,7 +407,8 @@
 - **Xong khi:** `pnpm test:int` pass: ghi token bản băm có `ttl`, ghi claim theo incident.
 - **Phụ thuộc:** 9b, 7
 
-#### Bước 15b — Nút "Đã khắc phục" và email "vẫn lỗi"
+#### Bước 15b — Nút "Đã khắc phục" và email "vẫn lỗi" ✅
+- ✅ đã làm (30/09/2026): email Sự cố — mỗi link có nút "Fixed — check again" → `/confirm/?token=…` (token riêng từng người nhận), email gộp > 1 link có thêm nút cả nhóm + dòng giải thích; email Hồi phục ghi "Fixed by"; mẫu `StillFailingEmail` (tiêu đề `[LinkWatch][STILL FAILING] abc.com — 1 link still failing after your fix`, liệt kê 3 lần check, ghi rõ chỉ người bấm nhận).
 - **File:** `src/{incident,verify-failed}.tsx`, test snapshot.
 - **FR/AC:** FR-33 (nút cho từng link + nút cả nhóm), FR-38.
 - **Xong khi:** test render pass; mỗi link có URL `/confirm/?token=…`.

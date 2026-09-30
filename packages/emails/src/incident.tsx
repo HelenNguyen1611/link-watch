@@ -1,5 +1,5 @@
-import { Link, Section, Text } from "react-email";
-import { formatTime, incidentUrl } from "./format";
+import { Button, Link, Section, Text } from "react-email";
+import { confirmUrl, formatTime, incidentUrl } from "./format";
 import { itemStyles, Layout } from "./layout";
 import { en } from "./strings";
 import type { IncidentEmailProps, IncidentItem } from "./types";
@@ -43,12 +43,25 @@ export function IncidentItemBlock(props: {
 					{en.fields.viewIncident}
 				</Link>
 			</Text>
+			{item.confirmToken && (
+				<Button
+					href={confirmUrl(props.appUrl, item.confirmToken)}
+					style={itemStyles.button}
+				>
+					{en.confirm.button}
+				</Button>
+			)}
 		</Section>
 	);
 }
 
 /** FR-21, FR-22: incident email, one block per failing link of the domain. */
-export function IncidentEmail({ domain, items, appUrl }: IncidentEmailProps) {
+export function IncidentEmail({
+	domain,
+	items,
+	appUrl,
+	groupToken,
+}: IncidentEmailProps) {
 	return (
 		<Layout
 			preview={en.incident.preview(domain, items.length)}
@@ -58,6 +71,14 @@ export function IncidentEmail({ domain, items, appUrl }: IncidentEmailProps) {
 			{items.map((item) => (
 				<IncidentItemBlock key={item.incidentId} item={item} appUrl={appUrl} />
 			))}
+			{groupToken && items.length > 1 && (
+				<Button href={confirmUrl(appUrl, groupToken)} style={itemStyles.button}>
+					{en.confirm.groupButton}
+				</Button>
+			)}
+			{items.some((i) => i.confirmToken) && (
+				<Text style={itemStyles.hint}>{en.confirm.hint}</Text>
+			)}
 		</Layout>
 	);
 }

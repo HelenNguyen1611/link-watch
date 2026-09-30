@@ -3,6 +3,7 @@ const TAGS = {
 	down: "DOWN",
 	recovery: "RECOVERED",
 	reminder: "REMINDER",
+	still_failing: "STILL FAILING",
 } as const;
 
 export type EmailSubjectKind = keyof typeof TAGS;
@@ -29,6 +30,8 @@ export function emailSubject(
 			return `${prefix}${links(linkCount)} back up`;
 		case "reminder":
 			return `${prefix}${links(linkCount)} still down`;
+		case "still_failing":
+			return `${prefix}${links(linkCount)} still failing after your fix`;
 	}
 }
 

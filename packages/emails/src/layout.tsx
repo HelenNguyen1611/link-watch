@@ -70,4 +70,16 @@ export const itemStyles = {
 	url: { fontWeight: 600, wordBreak: "break-all", margin: "0 0 4px" },
 	line: { margin: "0", fontSize: "14px" },
 	link: { color: "#0969da" },
+	button: {
+		display: "inline-block",
+		margin: "8px 0 4px",
+		padding: "8px 14px",
+		borderRadius: "6px",
+		backgroundColor: "#0f766e",
+		color: "#ffffff",
+		fontSize: "14px",
+		fontWeight: 600,
+		textDecoration: "none",
+	},
+	hint: { fontSize: "12px", color: "#656d76", margin: "8px 0 0" },
 } as const;

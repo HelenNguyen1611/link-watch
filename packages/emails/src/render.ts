@@ -5,6 +5,7 @@ import { IncidentEmail } from "./incident";
 import { OutageEmail } from "./outage";
 import { RecoveryEmail } from "./recovery";
 import { ReminderEmail } from "./reminder";
+import { StillFailingEmail } from "./still-failing";
 import { en } from "./strings";
 import { TestEmail } from "./test-email";
 import type {
@@ -12,6 +13,7 @@ import type {
 	OutageEmailProps,
 	RecoveryEmailProps,
 	ReminderEmailProps,
+	StillFailingEmailProps,
 	TestEmailProps,
 } from "./types";
 
@@ -59,3 +61,10 @@ export const renderOutageEmail = (props: OutageEmailProps) =>
 /** FR-26: test email from the Settings screen. */
 export const renderTestEmail = (props: TestEmailProps) =>
 	renderBoth(en.test.subject, createElement(TestEmail, props));
+
+/** FR-38: still failing after the claimer's fix (one link). */
+export const renderStillFailingEmail = (props: StillFailingEmailProps) =>
+	renderBoth(
+		emailSubject("still_failing", props.domain, 1),
+		createElement(StillFailingEmail, props),
+	);

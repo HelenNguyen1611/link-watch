@@ -21,6 +21,11 @@ export function RecoveryEmail({ domain, items, appUrl }: RecoveryEmailProps) {
 					<Text style={itemStyles.line}>
 						{en.fields.recoveredAt}: {formatTime(item.recoveredAt)}
 					</Text>
+					{item.fixedBy && (
+						<Text style={itemStyles.line}>
+							{en.fixedBy}: {item.fixedBy}
+						</Text>
+					)}
 					<Text style={itemStyles.line}>
 						<Link
 							href={incidentUrl(appUrl, item.incidentId)}
