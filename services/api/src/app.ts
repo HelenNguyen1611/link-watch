@@ -1,8 +1,10 @@
 import type { Db } from "@linkwatch/core/db";
+import type { SendPriorityJob } from "@linkwatch/core/usecases";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type AuthMode, type AuthVariables, auth } from "./middleware/auth";
 import { onError } from "./middleware/error";
+import { incidentRoutes } from "./routes/incidents";
 import { linkRoutes } from "./routes/links";
 import { recipientRoutes } from "./routes/recipients";
 import { type EmailDeps, settingsRoutes } from "./routes/settings";
@@ -13,6 +15,8 @@ export type AppDeps = {
 	auth: AuthMode;
 	/** FR-26: SES client and deployment defaults for Settings and the test email. */
 	email: EmailDeps;
+	/** FR-16: sends Check now jobs to the priority queue; undefined → Check now answers 503. */
+	sendPriorityJob?: SendPriorityJob;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
 	/** Set only for local development (web :3000 → API :8787); production is same-origin via CloudFront. */
 	corsOrigins?: string[];
@@ -37,7 +41,8 @@ export function createApp(deps: AppDeps) {
 	app.onError(onError(log));
 	app.notFound((c) => c.json({ error: "not_found" }, 404));
 	app.get("/health", (c) => c.json({ ok: true }));
-	app.route("/links", linkRoutes(deps.db));
+	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob));
+	app.route("/incidents", incidentRoutes(deps.db));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));
 	return app;

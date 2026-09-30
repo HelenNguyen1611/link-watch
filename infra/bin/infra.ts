@@ -12,8 +12,15 @@ const env = { account: config.account, region: config.region };
 
 new CicdStack(app, "LinkWatch-Cicd", { env });
 const data = new DataStack(app, "LinkWatch-Data", { env });
-new WorkersStack(app, "LinkWatch-Workers", { env, table: data.table });
-const api = new ApiStack(app, "LinkWatch-Api", { env, table: data.table });
+const workers = new WorkersStack(app, "LinkWatch-Workers", {
+	env,
+	table: data.table,
+});
+const api = new ApiStack(app, "LinkWatch-Api", {
+	env,
+	table: data.table,
+	priorityQueue: workers.priorityQueue,
+});
 new WebStack(app, "LinkWatch-Web", {
 	env,
 	apiOriginDomain: api.apiDomainName,

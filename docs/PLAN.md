@@ -353,6 +353,7 @@
 - **Phụ thuộc:** 10a
 
 #### Bước 19b — API sửa, tạm dừng, thao tác hàng loạt, tìm/lọc, nhập/xuất
+- **Đã chốt 30/09/2026 — hướng 2 (snapshot):** danh sách link cho SCR-03 lấy từ một file snapshot JSON gọn (toàn bộ link, chỉ các cột hiển thị) ghi lại sau mỗi lượt Dispatcher (5 phút), đọc qua API có đăng nhập; web sort/lọc/phân trang phía client như hiện tại (giữ sort mọi cột, tổng số, số trang). Link đang được theo dõi (vừa Check now, vừa thêm/sửa, Pending/Suspect, trang chi tiết) đọc trực tiếp theo khóa và ghi đè lên dòng trong snapshot → luôn mới. Lý do: GSI3 chỉ 8 RCU, đọc toàn bộ 5.000 link mỗi lần tải sẽ bị throttle; hướng 1 (phân trang + FilterExpression trên DynamoDB) mất sort theo cột và tổng số. Snapshot là thành phần mới của kiến trúc (S3 + quyền IAM), đã được người dùng đồng ý.
 - **File:** `src/routes/links.ts`, `src/routes/import.ts`.
 - **FR/AC:** FR-03 → FR-06 (tìm, lọc domain/trạng thái/tag/lịch, CSV xuất).
 - **Xong khi:** test route pass trên DynamoDB Local, gồm thao tác hàng loạt và export CSV.
@@ -366,7 +367,8 @@
 
 ### Sự cố, lịch sử, tổng quan
 
-#### Bước 21 — API Sự cố, lịch sử check, Check now
+#### Bước 21 — API Sự cố, lịch sử check, Check now ✅
+- ✅ đã làm (30/09/2026): `GET /api/incidents?state=active|closed` (active = Đang mở + Chờ xác minh, trả đủ; closed phân trang cursor, GSI2), `GET /api/incidents/:id` (kèm danh sách email đã gửi từ `MAIL#`), `POST /api/incidents/:id/ack` (người bấm = email Cognito, ghi chú; incident đã đóng → 409 `incident_closed`); `GET /api/links/:id`, `/:id/checks?limit≤100`, `/:id/uptime?days≤90` (từ `DAY#`, uptime = Up + Chậm), `/:id/incidents`; `POST /api/links/check-now` `{linkIds ≤ 100}` hoặc `{domain}` → job `check_now` vào hàng đợi ưu tiên (1 domain/job, ≤ 20 link), trả 202 `{queued, skipped, jobs}`; link tạm dừng/đã xóa bị bỏ qua. API local không có hàng đợi → 503 `check_now_unavailable`. Hạ tầng: API Lambda có `PRIORITY_QUEUE_URL` (lấy từ LinkWatch-Workers) + quyền `sqs:SendMessage`; không đổi logical ID. Id incident trong URL phải `encodeURIComponent`.
 - **File:** `src/routes/{incidents,checks}.ts`.
 - **FR/AC:** FR-16 (link/domain/tập link → job ưu tiên), FR-17, FR-18 (100 check gần nhất, dữ liệu biểu đồ), FR-19 (lọc mở/đóng, acknowledge + ghi chú, danh sách người nhận email).
 - **Xong khi:** test route pass; Check now tạo đúng message trên mock SQS.

@@ -38,6 +38,8 @@ const CHECKER_TIMEOUT = cdk.Duration.minutes(7);
 export class WorkersStack extends cdk.Stack {
 	readonly checkQueue: sqs.Queue;
 	readonly alertFunction: lambda.IFunction;
+	/** FR-16: the API sends Check now jobs here (step 21). */
+	readonly priorityQueue: sqs.IQueue;
 
 	constructor(scope: Construct, id: string, props: WorkersStackProps) {
 		super(scope, id, props);
@@ -95,6 +97,7 @@ export class WorkersStack extends cdk.Stack {
 			}),
 		);
 		priorityQueue.grantSendMessages(checker);
+		this.priorityQueue = priorityQueue;
 		checker.addEventSource(
 			new eventSources.SqsEventSource(priorityQueue, {
 				batchSize: 5,

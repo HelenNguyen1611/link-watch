@@ -23,6 +23,8 @@ export function onError(
 				},
 				409,
 			);
+		if (code === "incident_closed")
+			return c.json({ error: "incident_closed", message: err.message }, 409);
 		if (code === "not_found")
 			return c.json({ error: "not_found", message: err.message }, 404);
 		log("Unexpected error", { error: String(err), stack: err.stack });

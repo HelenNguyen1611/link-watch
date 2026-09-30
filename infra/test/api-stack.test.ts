@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { ApiStack } from "../lib/api-stack";
 import { config } from "../lib/config";
 import { DataStack } from "../lib/data-stack";
+import { WorkersStack } from "../lib/workers-stack";
 
 describe("LinkWatch-Api", () => {
 	let template: Template;
@@ -12,8 +13,16 @@ describe("LinkWatch-Api", () => {
 		const app = new cdk.App({ context: { "aws:cdk:bundling-stacks": [] } });
 		const env = { account: config.account, region: config.region };
 		const data = new DataStack(app, "LinkWatch-Data", { env });
+		const workers = new WorkersStack(app, "LinkWatch-Workers", {
+			env,
+			table: data.table,
+		});
 		template = Template.fromStack(
-			new ApiStack(app, "LinkWatch-Api", { env, table: data.table }),
+			new ApiStack(app, "LinkWatch-Api", {
+				env,
+				table: data.table,
+				priorityQueue: workers.priorityQueue,
+			}),
 		);
 	});
 
@@ -30,6 +39,7 @@ describe("LinkWatch-Api", () => {
 					SES_IDENTITY: config.sesIdentity,
 					SENDER_EMAIL: config.senderEmail,
 					DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
+					PRIORITY_QUEUE_URL: Match.anyValue(),
 				}),
 			},
 		});
@@ -112,6 +122,13 @@ describe("LinkWatch-Api", () => {
 				ThrottlingBurstLimit: 20,
 			},
 		});
+	});
+
+	it("FR-16: the API may send Check now jobs to the priority queue (and nothing else on SQS)", () => {
+		const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+		expect(policies).toContain("sqs:SendMessage");
+		expect(policies).not.toContain("sqs:ReceiveMessage");
+		expect(policies).not.toContain("sqs:DeleteMessage");
 	});
 
 	it("NFR-07: the temporary API key is gone — no SSM access for the API Lambda", () => {

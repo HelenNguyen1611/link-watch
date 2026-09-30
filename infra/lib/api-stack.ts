@@ -4,6 +4,7 @@ import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import type * as lambda from "aws-cdk-lib/aws-lambda";
+import type * as sqs from "aws-cdk-lib/aws-sqs";
 import * as cdk from "aws-cdk-lib/core";
 import type { Construct } from "constructs";
 import { config } from "./config";
@@ -12,6 +13,8 @@ import { grantSendEmail } from "./ses";
 
 export interface ApiStackProps extends cdk.StackProps {
 	table: dynamodb.ITable;
+	/** FR-16: Check now jobs go to the Workers priority queue (step 21). */
+	priorityQueue: sqs.IQueue;
 }
 
 /**
@@ -38,9 +41,11 @@ export class ApiStack extends cdk.Stack {
 				SES_IDENTITY: config.sesIdentity,
 				SENDER_EMAIL: config.senderEmail,
 				DEFAULT_ADMIN_EMAIL: config.defaultAdminEmail,
+				PRIORITY_QUEUE_URL: props.priorityQueue.queueUrl,
 			},
 		});
 		this.apiFunction = fn;
+		props.priorityQueue.grantSendMessages(fn);
 		props.table.grantReadWriteData(fn);
 		// FR-26: test email from the Settings screen.
 		grantSendEmail(fn);
