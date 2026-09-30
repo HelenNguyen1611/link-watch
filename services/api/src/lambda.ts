@@ -22,12 +22,13 @@ const app = createApp({
 	db: createDb(),
 	auth: { kind: "apiGateway" },
 	snapshot: s3SnapshotStore(new S3Client({}), env("SNAPSHOT_BUCKET")),
-	// FR-16: no delay — the Checker picks the job up within seconds.
-	sendPriorityJob: async (job) => {
+	// FR-16: Check now without delay; FR-37 verification attempts at 0, +120, +300 s.
+	sendPriorityJob: async (job, delaySeconds = 0) => {
 		await sqs.send(
 			new SendMessageCommand({
 				QueueUrl: priorityQueueUrl,
 				MessageBody: JSON.stringify(job),
+				DelaySeconds: delaySeconds,
 			}),
 		);
 	},

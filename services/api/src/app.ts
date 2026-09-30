@@ -7,6 +7,7 @@ import { onError } from "./middleware/error";
 import { domainRoutes } from "./routes/domains";
 import { incidentRoutes } from "./routes/incidents";
 import { linkRoutes } from "./routes/links";
+import { publicClaimRoutes } from "./routes/public-claims";
 import { recipientRoutes } from "./routes/recipients";
 import { scheduleRoutes } from "./routes/schedules";
 import { type EmailDeps, settingsRoutes } from "./routes/settings";
@@ -46,7 +47,8 @@ export function createApp(deps: AppDeps) {
 	app.notFound((c) => c.json({ error: "not_found" }, 404));
 	app.get("/health", (c) => c.json({ ok: true }));
 	app.route("/links", linkRoutes(deps.db, deps.sendPriorityJob, deps.snapshot));
-	app.route("/incidents", incidentRoutes(deps.db));
+	app.route("/incidents", incidentRoutes(deps.db, deps.sendPriorityJob));
+	app.route("/public/claims", publicClaimRoutes(deps.db, deps.sendPriorityJob));
 	app.route("/schedules", scheduleRoutes(deps.db));
 	app.route("/domains", domainRoutes(deps.db, deps.snapshot));
 	app.route("/recipients", recipientRoutes(deps.db));

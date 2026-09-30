@@ -428,8 +428,9 @@
 - **Xong khi:** test int: claim thất bại 3 lần → 1 email "vẫn lỗi" chỉ tới người bấm.
 - **Phụ thuộc:** 16b
 
-#### Bước 22 — API resolve-claim (công khai qua token + trong app)
+#### Bước 22 — API resolve-claim (công khai qua token + trong app) ✅
 - ✅ phần a (30/09/2026): `submitClaim` (mỗi incident: `decideClaim` → tạo `Claim`, incident *Chờ xác minh* + `verifyingBy`, gửi 3 job `verify` có `DelaySeconds` 0/120/300), `readTokenClaim` (chỉ đọc — AC-11; token lạ/hết hạn → `expired`; mọi incident đã đóng → `recovered`), `submitTokenClaim` (người bấm = người nhận của token; token nhóm có thể chọn bớt incident), `applyVerification` (fixed / retry / still_failing → incident về *Đang mở* + `claimNote`). Checker: job `verify` đọc claim → `recordCheck(…, { verifiedBy })` đóng với `closedReason: verified_fix`, `closedBy`; sau đó `applyVerification`.
+- ✅ phần b (30/09/2026): `GET /api/public/claims?token=` (chỉ đọc, `Cache-Control: no-store`, `X-Robots-Tag: noindex`), `POST /api/public/claims` `{token, note?, incidentIds?}`, `POST /api/incidents/resolve-claim` `{incidentIds ≤ 100, note?}` (JWT, kênh `app`); `GET /api/incidents/:id` có `claims` (dòng thời gian FR-41) và `closedBy`/`verifyingBy`/`claimNote`; `sendPriorityJob(job, delaySeconds)`. AC-11, AC-12, AC-13 pass ở test route.
 - **File:** `src/routes/claims.ts`: `GET /public/claims?token=` (chỉ đọc), `POST /public/claims` (token), `POST /incidents/{id}/resolve-claim` (JWT, nhiều link), `GET` tiến độ xác minh; header chống cache.
 - **FR/AC:** FR-34 → FR-37, FR-40, FR-41, FR-42; **AC-11** (GET không ghi gì), **AC-12**, **AC-13**.
 - **Xong khi:** test route pass `AC-11`, `AC-12`, `AC-13`.

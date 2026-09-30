@@ -26,6 +26,12 @@ export const IncidentView = z.object({
 	ackedBy: z.string().optional(),
 	ackedAt: z.string().optional(),
 	note: z.string().optional(),
+	/** FR-37: "Fixed by <email>". */
+	closedBy: z.string().optional(),
+	/** FR-36: who reported it fixed while Verifying. */
+	verifyingBy: z.string().optional(),
+	/** FR-38: note after a claim whose checks all failed. */
+	claimNote: z.string().optional(),
 });
 export type IncidentView = z.infer<typeof IncidentView>;
 
@@ -39,8 +45,30 @@ export const IncidentNotificationView = z.object({
 });
 export type IncidentNotificationView = z.infer<typeof IncidentNotificationView>;
 
+/** FR-41: one "fixed — check again" report on the incident timeline. */
+export const ClaimTimelineItem = z.object({
+	claimedAt: z.string(),
+	byEmail: z.string(),
+	channel: z.enum(["email", "app"]),
+	note: z.string().optional(),
+	outcome: z.enum(["pending", "fixed", "still_failing"]),
+	attempts: z.array(
+		z.object({
+			attempt: z.number(),
+			at: z.string(),
+			result: z.string(),
+			httpCode: z.number().optional(),
+			errorType: z.string().optional(),
+		}),
+	),
+	finishedAt: z.string().optional(),
+});
+export type ClaimTimelineItem = z.infer<typeof ClaimTimelineItem>;
+
 export const IncidentDetail = IncidentView.extend({
 	notifications: z.array(IncidentNotificationView),
+	/** FR-41: every claim, oldest first. */
+	claims: z.array(ClaimTimelineItem),
 });
 export type IncidentDetail = z.infer<typeof IncidentDetail>;
 
@@ -105,3 +133,12 @@ export type CheckNowResult = {
 	/** Priority-queue messages sent (≤ 20 links each, one domain per message). */
 	jobs: number;
 };
+
+/** FR-41: report several incidents as fixed from the app. */
+export const ResolveClaimInput = z
+	.object({
+		incidentIds: z.array(z.string().min(1)).min(1).max(100),
+		note: z.string().trim().max(1000).optional(),
+	})
+	.strict();
+export type ResolveClaimInput = z.infer<typeof ResolveClaimInput>;

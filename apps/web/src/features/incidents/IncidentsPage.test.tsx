@@ -156,6 +156,7 @@ describe("IncidentsPage — list (FR-19)", () => {
 describe("IncidentsPage — detail (FR-19, links in emails)", () => {
 	const detail: IncidentDetail = {
 		...incident(),
+		claims: [],
 		notifications: [
 			{
 				to: "helen@wootech.co",

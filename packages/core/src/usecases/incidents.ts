@@ -42,6 +42,9 @@ const KEYS = [
 	"ackedBy",
 	"ackedAt",
 	"note",
+	"closedBy",
+	"verifyingBy",
+	"claimNote",
 ] as const;
 
 /** Drops internal fields before returning to the web. */
@@ -98,11 +101,21 @@ async function getRow(db: Db, id: string) {
 /** FR-19: one incident with the emails sent about it (MAIL# log, FR-25), oldest first. */
 export async function getIncident(db: Db, id: string): Promise<IncidentDetail> {
 	const row = await getRow(db, id);
-	const { data: mails } = await db.Notification.query
-		.byIncident({ incidentId: id })
-		.go({ pages: "all" });
+	const [{ data: mails }, { data: claims }] = await Promise.all([
+		db.Notification.query.byIncident({ incidentId: id }).go({ pages: "all" }),
+		db.Claim.query.byIncident({ incidentId: id }).go({ pages: "all" }),
+	]);
 	return {
 		...toIncidentView(row),
+		claims: claims.map((c) => ({
+			claimedAt: c.claimedAt,
+			byEmail: c.byEmail,
+			channel: c.channel,
+			outcome: c.outcome,
+			attempts: c.attempts ?? [],
+			...(c.note && { note: c.note }),
+			...(c.finishedAt && { finishedAt: c.finishedAt }),
+		})),
 		notifications: mails.map((m) => ({
 			to: m.to,
 			kind: m.kind,

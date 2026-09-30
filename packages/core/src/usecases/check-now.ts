@@ -3,8 +3,14 @@ import type { Db } from "../db/index";
 import type { PriorityJob } from "../queue";
 import { CheckNowInput, type CheckNowResult } from "../schema/incident-view";
 
-/** Sends one job to the priority queue (the API wires SQS; tests use a fake). */
-export type SendPriorityJob = (job: PriorityJob) => Promise<void>;
+/**
+ * Sends one job to the priority queue (the API wires SQS; tests use a fake).
+ * `delaySeconds` (≤ 900) postpones delivery — FR-37 verification attempts.
+ */
+export type SendPriorityJob = (
+	job: PriorityJob,
+	delaySeconds?: number,
+) => Promise<void>;
 
 async function candidates(db: Db, input: CheckNowInput) {
 	if (input.domain) {
