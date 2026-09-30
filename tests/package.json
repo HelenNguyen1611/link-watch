@@ -7,6 +7,8 @@
 		"@aws-sdk/client-dynamodb": "^3.1141.0",
 		"@aws-sdk/client-sesv2": "^3.1141.0",
 		"@aws-sdk/client-sqs": "^3.1141.0",
-		"@linkwatch/core": "workspace:*"
+		"@hono/node-server": "2.1.1",
+		"@linkwatch/core": "workspace:*",
+		"hono": "^4.13.9"
 	}
 }

@@ -460,6 +460,7 @@
 - **File:** `apps/web/e2e/confirm.spec.ts`, `playwright.config.ts` (chạy web + API local).
 - **FR/AC:** AC-09 (UI ≤ 30 giây), **AC-11** (mở GET như bộ quét link → không có claim), AC-12, AC-13, NFR-10 (viewport mobile).
 - **Xong khi:** `pnpm e2e` pass. **Phụ thuộc:** 32, 33
+- ✅ đã làm (30/09/2026): `@playwright/test` (chỉ Chromium), viewport Pixel 7. `tests/e2e/server.ts` phục vụ `apps/web/out` (giống CloudFront + rewrite `index.html`) và API thật trên DynamoDB Local (bảng tạm, xoá khi dừng); site giả đổi mã trả về; verify job chạy qua Checker thật với độ trễ thu nhỏ 60 lần (0/2/5 giây); `/__e2e/*` chỉ để seed, không deploy. 6 test: AC-09 (OK < 30 giây, "fixed by"), AC-11, AC-12 (token lạ; sự cố đã được người khác sửa), AC-13, FR-38. E2E bắt được 2 lỗi đã sửa: thông báo "Already back up" hiện sai khi chính claim đóng sự cố; nút không hiện lại sau khi 3 lần check thất bại trong cùng phiên trang. Chạy: `pnpm db:local` rồi `pnpm e2e`.
 
 #### Bước 35b — Tối ưu sức chứa DynamoDB (mới, trước khi lên vài trăm link)
 - **Phát hiện 30/09/2026, người dùng chọn làm sau:** bảng provisioned free tier (bảng 10R/15W, GSI1 5/8, GSI2 2/1, GSI3 8/1), cả 3 GSI chiếu `ALL` → mỗi lần sửa Link (Dispatcher giữ chỗ, Checker ghi kết quả) ghi thêm GSI1 và GSI3. Lượt 06:00 với 5.000 link cần ~22 WCU/s bảng, ~11 GSI1, ~11 GSI3 trong 15 phút (NFR-01) → GSI3 (1 WCU) mất ~3 giờ và throttle dội ngược bảng chính; nhập 1.000 link cũng chậm nhiều phút. Hiện 16 link → không ảnh hưởng.

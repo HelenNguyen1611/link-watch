@@ -8,6 +8,7 @@
 		"build": "pnpm -r build",
 		"test": "vitest run --project unit --project web",
 		"test:int": "vitest run --project int --passWithNoTests",
+		"e2e": "pnpm --filter @linkwatch/web build && pnpm --filter @linkwatch/web exec playwright test",
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"typecheck": "pnpm -r exec tsc --noEmit",

@@ -1,5 +1,5 @@
 {
 	"extends": "../tsconfig.base.json",
 	"compilerOptions": { "types": ["node"], "jsx": "react-jsx" },
-	"include": ["flows"]
+	"include": ["flows", "e2e"]
 }

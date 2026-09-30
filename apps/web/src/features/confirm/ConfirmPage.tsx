@@ -121,10 +121,9 @@ function Confirm({ token }: { token: string }) {
 			</Alert>
 		);
 	const started = v.items.some((i) => i.progress);
+	// FR-38: once the checks of a claim are done and still failing, it can be reported again.
 	const canSubmit =
-		v.status === "open" &&
-		!v.items.some((i) => i.progress && !i.progress.done) &&
-		!submit.isSuccess;
+		v.status === "open" && !v.items.some((i) => i.progress && !i.progress.done);
 	return (
 		<Stack gap="md">
 			{/* FR-42: closed without a successful claim; a claim that fixed it shows its own outcome. */}
