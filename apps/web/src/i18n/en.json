@@ -504,5 +504,68 @@
 			"default": "default"
 		},
 		"defaultBadge": "Default"
+	},
+	"domains": {
+		"subtitle": "Links grouped by root domain: status, uptime and settings of each domain.",
+		"status": {
+			"normal": "Normal",
+			"warning": "Warning",
+			"error": "Error",
+			"down": "Down"
+		},
+		"search": "Search",
+		"searchPlaceholder": "Domain or display name",
+		"col": {
+			"domain": "Domain",
+			"status": "Status",
+			"links": "Links",
+			"uptime": "Uptime 7 / 30 days",
+			"response": "Avg response",
+			"lastChecked": "Last check",
+			"nextCheck": "Next check",
+			"schedule": "Schedule"
+		},
+		"linkCounts": "{{total}} links ({{paused}} paused)",
+		"uptimeValue": "{{d7}} / {{d30}}",
+		"uptime7": "Uptime 7 days",
+		"disabled": "Monitoring off",
+		"empty": "No domain yet. Domains are created when you add links.",
+		"loadError": "Could not load domains.",
+		"notFound": "This domain does not exist.",
+		"back": "All domains",
+		"settings": "Settings",
+		"save": "Save changes",
+		"discard": "Discard",
+		"saved": "Domain saved.",
+		"defaultSchedule": "Default schedule",
+		"fields": {
+			"displayName": "Display name",
+			"description": "Description",
+			"owner": "Owner email",
+			"schedule": "Schedule",
+			"scheduleHint": "Links without their own schedule follow this one.",
+			"enabled": "Monitoring on",
+			"enabledHint": "Off: the links of this domain are not checked.",
+			"slowAlert": "Email when a link is slow",
+			"slowAlertHint": "Slow links only show in yellow unless this is on.",
+			"ignoreWaf403": "Ignore 403 from a firewall (WAF)",
+			"ignoreWaf403Hint": "Some sites block AWS addresses with 403; count it as reachable instead of a dead link."
+		},
+		"errors": {
+			"invalid": "Some values were rejected (check the owner email).",
+			"failed": "Could not save. Try again."
+		},
+		"recipients": {
+			"title": "Alert recipients",
+			"hint": "They get incident, recovery and reminder emails for every link of this domain.",
+			"none": "No recipient: alerts go to the default admin email.",
+			"email": "Email",
+			"name": "Name (optional)",
+			"add": "Add",
+			"remove": "Remove",
+			"removeFor": "Remove {{email}}",
+			"duplicate": "This recipient is already listed.",
+			"invalid": "Enter a valid email address."
+		}
 	}
 }

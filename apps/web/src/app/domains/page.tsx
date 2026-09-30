@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { DomainsPage } from "@/features/domains/DomainsPage";
 
 export default function Page() {
-	return <ComingSoon navKey="domains" screen="SCR-02" milestone={3} />;
+	return <DomainsPage />;
 }

@@ -341,7 +341,8 @@
 - ✅ đã làm (30/09/2026): `/schedules/` — bảng lịch mẫu (lịch mặc định luôn đầu tiên, không xóa được), mô tả bằng chữ (`describeRule`), số domain/link đang dùng; hộp thoại tạo/sửa: tên, kiểu (Chu kỳ / Hàng ngày / Hàng tuần / Hàng tháng), chu kỳ 5 phút–12 giờ, giờ (giờ Việt Nam), chọn thứ, chọn ngày 1–31; xóa bấm 2 lần, đang dùng → thông báo lý do (409). Hộp thoại Sửa link có ô chọn lịch riêng hoặc "Kế thừa" (FR-13).
 - **FR/AC:** FR-11, FR-12, FR-13. **Phụ thuộc:** 20b, 23b
 
-#### Bước 25 — SCR-02 Domain (danh sách + `/domains/?d=`)
+#### Bước 25 — SCR-02 Domain (danh sách + `/domains/?d=`) ✅
+- ✅ đã làm (30/09/2026): `/domains/` — bảng domain (trạng thái FR-09, số link theo trạng thái + tạm dừng, uptime 7/30, phản hồi TB, lần check gần nhất/kế tiếp, lịch hiệu lực + nguồn), tìm theo tên/tên hiển thị; `/domains/?d=` — chỉ số, thanh uptime 30 ngày, form cài đặt (tên hiển thị, mô tả, người phụ trách, lịch, bật/tắt theo dõi, email khi chậm, bỏ qua 403 WAF; chỉ gửi trường đổi), người nhận của domain (thêm/xóa, trùng → báo).
 - **FR/AC:** FR-08, FR-10, FR-13 (lịch hiệu lực), FR-20 (người nhận domain), cờ bỏ qua 403 WAF, cờ cảnh báo chậm. **Phụ thuộc:** 4b, 20a, 20b, 23b
 
 ### Quản lý link đầy đủ
