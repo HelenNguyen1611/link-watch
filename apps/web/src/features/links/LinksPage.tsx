@@ -18,6 +18,7 @@ import {
 	filterOptions,
 	type LinkFilter,
 } from "./filter";
+import { ImportDialog } from "./ImportDialog";
 import { LinkFilters } from "./LinkFilters";
 import { LinkTable } from "./LinkTable";
 import { LinksDataProvider, useLinksData } from "./links-data";
@@ -62,6 +63,7 @@ function LinksContent() {
 	const { t } = useTranslation();
 	const data = useLinksData();
 	const [filter, setFilter] = useState<LinkFilter>(EMPTY_FILTER);
+	const [importing, setImporting] = useState(false);
 	const all = data?.rows ?? [];
 	const shown = useMemo(() => filterLinks(all, filter), [all, filter]);
 	const options = useMemo(() => filterOptions(all), [all]);
@@ -85,6 +87,9 @@ function LinksContent() {
 							})}
 						</Text>
 					)}
+					<Button size="xs" variant="subtle" onClick={() => setImporting(true)}>
+						{t("links.import")}
+					</Button>
 					<ExportButton />
 					<Button
 						size="xs"
@@ -97,6 +102,7 @@ function LinksContent() {
 					</Button>
 				</Group>
 			</Group>
+			<ImportDialog opened={importing} onClose={() => setImporting(false)} />
 			{data.isPending ? (
 				<Loader />
 			) : data.error && !unauthorized ? (

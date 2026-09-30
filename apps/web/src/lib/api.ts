@@ -59,7 +59,7 @@ export type ImportPreviewView = {
 	summary: { valid: number; duplicate: number; error: number };
 };
 export type ImportCommitView = {
-	created: { line: number; id: string; url: string }[];
+	created: { line: number; id: string; url: string; domain: string }[];
 	rejected: ImportRowView[];
 };
 

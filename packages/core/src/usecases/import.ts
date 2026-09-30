@@ -39,7 +39,7 @@ export async function previewImport(
 export const IMPORT_CHUNK = 25;
 
 export type ImportCommitResult = {
-	created: { line: number; id: string; url: string }[];
+	created: { line: number; id: string; url: string; domain: string }[];
 	/** Rows not created: errors, duplicates, and URLs added by someone else meanwhile. */
 	rejected: ImportRow[];
 };
@@ -63,7 +63,12 @@ export async function commitImport(
 		}
 		try {
 			const link = await createLink(db, row.input, { now });
-			result.created.push({ line: row.line, id: link.id, url: link.url });
+			result.created.push({
+				line: row.line,
+				id: link.id,
+				url: link.url,
+				domain: link.domain,
+			});
 		} catch (err) {
 			if (!(err instanceof DuplicateLinkError)) throw err;
 			result.rejected.push({

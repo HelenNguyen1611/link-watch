@@ -185,7 +185,8 @@
 			"previous": "Previous page"
 		},
 		"export": "Export CSV",
-		"exportFailed": "Could not export the links."
+		"exportFailed": "Could not export the links.",
+		"import": "Import"
 	},
 	"linkForm": {
 		"url": "URL",
@@ -384,6 +385,43 @@
 			"name": "Up to 200 characters",
 			"keyword": "Up to 200 characters",
 			"tags": "Up to 20 tags of 50 characters"
+		}
+	},
+	"importLinks": {
+		"title": "Import links",
+		"help": "Paste one URL per line, or a CSV with a header row: url (required), name, tags (separated by ;), method, expected_codes (e.g. 200-399;404), timeout_s, keyword. Up to {{max}} rows.",
+		"textLabel": "Links or CSV",
+		"chooseFile": "Choose a .csv or .txt file",
+		"preview": "Preview",
+		"summaryLabel": "Import preview summary",
+		"summary": {
+			"valid": "{{count}} valid",
+			"duplicate": "{{count}} duplicate",
+			"error": "{{count}} with errors"
+		},
+		"previewTable": "Import preview",
+		"col": {
+			"line": "Line",
+			"url": "URL",
+			"result": "Result"
+		},
+		"reasons": {
+			"ok": "Will be added",
+			"invalid_url": "Invalid URL (http/https only)",
+			"invalid_field": "Invalid value in column {{field}}",
+			"duplicate_in_file": "Duplicate of an earlier line",
+			"duplicate_existing": "Already monitored"
+		},
+		"moreRows": "… and {{count}} more rows (counted in the summary).",
+		"import": "Import {{count}} links",
+		"progress": "Import progress",
+		"result": "{{created}} links added, {{rejected}} rows skipped.",
+		"done": "{{count}} links imported.",
+		"close": "Close",
+		"errors": {
+			"tooLarge": "Too many rows: at most {{max}} per import.",
+			"failed": "Could not read the import. Try again.",
+			"partial": "The import stopped after {{count}} links. Preview again to import the rest."
 		}
 	}
 }
