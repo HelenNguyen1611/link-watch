@@ -5,6 +5,9 @@
  *
  * The link points at a missing object of the web bucket (CloudFront → S3 answers 403, a dead
  * link); "fixing" it uploads that object. Everything created is removed at the end.
+ *
+ * Milestone 3 (step 40c), `recover: "claim"`: after the fix the smoke user reports it fixed in
+ * the app (FR-41) → the verify check closes the incident within a minute, "fixed by" them (FR-37).
  */
 import { incidentId, rootDomainOf } from "@linkwatch/core";
 
@@ -45,8 +48,10 @@ export type IncidentSmokeOptions = {
 	openTimeoutMs?: number;
 	/** Incident opened → email sent: 5-minute grouping window + delivery. */
 	mailTimeoutMs?: number;
-	/** Link fixed → recovery email: 10-minute recheck + 5-minute window. */
+	/** Link fixed → incident closed: 10-minute recheck (`recheck`) or the verify check (`claim`). */
 	recoveryTimeoutMs?: number;
+	/** How the fixed link gets closed: the incident rechecks (5.2) or "Fixed — check again" (FR-41). */
+	recover?: "recheck" | "claim";
 	pollMs?: number;
 	fetch?: typeof fetch;
 	sleep?: (ms: number) => Promise<void>;
@@ -190,14 +195,48 @@ export async function runIncidentSmoke(
 		uploaded = true;
 		log("link fixed (object uploaded)");
 
+		const claim = opts.recover === "claim";
+		if (claim) {
+			const res = await call("/incidents/resolve-claim", {
+				method: "POST",
+				body: JSON.stringify({
+					incidentIds: [incId],
+					note: "LinkWatch smoke test",
+				}),
+			});
+			const decision = (
+				res.body as { items?: { decision?: string }[] } | undefined
+			)?.items?.[0]?.decision;
+			if (res.status !== 200 || decision !== "started") {
+				failures.push(
+					`POST /api/incidents/resolve-claim: expected 200 started, got ${res.status} ${decision ?? JSON.stringify(res.body)}`,
+				);
+				return { ok: false, failures };
+			}
+			log("reported fixed (FR-41), verify check queued");
+		}
+
 		const closed = await waitFor(
-			"incident closed after the link was fixed (5.2 step 4)",
-			opts.recoveryTimeoutMs ?? 20 * MIN,
+			claim
+				? "incident closed by the verify check (FR-37)"
+				: "incident closed after the link was fixed (5.2 step 4)",
+			opts.recoveryTimeoutMs ?? (claim ? 3 * MIN : 20 * MIN),
 			async () => {
 				const inc = await opts.store.latestIncident(id);
 				return inc?.state === "closed" ? inc : undefined;
 			},
 		);
+		if (closed && claim) {
+			const res = await call(`/incidents/${encodeURIComponent(incId)}`);
+			const detail = res.body as
+				| { closedBy?: string; claims?: { outcome: string }[] }
+				| undefined;
+			if (!detail?.closedBy || detail.claims?.at(-1)?.outcome !== "fixed")
+				failures.push(
+					`GET /api/incidents/<id>: expected closedBy and a fixed claim, got ${JSON.stringify({ closedBy: detail?.closedBy, claims: detail?.claims })}`,
+				);
+			else log(`incident closed, fixed by ${detail.closedBy}`);
+		}
 		if (closed) {
 			const recovery = await waitFor(
 				`recovery email to ${opts.recipient} (FR-21, AC-07)`,

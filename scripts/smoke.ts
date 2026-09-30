@@ -7,7 +7,9 @@
  * through CloudFront (step 37c) → add 4 sample links → wait for the Dispatcher/Checker
  * (up to 15 minutes: failures are Suspect first and confirmed by the 2-minute recheck, SRS 5.2)
  * → each link has the expected status → delete the sample links.
- * Milestone 2 part (smoke-incident.ts): 404 link → incident → email → fix → recovery email.
+ * Milestone 2 part (smoke-incident.ts): 404 link → incident → email → fix → recovery email;
+ * since milestone 3 the fix is reported in the app ("Fixed — check again") unless SMOKE_RECOVER=recheck.
+ * Milestone 3 part (smoke-features.ts): Check now and a schedule of its own.
  */
 import { pathToFileURL } from "node:url";
 import type {
@@ -17,6 +19,7 @@ import type {
 	LinkView,
 } from "@linkwatch/core";
 import { loadAwsEnvironment } from "./aws";
+import { runFeatureSmoke } from "./smoke-features";
 import { runIncidentSmoke } from "./smoke-incident";
 
 export type SmokeSample = { expected: LinkStatus; input: LinkInputRaw };
@@ -239,9 +242,22 @@ async function main() {
 		);
 	for (const f of report.failures) console.error(`  ✗ ${f}`);
 
+	console.log("Check now and own schedule (milestone 3)…");
+	const features = await runFeatureSmoke({
+		baseUrl,
+		token,
+		runId,
+		log: (m) => console.log(`  ${m}`),
+	});
+	for (const f of features.failures) console.error(`  ✗ ${f}`);
+
 	let incidentOk = true;
 	if (process.env.SMOKE_SKIP_INCIDENT !== "1") {
-		console.log("Incident flow (milestone 2, up to ~35 minutes)…");
+		const recover =
+			process.env.SMOKE_RECOVER === "recheck" ? "recheck" : "claim";
+		console.log(
+			`Incident flow (up to ~${recover === "claim" ? 25 : 35} minutes, recover by ${recover})…`,
+		);
 		const incident = await runIncidentSmoke({
 			baseUrl,
 			token,
@@ -249,12 +265,13 @@ async function main() {
 			recipient: process.env.SMOKE_RECIPIENT ?? "helen@wootech.co",
 			store: aws.store,
 			site: aws.site,
+			recover,
 			log: (m) => console.log(`  ${m}`),
 		});
 		for (const f of incident.failures) console.error(`  ✗ ${f}`);
 		incidentOk = incident.ok;
 	}
-	const ok = report.ok && incidentOk;
+	const ok = report.ok && features.ok && incidentOk;
 	console.log(ok ? "Smoke test passed" : "Smoke test FAILED");
 	process.exit(ok ? 0 : 1);
 }

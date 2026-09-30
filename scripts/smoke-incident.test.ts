@@ -17,6 +17,10 @@ type Scenario = {
 	/** Seconds between the incident and its email. */
 	downMailDelayS?: number;
 	domainExists?: boolean;
+	/** Answer of POST /incidents/resolve-claim. */
+	claimDecision?: string;
+	/** GET /incidents/:id after the claim closed it. */
+	closedBy?: string;
 };
 
 /** Fake API + table + bucket, advancing the "real" system one step per poll. */
@@ -41,6 +45,15 @@ function fakeWorld(s: Scenario = {}) {
 			domainExists = true;
 			return json(201, { id: "L1" });
 		}
+		if (url.pathname === "/api/incidents/resolve-claim")
+			return json(200, {
+				items: [{ decision: s.claimDecision ?? "started" }],
+			});
+		if (url.pathname.startsWith("/api/incidents/") && method === "GET")
+			return json(200, {
+				closedBy: s.closedBy,
+				claims: [{ outcome: "fixed" }],
+			});
 		if (method === "DELETE") return json(204);
 		return json(404, { error: "not_found" });
 	};
@@ -203,5 +216,49 @@ describe("incident smoke test (step 40b)", () => {
 			expect.stringContaining("recovery email"),
 		]);
 		expect(w.removed).toEqual(["smoke/run1.txt"]);
+	});
+
+	it("FR-41 / FR-37: recover by claim → reports fixed after the upload, incident closed by the smoke user", async () => {
+		const w = fakeWorld({
+			openAfter: 0,
+			downMailAfter: 0,
+			closeAfter: 1,
+			recoveryMailAfter: 1,
+			closedBy: "smoke@watch.hueai.net",
+		});
+		const report = await runIncidentSmoke({ ...w.opts, recover: "claim" });
+		expect(report.failures).toEqual([]);
+		const claim = w.calls.indexOf("POST /api/incidents/resolve-claim");
+		expect(claim).toBeGreaterThan(-1);
+		expect(w.calls).toContain(
+			"GET /api/incidents/L1%402026-09-30T00%3A04%3A00.000Z",
+		);
+	});
+
+	it("FR-37: closed without closedBy (not by the claim) → fails", async () => {
+		const w = fakeWorld({
+			openAfter: 0,
+			downMailAfter: 0,
+			closeAfter: 1,
+			recoveryMailAfter: 1,
+		});
+		const report = await runIncidentSmoke({ ...w.opts, recover: "claim" });
+		expect(report.failures).toEqual([
+			expect.stringContaining("expected closedBy and a fixed claim"),
+		]);
+	});
+
+	it("FR-41: claim not started → fails, still cleans up", async () => {
+		const w = fakeWorld({
+			openAfter: 0,
+			downMailAfter: 0,
+			claimDecision: "in_progress",
+		});
+		const report = await runIncidentSmoke({ ...w.opts, recover: "claim" });
+		expect(report.failures).toEqual([
+			expect.stringContaining("expected 200 started"),
+		]);
+		expect(w.removed).toEqual(["smoke/run1.txt"]);
+		expect(w.calls).toContain("DELETE /api/links/L1");
 	});
 });

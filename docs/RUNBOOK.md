@@ -89,9 +89,9 @@ Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` 
 - Gửi lại message flush từ `AlertDlq` về hàng đợi alert: SQS Console → AlertDlq → **Start DLQ redrive** (về source queue). Bản ghi lỗi của Streams không redrive được: sự kiện vẫn nằm trong `OUTBOX#<domain>#<kind>`; gửi tay một message `{"kind":"flush","domain":"<domain>","notification":"down"}` vào hàng đợi alert.
 - Purge: `aws sqs purge-queue --queue-url <url> …`.
 
-## 4. Smoke test sau khi deploy (Bước 40a, 40b)
+## 4. Smoke test sau khi deploy (Bước 40a, 40b, 40c)
 
-Chạy sau mỗi lần push `main` khi workflow deploy đã xanh, bằng credentials AWS của bạn (`scripts/smoke.ts`, `scripts/smoke-incident.ts`).
+Chạy sau mỗi lần push `main` khi workflow deploy đã xanh, bằng credentials AWS của bạn (`scripts/smoke.ts`, `scripts/smoke-features.ts`, `scripts/smoke-incident.ts`).
 
 **Chuẩn bị một lần:** tạo user Cognito cho smoke test với mật khẩu cố định (mục 2, bước 3) và xác thực người nhận trong SES (mục 2a).
 
@@ -105,15 +105,21 @@ Phần Mốc 1 (~10–15 phút):
 2. Bước 37c: `DELETE /api/links/<không có>` → 404 JSON `{"error":"not_found"}` (không bị CloudFront đổi thành trang HTML); một trang web không tồn tại vẫn ra trang 404 (HTML).
 3. Tạo 4 link mẫu (tag `smoke`, query `?linkwatch-smoke=<run>`): `example.com` → Hoạt động, `httpbin.org/delay/7` → Chậm, `httpbin.org/status/404` → Link chết, `linkwatch-smoke-nx.example.com` → Site down. Link lỗi ở lần check đầu là **Nghi ngờ** (Suspect), 2 phút sau check lại mới thành Link chết/Site down (SRS 5.2), nên script chờ tới khi không còn link Pending/Suspect (tối đa 15 phút) rồi so trạng thái; luôn xóa link mẫu.
 
-Phần Mốc 2 (~20–35 phút, bỏ qua bằng `SMOKE_SKIP_INCIDENT=1`):
+Phần Mốc 3 — Check now và lịch riêng (~1–2 phút):
+
+- Thêm link `example.com/?linkwatch-smoke-features=<run>` → **Check now** → có kết quả Hoạt động trong ≤ 2 phút (FR-16).
+- Tạo lịch "Mỗi 5 phút" `smoke <run>`, gán cho link → `next_run_at` trong ≤ 10 phút (FR-12, FR-13); xóa lịch đang dùng → 409.
+- Luôn dọn: xóa link rồi xóa lịch.
+
+Phần sự cố (~15–25 phút, bỏ qua bằng `SMOKE_SKIP_INCIDENT=1`):
 
 4. Thêm người nhận `SMOKE_RECIPIENT` (mặc định `helen@wootech.co`) cho domain `hueai.net`.
 5. Thêm link `https://watch.hueai.net/smoke/<run>.txt` — file không có trong bucket nên CloudFront/S3 trả 403 → Link chết.
 6. Chờ incident mở sau lần check lỗi thứ 2 (≤ 15 phút), rồi chờ `MAIL#` loại `down` tới người nhận ở trạng thái `sent` trong ≤ 5 phút (+1 phút dư) kể từ lúc mở (AC-04).
-7. Upload file đó lên bucket web → link trả 200 → chờ incident đóng và email `recovery` `sent` (AC-07).
+7. Upload file đó lên bucket web → link trả 200. Mặc định (Mốc 3) user smoke bấm **Fixed — check again** trong app (`POST /api/incidents/resolve-claim`) → lần check xác minh đóng incident trong ≤ 3 phút, `closedBy` = user smoke, claim `fixed` (FR-37, FR-41). Với `SMOKE_RECOVER=recheck`: chờ lần check lại tự động đóng incident (≤ 20 phút, như Mốc 2). Sau đó chờ email `recovery` `sent` (AC-07).
 8. Luôn dọn: xóa file trong bucket, xóa link, xóa người nhận nếu do smoke tạo. Kiểm tra hộp thư: có 2 email `[LinkWatch][DOWN] hueai.net — 1 broken link` và `[LinkWatch][RECOVERED] …`.
 
-- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`), `SMOKE_TIMEOUT_MS` (phần Mốc 1, mặc định 900000), `SMOKE_RECIPIENT`, `SMOKE_SKIP_INCIDENT=1`.
+- Biến tùy chọn: `SMOKE_BASE_URL` (mặc định `https://watch.hueai.net`), `SMOKE_TIMEOUT_MS` (phần Mốc 1, mặc định 900000), `SMOKE_RECIPIENT`, `SMOKE_SKIP_INCIDENT=1`, `SMOKE_RECOVER=recheck`.
 - Quyền IAM cần: `cloudformation:DescribeStacks`, `cloudformation:DescribeStackResource`, `cognito-idp:AdminInitiateAuth`, `ssm:GetParameter` (`/linkwatch/table-name`), đọc DynamoDB, `s3:PutObject`/`s3:DeleteObject` trên bucket web.
 - Mã thoát: 0 = pass, 1 = fail, 2 = thiếu `SMOKE_EMAIL`/`SMOKE_PASSWORD`.
 - Fail ở "incident email": xem log Lambda Alert, `AlertDlqUrl`, và `MAIL#` (`status = failed` + `error`, thường là người nhận chưa xác thực trong sandbox). Fail ở "incident opened": xem log Checker/Dispatcher và `PriorityDlqUrl`.

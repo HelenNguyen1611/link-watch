@@ -478,6 +478,8 @@
 - Mở rộng `scripts/smoke.ts` (lịch riêng, Check now, luồng "Đã khắc phục"); heartbeat healthchecks.io (NFR-05).
 - Không push; người dùng review rồi push để deploy.
 - **Xong khi:** sau khi người dùng push, workflow xanh và smoke test pass trên https://watch.hueai.net. **Phụ thuộc:** 34, 39
+- ✅ phần smoke (30/09/2026), **chưa chạy trên AWS**: `scripts/smoke-features.ts` (Check now → có kết quả ≤ 2 phút; lịch "mỗi 5 phút" gán cho link → lần chạy kế ≤ 10 phút; xóa lịch đang dùng → 409; luôn dọn). `smoke-incident.ts` thêm `recover: "claim"` (mặc định): sau khi sửa link, bấm "Fixed — check again" trong app → incident đóng ≤ 3 phút với `closedBy` + claim `fixed`, rồi email hồi phục; `SMOKE_RECOVER=recheck` giữ cách Mốc 2. RUNBOOK §4 đã cập nhật.
+- ⏸ **Heartbeat (NFR-05) để sau** (người dùng chọn 30/09/2026). Hai hướng khi làm: healthchecks.io (URL ping lưu SSM Parameter Store, Dispatcher ping sau mỗi lượt) hoặc CloudWatch Alarm trên lỗi/số lần chạy Dispatcher → SNS email (~0,1 USD/alarm/tháng).
 
 ---
 
