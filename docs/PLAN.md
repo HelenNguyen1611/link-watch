@@ -440,6 +440,11 @@
 - **FR/AC:** AC-09 (UI ≤ 30 giây), **AC-11** (mở GET như bộ quét link → không có claim), AC-12, AC-13, NFR-10 (viewport mobile).
 - **Xong khi:** `pnpm e2e` pass. **Phụ thuộc:** 32, 33
 
+#### Bước 35b — Tối ưu sức chứa DynamoDB (mới, trước khi lên vài trăm link)
+- **Phát hiện 30/09/2026, người dùng chọn làm sau:** bảng provisioned free tier (bảng 10R/15W, GSI1 5/8, GSI2 2/1, GSI3 8/1), cả 3 GSI chiếu `ALL` → mỗi lần sửa Link (Dispatcher giữ chỗ, Checker ghi kết quả) ghi thêm GSI1 và GSI3. Lượt 06:00 với 5.000 link cần ~22 WCU/s bảng, ~11 GSI1, ~11 GSI3 trong 15 phút (NFR-01) → GSI3 (1 WCU) mất ~3 giờ và throttle dội ngược bảng chính; nhập 1.000 link cũng chậm nhiều phút. Hiện 16 link → không ảnh hưởng.
+- **Hướng đã cân nhắc:** (a) GSI mới chiếu `KEYS_ONLY` thay GSI3 (2 lần deploy: tạo GSI mới, chuyển code, xóa GSI3) + phân bổ lại 25 WCU + nới lượt 06:00 ra ~45–60 phút — chi phí 0; (b) chuyển on-demand — ~1–3 USD/tháng ở 5.000 link, đạt NFR-01.
+- **Xong khi:** người dùng chọn (a) hoặc (b), `cdk synth` + test assertions pass, không đổi logical ID bảng.
+
 ### CI và hoàn tất
 
 #### Bước 39 — CI trên Pull Request

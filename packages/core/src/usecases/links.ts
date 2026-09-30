@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { z } from "zod";
 import { toCsv } from "../csv";
 import type { Db } from "../db/index";
 import { rootDomainOf } from "../domain";
@@ -347,4 +348,26 @@ export function linksToCsv(links: readonly ExportableLink[]): string {
 			l.createdAt,
 		]),
 	]);
+}
+
+/** FR-04 / step 19b: fresh rows for links the web is watching (keys from the snapshot rows). */
+export const LinkKeys = z
+	.array(z.object({ domain: z.string().min(1), id: z.string().min(1) }))
+	.min(1)
+	.max(100);
+
+/** Current state of up to 100 links by primary key; deleted or unknown links are left out. */
+export async function getLinksByKeys(db: Db, raw: unknown) {
+	const keys = LinkKeys.parse(raw);
+	const { data } = await db.Link.get(keys).go();
+	return data.filter((l) => !l.deletedAt);
+}
+
+/** FR-05: every non-deleted link (reads all GSI3 pages — export only). */
+export async function listAllLinks(db: Db) {
+	const { data } = await db.Link.query
+		.byId({})
+		.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
+		.go({ pages: "all", order: "desc" });
+	return data;
 }

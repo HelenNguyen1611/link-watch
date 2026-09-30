@@ -23,6 +23,8 @@ export function onError(
 				},
 				409,
 			);
+		if (code === "import_too_large")
+			return c.json({ error: "import_too_large", message: err.message }, 400);
 		if (code === "incident_closed")
 			return c.json({ error: "incident_closed", message: err.message }, 409);
 		if (code === "not_found")
