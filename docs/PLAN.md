@@ -421,7 +421,8 @@
 - **Xong khi:** test int: email Sự cố chứa token hợp lệ, DB chỉ lưu bản băm.
 - **Phụ thuộc:** 9c, 15b, 16a
 
-#### Bước 17b — Email "vẫn lỗi" chỉ gửi người bấm
+#### Bước 17b — Email "vẫn lỗi" chỉ gửi người bấm ✅
+- ✅ đã làm (30/09/2026): Streams MODIFY *Chờ xác minh* → *Đang mở* = `still_failing` → Alert gửi ngay (không gộp) `StillFailingEmail` tới `claim.byEmail`, log `MAIL#` `verify_failed`, đánh dấu `claim.notifiedAt` để không gửi trùng khi Streams gửi lại; email Hồi phục có "Fixed by" từ `incident.closedBy`. (Làm ở `handler`/`outbox`, không ở `reminder.ts` như plan ghi.)
 - **File:** `services/alert/src/reminder.ts`, nhánh verify-failed chỉ gửi người bấm.
 - **FR/AC:** FR-38; AC-10 phần email.
 - **Xong khi:** test int: claim thất bại 3 lần → 1 email "vẫn lỗi" chỉ tới người bấm.

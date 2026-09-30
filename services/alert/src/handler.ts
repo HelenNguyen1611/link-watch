@@ -7,7 +7,7 @@ import type {
 	SQSBatchResponse,
 	SQSEvent,
 } from "aws-lambda";
-import { type AlertDeps, flushOutbox } from "./outbox";
+import { type AlertDeps, flushOutbox, sendStillFailing } from "./outbox";
 import { sendReminders } from "./reminder";
 import { toNotificationEvent } from "./stream";
 
@@ -47,6 +47,10 @@ export function createHandler(deps: AlertHandlerDeps) {
 			try {
 				const ev = toNotificationEvent(record);
 				if (!ev) continue;
+				if (ev.kind === "still_failing") {
+					await sendStillFailing(deps, ev.incidentId, now());
+					continue;
+				}
 				const { flushAt } = await addToOutbox(deps.db, ev);
 				if (!flushAt) continue;
 				const delay = Math.ceil((Date.parse(flushAt) - now().getTime()) / 1000);

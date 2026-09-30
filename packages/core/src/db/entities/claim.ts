@@ -37,6 +37,8 @@ export function claimEntity(client: DynamoDBDocumentClient, table: string) {
 					},
 				},
 				finishedAt: { type: "string" },
+				/** FR-38: the still-failing email went out (a redelivered stream event does not resend it). */
+				notifiedAt: { type: "string" },
 			},
 			indexes: {
 				byIncident: {

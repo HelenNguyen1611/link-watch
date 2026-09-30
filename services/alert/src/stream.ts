@@ -25,13 +25,21 @@ const image = (
 		: undefined;
 };
 
+/** FR-38: a claim failed all its checks → tell only the claimer (not grouped). */
+export type StillFailingEvent = {
+	kind: "still_failing";
+	domain: string;
+	incidentId: string;
+};
+
 /**
- * FR-21: turns one Streams record into a notification event —
- * a new incident → `down`; an incident that just became closed → `recovery`.
+ * FR-21 / FR-38: turns one Streams record into a notification event —
+ * a new incident → `down`; an incident that just became closed → `recovery`;
+ * Verifying → Open again → `still_failing`.
  */
 export function toNotificationEvent(
 	record: DynamoDBRecord,
-): NotificationEventInput | undefined {
+): NotificationEventInput | StillFailingEvent | undefined {
 	const next = image(record.dynamodb, "NewImage");
 	if (next?.[ENTITY_ATTRIBUTE] !== "incident") return undefined;
 	const { linkId, openedAt, domain } = next;
@@ -40,6 +48,13 @@ export function toNotificationEvent(
 
 	if (record.eventName === "INSERT" && next.state !== "closed")
 		return { kind: "down", domain, incidentId: id, at: openedAt };
+
+	if (record.eventName === "MODIFY" && next.state === "open") {
+		const prev = image(record.dynamodb, "OldImage");
+		if (prev?.state === "verifying")
+			return { kind: "still_failing", domain, incidentId: id };
+		return undefined;
+	}
 
 	if (record.eventName === "MODIFY" && next.state === "closed") {
 		const prev = image(record.dynamodb, "OldImage");

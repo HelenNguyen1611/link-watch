@@ -23,6 +23,7 @@ import {
 	renderIncidentEmail,
 	renderOutageEmail,
 	renderRecoveryEmail,
+	renderStillFailingEmail,
 	type SendResult,
 	sendEmail,
 } from "@linkwatch/emails";
@@ -73,6 +74,7 @@ const toRecoveryItem = (i: Incident): RecoveryItem => ({
 	url: i.url,
 	recoveredAt: i.closedAt ?? i.openedAt,
 	downtimeMs: i.downtimeMs ?? 0,
+	...(i.closedBy && { fixedBy: i.closedBy }),
 });
 
 /**
@@ -288,4 +290,54 @@ async function notifyOutage(
 		{ from: sender.from, to: sender.adminEmail, ...email },
 	);
 	deps.log?.("Outage notice", { ...outage, status: result.status });
+}
+
+/**
+ * FR-38: the claim's three checks failed → one email to the person who reported the fix only
+ * (not to the other recipients). Logged as `verify_failed`; sent once per claim.
+ */
+export async function sendStillFailing(
+	deps: AlertDeps,
+	incidentId: string,
+	now: Date,
+): Promise<void> {
+	const [incident] = await loadIncidents(deps.db, [incidentId]);
+	if (!incident) return;
+	const { data: claims } = await deps.db.Claim.query
+		.byIncident({ incidentId })
+		.go({ order: "desc", limit: 1 });
+	const claim = claims[0];
+	if (claim?.outcome !== "still_failing" || claim.notifiedAt) return;
+	const to = claim.byEmail;
+	const sender = await resolveSender(deps);
+	const email = await renderStillFailingEmail({
+		domain: incident.domain,
+		appUrl: deps.config.appUrl,
+		url: incident.url,
+		incidentId,
+		claimedAt: claim.claimedAt,
+		attempts: (claim.attempts ?? []).map((a) => ({
+			attempt: a.attempt,
+			at: a.at,
+			result: a.result,
+			...(a.httpCode !== undefined && { httpCode: a.httpCode }),
+			...(a.errorType && {
+				errorType: a.errorType as IncidentItem["errorType"],
+			}),
+		})),
+	});
+	const result = await sendEmail(
+		{ ses: deps.ses, ...(deps.sleep && { sleep: deps.sleep }) },
+		{ from: sender.from, to, ...email },
+	);
+	await logNotification(deps, [incident], {
+		to,
+		kind: "verify_failed",
+		sentAt: now.toISOString(),
+		result,
+		email,
+	});
+	await deps.db.Claim.patch({ incidentId, claimedAt: claim.claimedAt })
+		.set({ notifiedAt: now.toISOString() })
+		.go();
 }

@@ -406,3 +406,64 @@ describe("Alert — system-wide outage (SRS 5.2 step 5)", () => {
 		);
 	});
 });
+
+describe("Alert — still failing after a claim (FR-38)", () => {
+	it("FR-38 / AC-10: Verifying → Open with a failed claim → 1 email to the claimer only, logged, never twice", async () => {
+		const [link] = await addLinks("claim.vn", 1, "owner@claim.vn");
+		if (!link) throw new Error();
+		await t.db.Recipient.put({
+			scope: "DOMAIN",
+			target: "claim.vn",
+			email: "boss@claim.vn",
+		}).go();
+		await openIncident(link, at(300));
+		const openedAt = at(302).toISOString();
+		const incidentId = `${link.id}@${openedAt}`;
+		await t.db.Claim.create({
+			incidentId,
+			claimedAt: at(310).toISOString(),
+			linkId: link.id,
+			domain: "claim.vn",
+			byEmail: "fixer@claim.vn",
+			channel: "email",
+			outcome: "still_failing",
+			attempts: [
+				{
+					attempt: 1,
+					at: at(310).toISOString(),
+					result: "dead",
+					httpCode: 404,
+				},
+				{
+					attempt: 2,
+					at: at(312).toISOString(),
+					result: "dead",
+					httpCode: 404,
+				},
+				{
+					attempt: 3,
+					at: at(315).toISOString(),
+					result: "dead",
+					httpCode: 404,
+				},
+			],
+		}).go();
+		await t.db.Incident.patch({ linkId: link.id, openedAt })
+			.set({ state: "verifying" })
+			.go();
+		const before = await incidentImage(link.id, openedAt);
+		await t.db.Incident.patch({ linkId: link.id, openedAt })
+			.set({ state: "open", claimNote: "Reported fixed but still failing" })
+			.go();
+		const after = await incidentImage(link.id, openedAt);
+		const record = streamRecord("MODIFY", after, before);
+		await handlerAt(at(315))(streamEvent(record));
+		await handlerAt(at(315))(streamEvent(record)); // redelivered
+		const sent = emails();
+		expect(sent).toHaveLength(1);
+		expect(sent[0]?.to).toEqual(["fixer@claim.vn"]);
+		expect(sent[0]?.subject).toContain("STILL FAILING");
+		const log = await t.db.Notification.query.byIncident({ incidentId }).go();
+		expect(log.data.map((n) => n.kind)).toContain("verify_failed");
+	});
+});
