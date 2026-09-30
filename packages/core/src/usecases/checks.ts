@@ -31,6 +31,8 @@ export type RecordCheckOptions = {
 	 */
 	jobId: string;
 	schedule?: Schedule;
+	/** FR-37: a verification check of this person's claim — a close is labelled "fixed by". */
+	verifiedBy?: string;
 };
 
 export type RecordCheckOutcome =
@@ -137,7 +139,7 @@ export async function recordCheck(
 			})
 			.set({ ttl: dayStatTtl(day) })
 			.go(),
-		applyIncidentAction(db, link, checked, evaluation),
+		applyIncidentAction(db, link, checked, evaluation, opts.verifiedBy),
 	]);
 	return {
 		kind: "recorded",
@@ -157,6 +159,7 @@ async function applyIncidentAction(
 	link: CheckedLink,
 	checked: ClassifiedCheck,
 	{ action }: Evaluation,
+	verifiedBy?: string,
 ): Promise<void> {
 	if (action.kind === "open") {
 		try {
@@ -179,7 +182,8 @@ async function applyIncidentAction(
 			.set({
 				state: "closed",
 				closedAt: action.closedAt,
-				closedReason: "recovered",
+				closedReason: verifiedBy ? "verified_fix" : "recovered",
+				...(verifiedBy && { closedBy: verifiedBy }),
 				downtimeMs: action.downtimeMs,
 			})
 			.go();

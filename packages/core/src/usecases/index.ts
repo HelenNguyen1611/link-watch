@@ -1,6 +1,7 @@
 export * from "./alerts";
 export * from "./check-now";
 export * from "./checks";
+export * from "./claims";
 export * from "./domains";
 export * from "./history";
 export * from "./import";
@@ -11,3 +12,4 @@ export * from "./reschedule";
 export * from "./schedule-admin";
 export * from "./schedules";
 export * from "./snapshot";
+export * from "./token-claims";

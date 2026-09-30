@@ -9,6 +9,7 @@ import {
 import type { Db } from "@linkwatch/core/db";
 import {
 	addTickFailure,
+	applyVerification,
 	loadScheduleTemplates,
 	recordCheck,
 } from "@linkwatch/core/usecases";
@@ -65,6 +66,8 @@ export function createHandler(deps: CheckerDeps) {
 		} | null,
 		/** FR-12 / FR-13: schedule templates of this invocation. */
 		templates: ReadonlyMap<string, Schedule>,
+		/** FR-37: this check verifies a "fixed" claim. */
+		verify?: { incidentId: string; claimedAt: string; attempt: number },
 	): Promise<void> {
 		const { data: link } = await deps.db.Link.get({
 			domain: domainName,
@@ -121,11 +124,30 @@ export function createHandler(deps: CheckerDeps) {
 			domain ?? undefined,
 			templates,
 		).rule;
+		// FR-37: a successful verification closes the incident "fixed by" the claimer.
+		const claim = verify
+			? (
+					await deps.db.Claim.get({
+						incidentId: verify.incidentId,
+						claimedAt: verify.claimedAt,
+					}).go()
+				).data
+			: null;
 		const outcome = await recordCheck(deps.db, link, checked, {
 			now: now(),
 			jobId,
 			schedule,
+			...(claim?.outcome === "pending" && { verifiedBy: claim.byEmail }),
 		});
+		if (verify && outcome.kind === "recorded") {
+			const effect = await applyVerification(deps.db, verify, checked, now());
+			log("Verification", {
+				domain: domainName,
+				id,
+				attempt: verify.attempt,
+				effect,
+			});
+		}
 		if (outcome.kind === "skipped") {
 			log("Check not recorded", {
 				domain: domainName,
@@ -201,6 +223,16 @@ export function createHandler(deps: CheckerDeps) {
 								job.kind === "scheduled" ? job.dispatchedAt : undefined,
 								domain,
 								templates,
+								job.kind === "verify" &&
+									job.incidentId &&
+									job.claimedAt &&
+									job.attempt
+									? {
+											incidentId: job.incidentId,
+											claimedAt: job.claimedAt,
+											attempt: job.attempt,
+										}
+									: undefined,
 							),
 						),
 					),
