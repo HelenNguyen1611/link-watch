@@ -4,6 +4,7 @@ packages:
   - "packages/*"
   - "infra"
   - "scripts"
+  - "tests"
 allowBuilds:
   esbuild: true
 strictDepBuilds: false

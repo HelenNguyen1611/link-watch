@@ -452,6 +452,7 @@
 - **File:** `tests/flows/resolve-claim.int.test.ts` (API + checker + alert gọi trực tiếp handler, DynamoDB Local, SQS/SES mock, đồng hồ giả).
 - **FR/AC:** **AC-09**, **AC-10**, FR-37, FR-38, FR-42.
 - **Xong khi:** `pnpm test:int` pass AC-09, AC-10. **Phụ thuộc:** 17b, 22
+- ✅ đã làm (30/09/2026): gói workspace mới `tests/` (`@linkwatch/tests`) gọi thẳng `createApp` + handler Checker + handler Alert; site thật là HTTP server local đổi mã trả về; Streams giả lập bằng cách so ảnh item incident trước/sau mỗi bước; hàng đợi trễ (flush alert, verify job) được test giao lại theo đồng hồ giả. AC-09: token riêng từng người nhận trong email → claim → lần check 1 OK → đóng `closedBy`, trang xác nhận thấy `recovered`, email hồi phục tới mọi người nhận có tên người sửa, FR-42 token cũ không tạo job. AC-10: claim trong app → 3 lần lỗi → Open + `claimNote`, chỉ người claim nhận email STILL FAILING, không có email hồi phục.
 
 #### Bước 34 — Playwright E2E SCR-10
 - **File:** `apps/web/e2e/confirm.spec.ts`, `playwright.config.ts` (chạy web + API local).

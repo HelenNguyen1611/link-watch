@@ -1,0 +1,12 @@
+{
+	"name": "@linkwatch/tests",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@aws-sdk/client-dynamodb": "^3.1141.0",
+		"@aws-sdk/client-sesv2": "^3.1141.0",
+		"@aws-sdk/client-sqs": "^3.1141.0",
+		"@linkwatch/core": "workspace:*"
+	}
+}
