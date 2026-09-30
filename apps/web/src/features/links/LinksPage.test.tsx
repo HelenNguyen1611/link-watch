@@ -320,6 +320,44 @@ describe("LinksPage", () => {
 		expect(header().getAttribute("aria-sort")).toBe("none");
 	});
 
+	describe("adaptive refresh", () => {
+		it("FR-17: a link waiting for its first check → says it refreshes every 30 seconds", async () => {
+			renderWithApi(
+				<LinksPage />,
+				fakeApi([view({ url: "https://a.vn/", status: "pending" })]),
+			);
+			expect(
+				await screen.findByText(
+					"Refreshing every 30 seconds while links wait for a check result.",
+				),
+			).toBeTruthy();
+		});
+
+		it("every result settled → says it refreshes every 5 minutes", async () => {
+			renderWithApi(
+				<LinksPage />,
+				fakeApi([view({ url: "https://a.vn/", status: "up" })]),
+			);
+			expect(
+				await screen.findByText(
+					"Refreshes every 5 minutes. New links are checked within 5 minutes.",
+				),
+			).toBeTruthy();
+		});
+
+		it("Refresh button reloads the list right away and shows the update time", async () => {
+			const api = fakeApi([view({ url: "https://a.vn/", status: "up" })]);
+			renderWithApi(<LinksPage />, api);
+			await screen.findByText("https://a.vn/");
+			expect(screen.getByText(/^Updated \d\d:\d\d:\d\d$/)).toBeTruthy();
+			const calls = api.listLinks.mock.calls.length;
+			await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+			await waitFor(() =>
+				expect(api.listLinks.mock.calls.length).toBeGreaterThan(calls),
+			);
+		});
+	});
+
 	describe("filters", () => {
 		const data = () =>
 			fakeApi([

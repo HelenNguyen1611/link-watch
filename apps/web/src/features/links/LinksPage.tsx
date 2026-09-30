@@ -1,21 +1,22 @@
 "use client";
 
 import type { LinkView } from "@linkwatch/core";
-import { Alert, Box, Group, Loader, Text } from "@mantine/core";
+import { Alert, Box, Button, Group, Loader, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IconRefresh } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { PALETTE } from "@/lib/colors";
+import { formatClock } from "@/lib/format";
 import { AddLinkForm } from "./AddLinkForm";
 import { EMPTY_FILTER, filterLinks, type LinkFilter } from "./filter";
 import { LinkFilters } from "./LinkFilters";
 import { LinkTable } from "./LinkTable";
+import { isWaitingForResult, refreshInterval } from "./refresh";
 
-/** Auto-refresh to pick up new check results (the Dispatcher runs every 5 minutes). */
-export const REFRESH_MS = 30_000;
 const MAX_PAGES = 20;
 
 /** Milestone 1: link list + add form (reduced from SCR-03/SCR-04). */
@@ -35,7 +36,8 @@ export function LinksPage() {
 			}
 			return all;
 		},
-		refetchInterval: REFRESH_MS,
+		// Adaptive: 30 s while a link waits for a result, otherwise 5 min (each reload reads every link).
+		refetchInterval: (query) => refreshInterval(query.state.data),
 	});
 
 	const [filter, setFilter] = useState<LinkFilter>(EMPTY_FILTER);
@@ -56,11 +58,32 @@ export function LinksPage() {
 			<Box pb={40}>
 				<AddLinkForm />
 			</Box>
-			<Group justify="space-between" mb="xs">
+			<Group justify="space-between" mb="xs" gap="xs">
 				<Text size="sm" c="dimmed">
-					{t("links.refreshNote")}
+					{t(
+						links.data && !isWaitingForResult(links.data)
+							? "links.refresh.slow"
+							: "links.refresh.fast",
+					)}
 				</Text>
-				{links.isFetching && <Loader size="xs" />}
+				<Group gap="xs">
+					{links.dataUpdatedAt > 0 && (
+						<Text size="xs" c="dimmed">
+							{t("links.refresh.updated", {
+								time: formatClock(links.dataUpdatedAt),
+							})}
+						</Text>
+					)}
+					<Button
+						size="xs"
+						variant="subtle"
+						leftSection={<IconRefresh size={16} />}
+						loading={links.isFetching}
+						onClick={() => links.refetch()}
+					>
+						{t("links.refresh.button")}
+					</Button>
+				</Group>
 			</Group>
 			{links.isPending ? (
 				<Loader />

@@ -167,3 +167,8 @@ export const IconSearch = (p: P) => (
 		<path d="M20 20l-4.2-4.2" />
 	</Icon>
 );
+export const IconRefresh = (p: P) => (
+	<Icon {...p}>
+		<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" />
+	</Icon>
+);

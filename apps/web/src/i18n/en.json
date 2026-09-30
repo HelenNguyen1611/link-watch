@@ -106,7 +106,12 @@
 		"title": "Links",
 		"empty": "No links yet. Add your first link above.",
 		"loadError": "Could not load links.",
-		"refreshNote": "Refreshes every 30 seconds. New links are checked within 5 minutes.",
+		"refresh": {
+			"button": "Refresh",
+			"fast": "Refreshing every 30 seconds while links wait for a check result.",
+			"slow": "Refreshes every 5 minutes. New links are checked within 5 minutes.",
+			"updated": "Updated {{time}}"
+		},
 		"delete": "Delete",
 		"confirmDelete": "Confirm delete",
 		"col": {
