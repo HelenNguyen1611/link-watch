@@ -35,6 +35,9 @@ export default defineConfig({
 					setupFiles: ["apps/web/src/test/setup.ts"],
 					include: ["apps/web/**/*.test.ts", "apps/web/**/*.test.tsx"],
 					exclude,
+					// jsdom renders of full tables (e.g. 50 rows per page) take ~2 s with the whole suite on a
+					// laptop and exceed the 5 s default on the 2-vCPU GitHub runner.
+					testTimeout: 15_000,
 				},
 			},
 			{
