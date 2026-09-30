@@ -118,6 +118,22 @@ describe("listLinks / deleteLink", () => {
 		expect(next.items).toHaveLength(4);
 	});
 
+	it("newest link first, across pages (a just-added link is at the top)", async () => {
+		const at = (min: number) => ({
+			now: new Date(Date.parse("2030-01-01T00:00:00.000Z") + min * 60_000),
+		});
+		const older = await createLink(t.db, { url: "https://order.vn/1" }, at(1));
+		const middle = await createLink(t.db, { url: "https://order.vn/2" }, at(2));
+		const newest = await createLink(t.db, { url: "https://order.vn/3" }, at(3));
+		const first = await listLinks(t.db, { limit: 2 });
+		expect(first.items.map((l) => l.id)).toEqual([newest.id, middle.id]);
+		const rest = await listLinks(t.db, { limit: 100, cursor: first.cursor });
+		expect(rest.items[0]?.id).toBe(older.id);
+		const all = (await listLinks(t.db, { limit: 100 })).items;
+		const created = all.map((l) => l.createdAt);
+		expect(created).toEqual([...created].sort().reverse());
+	});
+
 	it("FR-04: soft delete — gone from the list and the due index, record still kept", async () => {
 		const link = await createLink(t.db, { url: "https://del.vn/a" }, { now });
 		await deleteLink(t.db, link.id, { now });

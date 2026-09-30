@@ -85,7 +85,10 @@ export async function createLink(
 	return link;
 }
 
-/** Lists non-deleted links (GSI3), page by page. */
+/**
+ * Lists non-deleted links (GSI3), page by page, newest first: ids are ULIDs
+ * (time prefix), so descending id order is descending creation order.
+ */
 export async function listLinks(
 	db: Db,
 	{ limit = 50, cursor }: { limit?: number; cursor?: string | null } = {},
@@ -93,7 +96,7 @@ export async function listLinks(
 	const page = await db.Link.query
 		.byId({})
 		.where(({ deletedAt }, { notExists }) => notExists(deletedAt))
-		.go({ limit, cursor: cursor ?? null });
+		.go({ limit, cursor: cursor ?? null, order: "desc" });
 	return { items: page.data, cursor: page.cursor };
 }
 
