@@ -75,6 +75,8 @@
 		},
 		"unconfigured": "Sign-in is not configured for this site. Contact your administrator.",
 		"checking": "Checking your session",
+		"signedInAs": "Signed in as",
+		"accountMenu": "Account menu for {{email}}",
 		"signOut": "Sign out"
 	},
 	"home": {

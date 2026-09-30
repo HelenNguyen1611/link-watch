@@ -5,9 +5,10 @@ import {
 	AppShell,
 	Box,
 	Burger,
-	Button,
 	Group,
+	Menu,
 	Text,
+	UnstyledButton,
 	useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure, useLocalStorage, useMediaQuery } from "@mantine/hooks";
@@ -18,8 +19,10 @@ import { useTranslation } from "react-i18next";
 import { isPublicPath } from "@/lib/auth";
 import { useAuth } from "@/lib/auth-context";
 import { AuthGate } from "./AuthGate";
+import { IconChevronDown, IconLogout, IconUser } from "./icons";
 import { Logo } from "./Logo";
 import {
+	ICON_SIZE,
 	SHELL_GUTTER,
 	SIDEBAR_COLLAPSED_WIDTH,
 	SIDEBAR_WIDTH,
@@ -34,14 +37,41 @@ function UserMenu() {
 	const { user, signOut } = useAuth();
 	if (!user) return null;
 	return (
-		<Group gap="xs" wrap="nowrap">
-			<Text size="sm" c="dimmed" visibleFrom="md" truncate maw={260}>
-				{user.email}
-			</Text>
-			<Button variant="subtle" color="gray" size="compact-sm" onClick={signOut}>
-				{t("auth.signOut")}
-			</Button>
-		</Group>
+		<Menu position="bottom-end" width={240} withinPortal>
+			<Menu.Target>
+				{/* Email as the user name (Cognito accounts only have an email); icon only on mobile. */}
+				<UnstyledButton
+					aria-label={t("auth.accountMenu", { email: user.email })}
+					c="dark.6"
+					px={6}
+					py={6}
+					style={{ display: "flex", alignItems: "center", gap: 8 }}
+				>
+					<IconUser size={ICON_SIZE} />
+					<Text size="sm" visibleFrom="sm" truncate maw={240}>
+						{user.email}
+					</Text>
+					<Box visibleFrom="sm" style={{ display: "flex" }}>
+						<IconChevronDown size={16} />
+					</Box>
+				</UnstyledButton>
+			</Menu.Target>
+			<Menu.Dropdown>
+				<Menu.Label>{t("auth.signedInAs")}</Menu.Label>
+				<Text size="sm" px="sm" pb="xs" truncate>
+					{user.email}
+				</Text>
+				<Menu.Divider />
+				<Menu.Item
+					leftSection={<IconLogout size={16} />}
+					onClick={() => {
+						signOut();
+					}}
+				>
+					{t("auth.signOut")}
+				</Menu.Item>
+			</Menu.Dropdown>
+		</Menu>
 	);
 }
 

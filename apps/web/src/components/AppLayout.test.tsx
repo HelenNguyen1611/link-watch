@@ -78,19 +78,43 @@ describe("AppLayout", () => {
 		).toBeTruthy();
 	});
 
-	it("FR-28: header shows the signed-in email and Sign out (replacing the tagline)", async () => {
+	it("FR-28: header shows the user (email); Sign out is only in its dropdown", async () => {
 		const signOut = vi.fn(async () => {});
 		renderWithApi(
 			<AppLayout>x</AppLayout>,
 			{} as Api,
 			signedInAuth({ signOut }),
 		);
-		expect(await screen.findByText("admin@abc.com")).toBeTruthy();
+		const trigger = await screen.findByRole("button", {
+			name: "Account menu for admin@abc.com",
+		});
+		expect(trigger.textContent).toContain("admin@abc.com");
 		expect(
 			screen.queryByText("Monitor dead links and site outages"),
 		).toBeNull();
-		await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+		// Not next to the name any more: hidden until the menu opens.
+		expect(screen.queryByRole("menuitem", { name: "Sign out" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+
+		await userEvent.click(trigger);
+		expect(await screen.findByText("Signed in as")).toBeTruthy();
+		await userEvent.click(
+			await screen.findByRole("menuitem", { name: "Sign out" }),
+		);
 		expect(signOut).toHaveBeenCalledTimes(1);
+	});
+
+	it("header: user menu sits between the logo and the burger", async () => {
+		renderWithApi(<AppLayout>x</AppLayout>, {} as Api);
+		const logo = await screen.findByRole("link", { name: "LinkWatch" });
+		const user = screen.getByRole("button", { name: /Account menu/ });
+		const burger = screen.getAllByRole("button", { name: "Menu" })[0];
+		expect(
+			logo.compareDocumentPosition(user) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			user.compareDocumentPosition(burger) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
 	});
 
 	it("FR-28: signed out → goes to /login/ with the current page as next, content hidden", async () => {

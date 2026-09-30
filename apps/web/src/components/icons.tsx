@@ -89,6 +89,16 @@ export const IconChevronLeft = (p: P) => (
 		<path d="m14.5 6-6 6 6 6" />
 	</Icon>
 );
+export const IconChevronDown = (p: P) => (
+	<Icon {...p}>
+		<path d="m6 9.5 6 6 6-6" />
+	</Icon>
+);
+export const IconLogout = (p: P) => (
+	<Icon {...p}>
+		<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" />
+	</Icon>
+);
 export const IconChevronRight = (p: P) => (
 	<Icon {...p}>
 		<path d="m9.5 6 6 6-6 6" />

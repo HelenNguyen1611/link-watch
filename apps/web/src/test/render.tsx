@@ -31,9 +31,11 @@ export function renderWithApi(
 	return render(
 		<I18nextProvider i18n={i18n}>
 			<QueryClientProvider client={client}>
+				{/* env="test": no transitions/portals, so menus and popovers open synchronously. */}
 				<MantineProvider
 					theme={theme}
 					cssVariablesResolver={cssVariablesResolver}
+					env="test"
 				>
 					<AuthContext.Provider value={auth}>
 						<ApiContext.Provider value={api}>{ui}</ApiContext.Provider>
