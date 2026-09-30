@@ -418,7 +418,8 @@
 - **Xong khi:** test route pass `AC-11`, `AC-12`, `AC-13`.
 - **Phụ thuộc:** 7, 9c, 14, 18b
 
-#### Bước 28 — SCR-05 Chi tiết link (`/links/detail/?id=`)
+#### Bước 28 — SCR-05 Chi tiết link (`/links/detail/?id=`) ✅
+- ✅ đã làm (30/09/2026, phần không phụ thuộc Bước 22): trạng thái, lần check gần nhất/kế tiếp, **Check now** (hỏi lại riêng link mỗi 3 giây, tối đa 60 giây, xong thì làm mới lịch sử), biểu đồ thời gian phản hồi 100 lần check (Recharts, điểm lỗi màu đỏ), thanh uptime 30 ngày (xanh 100%, vàng ≥ 95%, đỏ < 95%, xám không có check), bảng 100 lần check, danh sách sự cố. Bảng link có liên kết "Details". **Còn lại cho Bước 22:** nút Đã khắc phục (FR-41).
 - **FR/AC:** FR-16, FR-17, FR-18 (Recharts thời gian phản hồi, thanh uptime 30 ngày, 100 check, sự cố), FR-41 (nút Đã khắc phục). **Phụ thuộc:** 21, 22, 23b
 
 #### Bước 30 — SCR-07 Sự cố ✅

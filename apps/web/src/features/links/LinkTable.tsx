@@ -11,6 +11,7 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import NextLink from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -180,11 +181,21 @@ export function LinkTable({
 									>
 										{l.url}
 									</Anchor>
-									{l.name && (
-										<Text size="xs" c="dimmed" truncate>
-											{l.name}
-										</Text>
-									)}
+									<Group gap={6} wrap="nowrap">
+										{l.name && (
+											<Text size="xs" c="dimmed" truncate>
+												{l.name}
+											</Text>
+										)}
+										<Anchor
+											component={NextLink}
+											href={`/links/detail/?id=${encodeURIComponent(l.id)}`}
+											size="xs"
+											aria-label={t("links.detailsFor", { url: l.url })}
+										>
+											{t("links.details")}
+										</Anchor>
+									</Group>
 								</Stack>
 							</Table.Td>
 							<Table.Td>

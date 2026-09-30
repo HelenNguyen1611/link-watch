@@ -140,7 +140,9 @@
 				"dateRange": "Must be on or after the start date"
 			}
 		},
-		"subtitle": "Add links to monitor and see their latest check results."
+		"subtitle": "Add links to monitor and see their latest check results.",
+		"details": "Details",
+		"detailsFor": "Details of {{url}}"
 	},
 	"linkForm": {
 		"url": "URL",
@@ -273,6 +275,50 @@
 			"statuses": {
 				"sent": "Sent",
 				"failed": "Failed"
+			}
+		}
+	},
+	"linkDetail": {
+		"title": "Link details",
+		"back": "All links",
+		"notFound": "This link does not exist or was deleted.",
+		"loadError": "Could not load this link.",
+		"paused": "Paused",
+		"openUrl": "Open URL",
+		"nextCheck": "Next check",
+		"checkNow": {
+			"button": "Check now",
+			"done": "Checked: {{status}}.",
+			"slow": "No result after 60 seconds yet. The check is still queued; refresh in a moment.",
+			"paused": "This link is paused, so it is not checked.",
+			"notQueued": "The link could not be queued for a check.",
+			"failed": "Could not start the check. Try again."
+		},
+		"uptime": {
+			"title": "Uptime, last {{days}} days",
+			"noData": "No checks yet",
+			"day": "{{day}}: {{pct}}% up ({{checks}} checks)",
+			"dayNoData": "{{day}}: no check",
+			"today": "Today"
+		},
+		"chart": {
+			"title": "Response time",
+			"responseTime": "Response time",
+			"empty": "No checks yet."
+		},
+		"incidents": {
+			"title": "Incidents",
+			"none": "No incident for this link."
+		},
+		"checks": {
+			"title": "Last {{count}} checks",
+			"none": "This link has not been checked yet.",
+			"col": {
+				"time": "Time",
+				"result": "Result",
+				"http": "HTTP",
+				"response": "Response",
+				"error": "Error"
 			}
 		}
 	}

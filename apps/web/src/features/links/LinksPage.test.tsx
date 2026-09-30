@@ -288,7 +288,7 @@ describe("LinksPage", () => {
 			screen
 				.getAllByRole("row")
 				.slice(1)
-				.map((r) => within(r).getByRole("link").textContent);
+				.map((r) => within(r).getAllByRole("link")[0]?.textContent);
 		const sortButton = screen.getByRole("button", { name: "Sort by Response" });
 		const header = () => sortButton.closest("th") as HTMLElement;
 		expect(header().getAttribute("aria-sort")).toBe("none");
@@ -383,7 +383,7 @@ describe("LinksPage", () => {
 			screen
 				.queryAllByRole("row")
 				.slice(1)
-				.map((r) => within(r).getByRole("link").textContent);
+				.map((r) => within(r).getAllByRole("link")[0]?.textContent);
 
 		it("FR-17: search by URL or domain filters the rows live and shows the count", async () => {
 			renderWithApi(<LinksPage />, data());
