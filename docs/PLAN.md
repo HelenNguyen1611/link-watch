@@ -308,7 +308,8 @@
 
 ### Lịch theo domain/link
 
-#### Bước 3b — Lịch mẫu và lịch hiệu lực
+#### Bước 3b — Lịch mẫu và lịch hiệu lực ✅
+- ✅ đã làm (30/09/2026): `ScheduleRule` (Zod) = chu kỳ 5/15/30/60/360/720 phút | hàng ngày HH:mm | hàng tuần (thứ ISO 1–7) | hàng tháng (ngày 1–31, quá cuối tháng → ngày cuối, không chạy 2 lần); `computeNextRun` cho mọi kiểu (chu kỳ căn theo mốc giờ Việt Nam); jitter chu kỳ ≤ min(5 phút, chu kỳ) và tính mốc kế từ (now − jitter) để lượt sau cách đúng 1 chu kỳ; `resolveEffectiveSchedule` Link > Domain > Mặc định (template `default`, chưa có thì 06:00), template đã xóa → xuống cấp kế. AC-03 pass mức hàm.
 - **File:** `src/schema/schedule.ts`, `src/schedule.ts` (`resolveEffectiveSchedule`, `computeNextRun` cho mọi kiểu lịch).
 - **FR/AC:** FR-12 (chu kỳ ≥ 5 phút, giờ cố định ngày/tuần/tháng), FR-13 (Link > Domain > Mặc định, trả về nguồn kế thừa); AC-03 mức hàm.
 - **Xong khi:** test `FR-12`, `FR-13`, `AC-03` pass (gồm case cuối tháng, ngày 31).

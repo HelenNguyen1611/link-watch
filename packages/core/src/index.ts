@@ -17,6 +17,7 @@ export * from "./schema/enums";
 export * from "./schema/incident-view";
 export * from "./schema/link";
 export * from "./schema/link-view";
+export * from "./schema/schedule";
 export * from "./schema/settings";
 export * from "./ssrf";
 export * from "./uptime";
