@@ -483,6 +483,42 @@
 
 ---
 
+## Giai đoạn 2 — Người dùng và vai trò (HLR-09, FR-29, SRS 3.3)
+
+**Đã chốt 03/10/2026 (người dùng chọn "theo đề xuất"):**
+- 3 vai trò Admin / Editor / Viewer theo SRS 3.3, lưu bằng **Cognito Groups** `admin`, `editor`, `viewer` → claim `cognito:groups` trong ID token (không thêm entity DynamoDB). Nhiều nhóm → lấy quyền cao nhất.
+- User chưa thuộc nhóm nào = **Viewer** (mặc định an toàn).
+- Có cả **khóa** (disable) và **xóa** user. Không hỗ trợ đổi email (email là tên đăng nhập): xóa rồi mời lại.
+- **Editor** được tạo/sửa/xóa lịch mẫu, trừ lịch `default` (FR-11) chỉ Admin. Admin-only: quản lý user, Settings email + email thử.
+- Chống tự khóa: Admin không tự hạ vai trò/khóa/xóa chính mình; luôn còn ≥ 1 Admin đang bật.
+- Đổi vai trò/khóa → `AdminUserGlobalSignOut` (thu hồi refresh token); ID token cũ còn hiệu lực ≤ 1 giờ (chấp nhận, không kiểm tra trạng thái user mỗi request).
+- API chặn (403 `forbidden`), web chỉ ẩn nút cho tiện.
+
+#### Bước 41 — Vai trò và ma trận quyền ✅
+- **File:** `packages/core/src/schema/user.ts` (`Role`, `UserInvite`, `UserUpdate`, `UserView`), `src/roles.ts` (`roleFromGroups`, `can(role, action)`, `canEditSchedule`, quy tắc chống tự khóa).
+- **FR/AC:** HLR-09, FR-29. **Xong khi:** unit test pass.
+
+#### Bước 42 — API: vai trò từ token, `requireRole` cho mọi route ghi
+- `AuthUser` có `role`; HTTP API JWT authorizer chuyển mảng `cognito:groups` thành chuỗi `"[admin editor]"` → parse cả 2 dạng. Chế độ local mặc định Admin.
+- **Xong khi:** test: Viewer chỉ đọc (403 khi ghi), Editor không vào `/settings` ghi và `/users`, Editor không sửa lịch `default`.
+
+#### Bước 43 — API quản lý user (Cognito Admin API)
+- `GET/POST /api/users`, `PATCH/DELETE /api/users/:email`, `POST /api/users/:email/resend-invite`; test bằng `aws-sdk-client-mock`.
+- **Xong khi:** test pass gồm chống tự khóa, ≥ 1 Admin, email trùng → 409.
+
+#### Bước 44 — Infra: Cognito groups + quyền IAM
+- 3 `CfnUserPoolGroup`, quyền `cognito-idp:Admin*`/`ListUsers`/`ListUsersInGroup` cho Lambda API giới hạn ARN pool, env `USER_POOL_ID`. Không đổi logical ID User Pool.
+- **Xong khi:** `pnpm synth` + test assertions pass.
+
+#### Bước 45 — Web: màn Users + nút theo vai trò
+- `/users/` (chỉ Admin thấy trong sidebar): bảng user, Invite, đổi vai trò, Disable/Enable, Resend invite, Delete. Account hiện vai trò thật. Ẩn nút ghi với Viewer/Editor theo `can()`.
+- **Xong khi:** `pnpm --filter @linkwatch/web build` xuất được `out/`.
+
+#### Bước 46 — RUNBOOK + smoke
+- RUNBOOK: sau lần push đầu, thêm `helen@wootech.co` vào `admin`, `smoke@watch.hueai.net` vào `editor` (CLI), đăng xuất/đăng nhập lại. Smoke kiểm tra `/api/users` 403 với Editor.
+
+---
+
 ## Tóm tắt và ước lượng
 
 | Mốc | Bước | Ước lượng |
