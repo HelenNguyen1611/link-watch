@@ -71,6 +71,13 @@ export const IconUser = (p: P) => (
 		<path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" />
 	</Icon>
 );
+export const IconUsers = (p: P) => (
+	<Icon {...p}>
+		<circle cx="9" cy="8.5" r="3.5" />
+		<path d="M2.5 20c.7-3.4 3.2-5.5 6.5-5.5s5.8 2.1 6.5 5.5" />
+		<path d="M15.5 5.2a3.5 3.5 0 0 1 0 6.6M18 14.8c1.8.8 3 2.6 3.5 5.2" />
+	</Icon>
+);
 export const IconKey = (p: P) => (
 	<Icon {...p}>
 		<circle cx="8" cy="15" r="4" />

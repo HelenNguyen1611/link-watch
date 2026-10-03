@@ -41,6 +41,11 @@ export function stubApi(): Api {
 		"getSettings",
 		"updateSettings",
 		"sendTestEmail",
+		"listUsers",
+		"inviteUser",
+		"updateUser",
+		"resendInvite",
+		"deleteUser",
 	] as const satisfies readonly (keyof Api)[];
 	return Object.fromEntries(
 		methods.map((m) => [

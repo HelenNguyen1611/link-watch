@@ -9,7 +9,9 @@ function fakeClient(email: string | null): AuthClient & {
 } {
 	let current = email;
 	return {
-		currentUser: vi.fn(async () => (current ? { email: current } : null)),
+		currentUser: vi.fn(async () =>
+			current ? { email: current, role: "admin" as const } : null,
+		),
 		getIdToken: vi.fn(async () => (current ? "id-token-1" : null)),
 		signIn: vi.fn(),
 		completeNewPassword: vi.fn(),

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ScheduleView } from "@linkwatch/core";
+import { type ScheduleView, scheduleAction } from "@linkwatch/core";
 import {
 	Alert,
 	Badge,
@@ -18,6 +18,7 @@ import { IconPlus, IconTrash } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
 import { describeRule } from "./describe";
 import { ScheduleDialog } from "./ScheduleDialog";
@@ -80,6 +81,8 @@ export function SchedulesPage() {
 	const [editing, setEditing] = useState<ScheduleView | null | undefined>(
 		undefined,
 	);
+	// HLR-09: editors manage templates; only admins change the default (FR-11).
+	const can = useCan();
 	const unauthorized =
 		query.error instanceof ApiError && query.error.status === 401;
 
@@ -89,13 +92,15 @@ export function SchedulesPage() {
 				title={t("nav.schedules")}
 				description={t("schedules.subtitle")}
 				action={
-					<Button
-						variant="light"
-						leftSection={<IconPlus size={18} />}
-						onClick={() => setEditing(null)}
-					>
-						{t("schedules.new")}
-					</Button>
+					can("edit") && (
+						<Button
+							variant="light"
+							leftSection={<IconPlus size={18} />}
+							onClick={() => setEditing(null)}
+						>
+							{t("schedules.new")}
+						</Button>
+					)
 				}
 				mb={24}
 			/>
@@ -148,15 +153,19 @@ export function SchedulesPage() {
 									</Table.Td>
 									<Table.Td>
 										<Group gap={4} wrap="nowrap" justify="flex-end">
-											<Button
-												size="xs"
-												variant="subtle"
-												onClick={() => setEditing(s)}
-												aria-label={`${t("schedules.edit")} ${s.id === "default" ? t("schedules.default") : s.name}`}
-											>
-												{t("schedules.edit")}
-											</Button>
-											{s.id !== "default" && <DeleteSchedule schedule={s} />}
+											{can(scheduleAction(s.id)) && (
+												<Button
+													size="xs"
+													variant="subtle"
+													onClick={() => setEditing(s)}
+													aria-label={`${t("schedules.edit")} ${s.id === "default" ? t("schedules.default") : s.name}`}
+												>
+													{t("schedules.edit")}
+												</Button>
+											)}
+											{s.id !== "default" && can("edit") && (
+												<DeleteSchedule schedule={s} />
+											)}
 										</Group>
 									</Table.Td>
 								</Table.Tr>

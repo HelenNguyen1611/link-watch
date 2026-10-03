@@ -17,6 +17,9 @@ import type {
 	SettingsInput,
 	SettingsView,
 	UptimeSummary,
+	UserInvite,
+	UserUpdate,
+	UserView,
 } from "@linkwatch/core";
 import { notifyUnauthorized } from "./auth";
 
@@ -294,6 +297,24 @@ export function createApi(opts: ApiOptions) {
 				method: "POST",
 				body: JSON.stringify(to ? { to } : {}),
 			}),
+		/** FR-29 (admin only): accounts in the Cognito User Pool with their role. */
+		listUsers: () => call<{ items: UserView[] }>("/users"),
+		/** FR-29: Cognito emails a temporary password; an existing account is a 409 ApiError. */
+		inviteUser: (input: UserInvite) =>
+			call<UserView>("/users", { method: "POST", body: JSON.stringify(input) }),
+		/** FR-29: change role / enable / disable; `self_change` and `last_admin` are 409. */
+		updateUser: (email: string, input: UserUpdate) =>
+			call<UserView>(`/users/${encodeURIComponent(email)}`, {
+				method: "PATCH",
+				body: JSON.stringify(input),
+			}),
+		resendInvite: (email: string) =>
+			call<{ status: "sent"; to: string }>(
+				`/users/${encodeURIComponent(email)}/resend-invite`,
+				{ method: "POST" },
+			),
+		deleteUser: (email: string) =>
+			call<void>(`/users/${encodeURIComponent(email)}`, { method: "DELETE" }),
 	};
 }
 

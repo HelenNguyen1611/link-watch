@@ -10,6 +10,7 @@ import {
 	Box,
 	Button,
 	Divider,
+	Fieldset,
 	Group,
 	Loader,
 	NumberInput,
@@ -30,7 +31,7 @@ import { PageHeader } from "@/components/PageHeader";
 import underline from "@/components/underline.module.css";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
 
 type FormValues = {
@@ -104,6 +105,8 @@ export function EmailSettingsPage() {
 	});
 	const unauthorized =
 		settings.error instanceof ApiError && settings.error.status === 401;
+	// HLR-09: email settings and the test email are admin-only; others see them read-only.
+	const canConfigure = useCan()("configure");
 
 	return (
 		<>
@@ -122,16 +125,31 @@ export function EmailSettingsPage() {
 				)
 			) : (
 				<Stack gap={40} maw={640} pb={40}>
-					<SettingsForm settings={settings.data} />
-					<Divider />
-					<TestEmail settings={settings.data} />
+					{!canConfigure && (
+						<Alert color="gray" variant="light">
+							{t("settingsEmail.readOnly")}
+						</Alert>
+					)}
+					<SettingsForm settings={settings.data} readOnly={!canConfigure} />
+					{canConfigure && (
+						<>
+							<Divider />
+							<TestEmail settings={settings.data} />
+						</>
+					)}
 				</Stack>
 			)}
 		</>
 	);
 }
 
-function SettingsForm({ settings }: { settings: SettingsView }) {
+function SettingsForm({
+	settings,
+	readOnly,
+}: {
+	settings: SettingsView;
+	readOnly: boolean;
+}) {
 	const { t } = useTranslation();
 	const api = useApi();
 	const queryClient = useQueryClient();
@@ -204,107 +222,111 @@ function SettingsForm({ settings }: { settings: SettingsView }) {
 			noValidate
 			aria-label={t("settingsEmail.formLabel")}
 		>
-			<Stack gap={32}>
-				<Section
-					title={t("settingsEmail.sender.title")}
-					description={t("settingsEmail.sender.description", {
-						identity: settings.sesIdentity,
-					})}
-				>
-					<TextInput
-						label={t("settingsEmail.sender.email")}
-						placeholder={`noreply@${settings.sesIdentity}`}
-						required
-						classNames={underline}
-						error={errorText("senderEmail")}
-						{...form.register("senderEmail")}
-					/>
-					<TextInput
-						label={t("settingsEmail.sender.name")}
-						placeholder="LinkWatch"
-						required
-						classNames={underline}
-						error={errorText("senderName")}
-						{...form.register("senderName")}
-					/>
-				</Section>
-
-				<Section
-					title={t("settingsEmail.admin.title")}
-					description={t("settingsEmail.admin.description")}
-				>
-					<TextInput
-						label={t("settingsEmail.admin.email")}
-						placeholder="admin@example.com"
-						required
-						classNames={underline}
-						error={errorText("defaultAdminEmail")}
-						{...form.register("defaultAdminEmail")}
-					/>
-				</Section>
-
-				<Section
-					title={t("settingsEmail.reminders.title")}
-					description={t("settingsEmail.reminders.description")}
-				>
-					<Controller
-						control={form.control}
-						name="remindersEnabled"
-						render={({ field }) => (
-							<Switch
-								label={t("settingsEmail.reminders.enabled")}
-								checked={field.value}
-								onChange={(e) => field.onChange(e.currentTarget.checked)}
-							/>
-						)}
-					/>
-					<Controller
-						control={form.control}
-						name="reminderIntervalHours"
-						render={({ field }) => (
-							<NumberInput
-								label={t("settingsEmail.reminders.interval")}
-								suffix={` ${t("settingsEmail.reminders.hours")}`}
-								min={1}
-								max={720}
-								allowDecimal={false}
-								disabled={!remindersOn}
-								classNames={underline}
-								maw={240}
-								value={field.value}
-								onChange={field.onChange}
-								onBlur={field.onBlur}
-								error={errorText("reminderIntervalHours")}
-							/>
-						)}
-					/>
-				</Section>
-
-				{form.formState.errors.root && (
-					<Text size="sm" c={PALETTE.danger} role="alert">
-						{t(`settingsEmail.errors.${form.formState.errors.root.message}`)}
-					</Text>
-				)}
-				<Group gap="xs">
-					<Button
-						type="submit"
-						variant="light"
-						loading={save.isPending}
-						disabled={!form.formState.isDirty}
+			<Fieldset variant="unstyled" disabled={readOnly}>
+				<Stack gap={32}>
+					<Section
+						title={t("settingsEmail.sender.title")}
+						description={t("settingsEmail.sender.description", {
+							identity: settings.sesIdentity,
+						})}
 					>
-						{t("settingsEmail.save")}
-					</Button>
-					{form.formState.isDirty && (
-						<Button
-							variant="subtle"
-							color="gray"
-							onClick={() => form.reset(toForm(settings))}
-						>
-							{t("settingsEmail.discard")}
-						</Button>
+						<TextInput
+							label={t("settingsEmail.sender.email")}
+							placeholder={`noreply@${settings.sesIdentity}`}
+							required
+							classNames={underline}
+							error={errorText("senderEmail")}
+							{...form.register("senderEmail")}
+						/>
+						<TextInput
+							label={t("settingsEmail.sender.name")}
+							placeholder="LinkWatch"
+							required
+							classNames={underline}
+							error={errorText("senderName")}
+							{...form.register("senderName")}
+						/>
+					</Section>
+
+					<Section
+						title={t("settingsEmail.admin.title")}
+						description={t("settingsEmail.admin.description")}
+					>
+						<TextInput
+							label={t("settingsEmail.admin.email")}
+							placeholder="admin@example.com"
+							required
+							classNames={underline}
+							error={errorText("defaultAdminEmail")}
+							{...form.register("defaultAdminEmail")}
+						/>
+					</Section>
+
+					<Section
+						title={t("settingsEmail.reminders.title")}
+						description={t("settingsEmail.reminders.description")}
+					>
+						<Controller
+							control={form.control}
+							name="remindersEnabled"
+							render={({ field }) => (
+								<Switch
+									label={t("settingsEmail.reminders.enabled")}
+									checked={field.value}
+									onChange={(e) => field.onChange(e.currentTarget.checked)}
+								/>
+							)}
+						/>
+						<Controller
+							control={form.control}
+							name="reminderIntervalHours"
+							render={({ field }) => (
+								<NumberInput
+									label={t("settingsEmail.reminders.interval")}
+									suffix={` ${t("settingsEmail.reminders.hours")}`}
+									min={1}
+									max={720}
+									allowDecimal={false}
+									disabled={!remindersOn}
+									classNames={underline}
+									maw={240}
+									value={field.value}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									error={errorText("reminderIntervalHours")}
+								/>
+							)}
+						/>
+					</Section>
+
+					{form.formState.errors.root && (
+						<Text size="sm" c={PALETTE.danger} role="alert">
+							{t(`settingsEmail.errors.${form.formState.errors.root.message}`)}
+						</Text>
 					)}
-				</Group>
-			</Stack>
+					{!readOnly && (
+						<Group gap="xs">
+							<Button
+								type="submit"
+								variant="light"
+								loading={save.isPending}
+								disabled={!form.formState.isDirty}
+							>
+								{t("settingsEmail.save")}
+							</Button>
+							{form.formState.isDirty && (
+								<Button
+									variant="subtle"
+									color="gray"
+									onClick={() => form.reset(toForm(settings))}
+								>
+									{t("settingsEmail.discard")}
+								</Button>
+							)}
+						</Group>
+					)}
+				</Stack>
+			</Fieldset>
 		</form>
 	);
 }

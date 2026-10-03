@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { useCan } from "@/lib/auth-context";
 import { isActive, MAIN_NAV, type NavItem, SETTINGS_NAV } from "@/lib/nav";
 import { IconChevronLeft, IconChevronRight, IconSettings } from "./icons";
 
@@ -135,6 +136,7 @@ export function Sidebar({
 	mobile = false,
 }: Props) {
 	const { t } = useTranslation();
+	const allowed = useCan();
 	// The icon-only rail is desktop-only; the mobile drawer is full width, so labels always show.
 	const collapsed = collapsedPref && !mobile;
 	return (
@@ -173,7 +175,9 @@ export function Sidebar({
 					</Text>
 				)}
 				<Stack gap={2}>
-					{SETTINGS_NAV.map((item) => (
+					{SETTINGS_NAV.filter(
+						(item) => !item.requires || allowed(item.requires),
+					).map((item) => (
 						<Item
 							key={item.key}
 							item={item}

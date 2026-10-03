@@ -13,7 +13,11 @@ describe("nav", () => {
 		expect(SETTINGS_NAV.map((i) => i.href)).toEqual([
 			"/settings/email/",
 			"/settings/account/",
+			"/settings/users/",
 		]);
+		expect(SETTINGS_NAV.find((i) => i.key === "settingsUsers")?.requires).toBe(
+			"manage_users",
+		);
 	});
 
 	it("every href ends with / (static export trailingSlash)", () => {

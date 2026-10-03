@@ -15,4 +15,13 @@ describe("AccountPage — SCR-09 (FR-28)", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
 		expect(signOut).toHaveBeenCalledTimes(1);
 	});
+
+	it("HLR-09: shows the role from the session", () => {
+		renderWithApi(
+			<AccountPage />,
+			stubApi(),
+			signedInAuth({ user: { email: "v@abc.com", role: "viewer" } }),
+		);
+		expect(screen.getByTestId("account-role").textContent).toMatch(/^Viewer/);
+	});
 });

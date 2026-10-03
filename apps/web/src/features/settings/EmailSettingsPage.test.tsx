@@ -217,7 +217,7 @@ describe("EmailSettingsPage — test email (FR-26)", () => {
 		renderWithApi(
 			<EmailSettingsPage />,
 			api,
-			signedInAuth({ user: { email: "helen@wootech.co" } }),
+			signedInAuth({ user: { email: "helen@wootech.co", role: "admin" } }),
 		);
 		const to = await field("Send to");
 		expect((to as HTMLInputElement).placeholder).toBe("helen@wootech.co");
@@ -279,5 +279,27 @@ describe("EmailSettingsPage — test email (FR-26)", () => {
 			screen.getByText("MessageRejected: Email address is not verified."),
 		).toBeTruthy();
 		expect(screen.getByText(/only verified addresses/)).toBeTruthy();
+	});
+});
+
+describe("EmailSettingsPage roles — HLR-09", () => {
+	it("FR-26: non-admins see the settings read-only, without save or test email", async () => {
+		renderWithApi(
+			<EmailSettingsPage />,
+			fakeApi(),
+			signedInAuth({ user: { email: "e@abc.com", role: "editor" } }),
+		);
+		expect(
+			await screen.findByText(
+				"Only admins can change email settings and send a test email.",
+			),
+		).toBeTruthy();
+		expect((await field("Sender address")).closest("fieldset")?.disabled).toBe(
+			true,
+		);
+		expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+		expect(
+			screen.queryByRole("button", { name: "Send test email" }),
+		).toBeNull();
 	});
 });

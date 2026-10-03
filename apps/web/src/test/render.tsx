@@ -12,7 +12,7 @@ import { cssVariablesResolver, theme } from "@/lib/theme";
 /** Signed in as admin@abc.com unless a test overrides it. */
 export const signedInAuth = (over: Partial<AuthState> = {}): AuthState => ({
 	status: "signedIn",
-	user: { email: "admin@abc.com" },
+	user: { email: "admin@abc.com", role: "admin" },
 	client: null,
 	refresh: async () => {},
 	signOut: async () => {},

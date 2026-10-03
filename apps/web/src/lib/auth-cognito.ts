@@ -1,3 +1,4 @@
+import { roleFromGroups } from "@linkwatch/core";
 import { Amplify } from "aws-amplify";
 import {
 	confirmResetPassword,
@@ -89,8 +90,11 @@ export function createCognitoAuth(config: AuthConfig): AuthClient {
 
 	return {
 		async currentUser() {
-			const email = (await idToken())?.payload.email;
-			return typeof email === "string" ? { email } : null;
+			const payload = (await idToken())?.payload;
+			const email = payload?.email;
+			return typeof email === "string"
+				? { email, role: roleFromGroups(payload?.["cognito:groups"]) }
+				: null;
 		},
 		async getIdToken() {
 			return (await idToken())?.toString() ?? null;

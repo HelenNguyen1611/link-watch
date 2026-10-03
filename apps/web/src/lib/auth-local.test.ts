@@ -11,11 +11,15 @@ describe("createLocalAuth (next dev only)", () => {
 		expect(await auth.signIn(" Dev@Local.Test ", "x")).toEqual({
 			kind: "signedIn",
 		});
-		expect(await auth.currentUser()).toEqual({ email: "dev@local.test" });
+		expect(await auth.currentUser()).toEqual({
+			email: "dev@local.test",
+			role: "admin",
+		});
 		expect(await auth.getIdToken()).toBe(LOCAL_ID_TOKEN);
 		// The session survives a reload (new client, same browser storage).
 		expect(await createLocalAuth().currentUser()).toEqual({
 			email: "dev@local.test",
+			role: "admin",
 		});
 		await auth.signOut();
 		expect(await auth.currentUser()).toBeNull();

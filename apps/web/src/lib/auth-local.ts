@@ -12,13 +12,13 @@ const storage = () => {
 	}
 };
 
-/** `next dev` only (see `loadAuthSetup`): any email and non-empty password sign in. */
+/** `next dev` only (see `loadAuthSetup`): any email and non-empty password sign in, as an admin like the local API. */
 export function createLocalAuth(): AuthClient {
 	const email = () => storage()?.getItem(STORAGE_KEY) ?? null;
 	return {
 		async currentUser() {
 			const e = email();
-			return e ? { email: e } : null;
+			return e ? { email: e, role: "admin" as const } : null;
 		},
 		async getIdToken() {
 			return email() ? LOCAL_ID_TOKEN : null;

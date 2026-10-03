@@ -13,6 +13,7 @@
 		"settings": "Settings",
 		"settingsEmail": "Alert email",
 		"settingsAccount": "Account",
+		"settingsUsers": "Users",
 		"collapse": "Collapse",
 		"expand": "Expand"
 	},
@@ -245,7 +246,8 @@
 			"interval": "Enter a whole number of hours between 1 and 720",
 			"validation": "Some values were rejected. Check the fields and try again.",
 			"unknown": "Could not save. Try again."
-		}
+		},
+		"readOnly": "Only admins can change email settings and send a test email."
 	},
 	"incidents": {
 		"subtitle": "Open and closed incidents: how long a link was down, who was emailed, and notes.",
@@ -634,9 +636,67 @@
 		"subtitle": "Your sign-in account.",
 		"email": "Email",
 		"role": "Role",
-		"admin": "Admin — every signed-in user can manage links, domains, schedules and settings.",
 		"password": "To change your password, sign out and use “Forgot password?” on the sign-in page.",
-		"users": "Users are invited and removed by the system owner in Amazon Cognito (see RUNBOOK). Managing users in the app comes in phase 2.",
-		"signOut": "Sign out"
+		"users": "Admins invite users and change their roles under Settings → Users.",
+		"signOut": "Sign out",
+		"roles": {
+			"admin": "Admin — full access: users, email settings, the default schedule, every domain and link.",
+			"editor": "Editor — adds and edits links, domains, schedules and recipients; acknowledges and fixes incidents.",
+			"viewer": "Viewer — read only: dashboard, links, history and incidents."
+		}
+	},
+	"users": {
+		"subtitle": "Who can sign in to LinkWatch and what they can do.",
+		"invite": "Invite user",
+		"inviteTitle": "Invite a user",
+		"inviteHint": "Amazon Cognito emails a temporary password. It is valid for 7 days; on the first sign-in the user chooses their own password.",
+		"email": "Email",
+		"role": "Role",
+		"roles": {
+			"admin": "Admin",
+			"editor": "Editor",
+			"viewer": "Viewer"
+		},
+		"roleHint": {
+			"admin": "Full access, including users and email settings.",
+			"editor": "Edits links, domains, schedules and recipients; handles incidents.",
+			"viewer": "Read only."
+		},
+		"sendInvite": "Send invite",
+		"cancel": "Cancel",
+		"invited": "Invitation sent to {{email}}.",
+		"saved": "User updated.",
+		"resent": "Invitation sent again.",
+		"deleted": "User deleted.",
+		"resend": "Resend invite",
+		"disable": "Disable",
+		"enable": "Enable",
+		"delete": "Delete",
+		"confirmDelete": "Confirm delete",
+		"you": "You",
+		"col": {
+			"email": "Email",
+			"role": "Role",
+			"status": "Status",
+			"created": "Created"
+		},
+		"status": {
+			"active": "Active",
+			"invited": "Invited",
+			"other": "Needs attention",
+			"disabled": "Disabled"
+		},
+		"signOutNote": "A new role or a disabled account takes effect at the user's next sign-in, at the latest within one hour.",
+		"adminOnly": "Only admins can manage users.",
+		"loadError": "Could not load users. Try again.",
+		"errors": {
+			"email": "Enter a valid email address.",
+			"duplicate": "This email already has an account.",
+			"self_change": "You cannot change your own role, disable or delete yourself.",
+			"last_admin": "At least one enabled admin must remain.",
+			"not_invited": "This user has already set a password; there is no invite to resend.",
+			"forbidden": "Only admins can manage users.",
+			"failed": "Something went wrong. Please try again."
+		}
 	}
 }

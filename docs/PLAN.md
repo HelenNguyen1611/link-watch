@@ -510,7 +510,7 @@
 - 3 `CfnUserPoolGroup`, quyền `cognito-idp:Admin*`/`ListUsers`/`ListUsersInGroup` cho Lambda API giới hạn ARN pool, env `USER_POOL_ID`. Không đổi logical ID User Pool.
 - **Xong khi:** `pnpm synth` + test assertions pass.
 
-#### Bước 45 — Web: màn Users + nút theo vai trò
+#### Bước 45 — Web: màn Users + nút theo vai trò ✅
 - `/users/` (chỉ Admin thấy trong sidebar): bảng user, Invite, đổi vai trò, Disable/Enable, Resend invite, Delete. Account hiện vai trò thật. Ẩn nút ghi với Viewer/Editor theo `can()`.
 - **Xong khi:** `pnpm --filter @linkwatch/web build` xuất được `out/`.
 

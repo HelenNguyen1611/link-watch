@@ -5,6 +5,7 @@ import {
 	Alert,
 	Anchor,
 	Button,
+	Fieldset,
 	Group,
 	Loader,
 	Select,
@@ -27,6 +28,7 @@ import { UptimeBar } from "@/features/links/detail/UptimeBar";
 import { describeRule } from "@/features/schedules/describe";
 import { ApiError, type DomainDetailView } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime, formatMs } from "@/lib/format";
 import { scheduleLabel } from "./DomainList";
@@ -74,6 +76,8 @@ function Settings({ domain }: { domain: DomainDetailView }) {
 		queryFn: () => api.listSchedules(),
 	});
 	const [draft, setDraft] = useState<Draft>(() => toDraft(domain));
+	// HLR-09: viewers see the settings read-only.
+	const canEdit = useCan()("edit");
 	const initial = toDraft(domain);
 	const changes: DomainUpdateRaw = {};
 	for (const k of Object.keys(draft) as (keyof Draft)[])
@@ -105,81 +109,91 @@ function Settings({ domain }: { domain: DomainDetailView }) {
 			<Title order={3} fz="md">
 				{t("domains.settings")}
 			</Title>
-			<TextInput
-				label={t("domains.fields.displayName")}
-				value={draft.displayName}
-				onChange={(e) => set({ displayName: e.currentTarget.value })}
-			/>
-			<Textarea
-				label={t("domains.fields.description")}
-				rows={2}
-				value={draft.description}
-				onChange={(e) => set({ description: e.currentTarget.value })}
-			/>
-			<TextInput
-				label={t("domains.fields.owner")}
-				placeholder="owner@example.com"
-				value={draft.owner}
-				onChange={(e) => set({ owner: e.currentTarget.value })}
-			/>
-			<Select
-				label={t("domains.fields.schedule")}
-				description={t("domains.fields.scheduleHint")}
-				data={[
-					{ value: "", label: t("domains.defaultSchedule") },
-					...(schedules.data?.items ?? [])
-						.filter((s) => s.id !== "default")
-						.map((s) => ({
-							value: s.id,
-							label: `${s.name} — ${describeRule(s.rule, t)}`,
-						})),
-				]}
-				value={draft.scheduleId}
-				onChange={(v) => set({ scheduleId: v ?? "" })}
-				allowDeselect={false}
-			/>
-			<Switch
-				label={t("domains.fields.enabled")}
-				description={t("domains.fields.enabledHint")}
-				checked={draft.enabled}
-				onChange={(e) => set({ enabled: e.currentTarget.checked })}
-			/>
-			<Switch
-				label={t("domains.fields.slowAlert")}
-				description={t("domains.fields.slowAlertHint")}
-				checked={draft.slowAlert}
-				onChange={(e) => set({ slowAlert: e.currentTarget.checked })}
-			/>
-			<Switch
-				label={t("domains.fields.ignoreWaf403")}
-				description={t("domains.fields.ignoreWaf403Hint")}
-				checked={draft.ignoreWaf403}
-				onChange={(e) => set({ ignoreWaf403: e.currentTarget.checked })}
-			/>
+			<Fieldset
+				variant="unstyled"
+				disabled={!canEdit}
+				aria-label={t("domains.settings")}
+			>
+				<Stack gap="sm">
+					<TextInput
+						label={t("domains.fields.displayName")}
+						value={draft.displayName}
+						onChange={(e) => set({ displayName: e.currentTarget.value })}
+					/>
+					<Textarea
+						label={t("domains.fields.description")}
+						rows={2}
+						value={draft.description}
+						onChange={(e) => set({ description: e.currentTarget.value })}
+					/>
+					<TextInput
+						label={t("domains.fields.owner")}
+						placeholder="owner@example.com"
+						value={draft.owner}
+						onChange={(e) => set({ owner: e.currentTarget.value })}
+					/>
+					<Select
+						label={t("domains.fields.schedule")}
+						description={t("domains.fields.scheduleHint")}
+						data={[
+							{ value: "", label: t("domains.defaultSchedule") },
+							...(schedules.data?.items ?? [])
+								.filter((s) => s.id !== "default")
+								.map((s) => ({
+									value: s.id,
+									label: `${s.name} — ${describeRule(s.rule, t)}`,
+								})),
+						]}
+						value={draft.scheduleId}
+						onChange={(v) => set({ scheduleId: v ?? "" })}
+						allowDeselect={false}
+					/>
+					<Switch
+						label={t("domains.fields.enabled")}
+						description={t("domains.fields.enabledHint")}
+						checked={draft.enabled}
+						onChange={(e) => set({ enabled: e.currentTarget.checked })}
+					/>
+					<Switch
+						label={t("domains.fields.slowAlert")}
+						description={t("domains.fields.slowAlertHint")}
+						checked={draft.slowAlert}
+						onChange={(e) => set({ slowAlert: e.currentTarget.checked })}
+					/>
+					<Switch
+						label={t("domains.fields.ignoreWaf403")}
+						description={t("domains.fields.ignoreWaf403Hint")}
+						checked={draft.ignoreWaf403}
+						onChange={(e) => set({ ignoreWaf403: e.currentTarget.checked })}
+					/>
+				</Stack>
+			</Fieldset>
 			{error && (
 				<Text size="sm" c={COLOR.danger} role="alert">
 					{error}
 				</Text>
 			)}
-			<Group gap="xs">
-				<Button
-					variant="light"
-					disabled={!dirty}
-					loading={save.isPending}
-					onClick={() => save.mutate()}
-				>
-					{t("domains.save")}
-				</Button>
-				{dirty && (
+			{canEdit && (
+				<Group gap="xs">
 					<Button
-						variant="subtle"
-						color="gray"
-						onClick={() => setDraft(initial)}
+						variant="light"
+						disabled={!dirty}
+						loading={save.isPending}
+						onClick={() => save.mutate()}
 					>
-						{t("domains.discard")}
+						{t("domains.save")}
 					</Button>
-				)}
-			</Group>
+					{dirty && (
+						<Button
+							variant="subtle"
+							color="gray"
+							onClick={() => setDraft(initial)}
+						>
+							{t("domains.discard")}
+						</Button>
+					)}
+				</Group>
+			)}
 		</Stack>
 	);
 }
@@ -196,6 +210,7 @@ function Recipients({ domain }: { domain: string }) {
 	});
 	const [email, setEmail] = useState("");
 	const [name, setName] = useState("");
+	const canEdit = useCan()("edit");
 	const add = useMutation({
 		mutationFn: () =>
 			api.addRecipient({
@@ -244,47 +259,51 @@ function Recipients({ domain }: { domain: string }) {
 								<Table.Td>{r.email}</Table.Td>
 								<Table.Td c="dimmed">{r.name ?? ""}</Table.Td>
 								<Table.Td w={1}>
-									<Button
-										size="xs"
-										variant="subtle"
-										color={PALETTE.danger}
-										leftSection={<IconTrash size={14} />}
-										onClick={() => remove.mutate(r)}
-										aria-label={t("domains.recipients.removeFor", {
-											email: r.email,
-										})}
-									>
-										{t("domains.recipients.remove")}
-									</Button>
+									{canEdit && (
+										<Button
+											size="xs"
+											variant="subtle"
+											color={PALETTE.danger}
+											leftSection={<IconTrash size={14} />}
+											onClick={() => remove.mutate(r)}
+											aria-label={t("domains.recipients.removeFor", {
+												email: r.email,
+											})}
+										>
+											{t("domains.recipients.remove")}
+										</Button>
+									)}
 								</Table.Td>
 							</Table.Tr>
 						))}
 					</Table.Tbody>
 				</Table>
 			)}
-			<Group align="flex-end" gap="xs" wrap="wrap">
-				<TextInput
-					label={t("domains.recipients.email")}
-					value={email}
-					onChange={(e) => setEmail(e.currentTarget.value)}
-					error={addError}
-					style={{ flex: "1 1 220px" }}
-				/>
-				<TextInput
-					label={t("domains.recipients.name")}
-					value={name}
-					onChange={(e) => setName(e.currentTarget.value)}
-					style={{ flex: "1 1 160px" }}
-				/>
-				<Button
-					variant="light"
-					disabled={!email.trim()}
-					loading={add.isPending}
-					onClick={() => add.mutate()}
-				>
-					{t("domains.recipients.add")}
-				</Button>
-			</Group>
+			{canEdit && (
+				<Group align="flex-end" gap="xs" wrap="wrap">
+					<TextInput
+						label={t("domains.recipients.email")}
+						value={email}
+						onChange={(e) => setEmail(e.currentTarget.value)}
+						error={addError}
+						style={{ flex: "1 1 220px" }}
+					/>
+					<TextInput
+						label={t("domains.recipients.name")}
+						value={name}
+						onChange={(e) => setName(e.currentTarget.value)}
+						style={{ flex: "1 1 160px" }}
+					/>
+					<Button
+						variant="light"
+						disabled={!email.trim()}
+						loading={add.isPending}
+						onClick={() => add.mutate()}
+					>
+						{t("domains.recipients.add")}
+					</Button>
+				</Group>
+			)}
 		</Stack>
 	);
 }

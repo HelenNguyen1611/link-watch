@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth-context";
 
-/** SCR-09 (MVP): the signed-in account; managing users (FR-29) is phase 2. */
+/** SCR-09: the signed-in account and its role (HLR-09); admins manage users on /settings/users/. */
 export function AccountPage() {
 	const { t } = useTranslation();
 	const { user, signOut } = useAuth();
@@ -32,7 +32,9 @@ export function AccountPage() {
 						<Text size="xs" c="dimmed">
 							{t("account.role")}
 						</Text>
-						<Text>{t("account.admin")}</Text>
+						<Text data-testid="account-role">
+							{user ? t(`account.roles.${user.role}`) : "—"}
+						</Text>
 					</Stack>
 					<Text size="sm" c="dimmed">
 						{t("account.password")}

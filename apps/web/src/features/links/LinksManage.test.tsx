@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { type Api, ApiError } from "@/lib/api";
-import { renderWithApi } from "@/test/render";
+import { renderWithApi, signedInAuth } from "@/test/render";
 import { stubApi } from "@/test/stub-api";
 import { LinksPage } from "./LinksPage";
 
@@ -299,5 +299,39 @@ describe("LinksPage — filters, export, fresh rows", () => {
 				"Refreshing every 30 seconds while links wait for a check result.",
 			),
 		).toBeTruthy();
+	});
+});
+
+describe("LinksPage roles — HLR-09", () => {
+	it("HLR-09: a viewer sees the links but no add, import, select, edit or delete", async () => {
+		const { api } = fakeApi([view(1), view(2)]);
+		renderWithApi(
+			<LinksPage />,
+			api,
+			signedInAuth({ user: { email: "v@abc.com", role: "viewer" } }),
+		);
+		expect(await screen.findByText("https://abc.com/p1")).toBeTruthy();
+		expect(screen.queryByRole("button", { name: "Add link" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Import" })).toBeNull();
+		expect(screen.queryByRole("checkbox", { name: /^Select/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+		// Export is a read.
+		expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
+	});
+
+	it("HLR-09: an editor can add, import, select and edit", async () => {
+		const { api } = fakeApi([view(1)]);
+		renderWithApi(
+			<LinksPage />,
+			api,
+			signedInAuth({ user: { email: "e@abc.com", role: "editor" } }),
+		);
+		expect(await screen.findByText("https://abc.com/p1")).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Import" })).toBeTruthy();
+		expect(
+			screen.getByRole("checkbox", { name: "Select all links on this page" }),
+		).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
 	});
 });

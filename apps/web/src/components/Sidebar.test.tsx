@@ -5,7 +5,7 @@ import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Api } from "@/lib/api";
-import { renderWithApi } from "@/test/render";
+import { renderWithApi, signedInAuth } from "@/test/render";
 import {
 	fluidWidth,
 	SHELL_GUTTER,
@@ -64,8 +64,19 @@ describe("Sidebar", () => {
 			["Incidents", "/incidents/"],
 			["Alert email", "/settings/email/"],
 			["Account", "/settings/account/"],
+			["Users", "/settings/users/"],
 		]);
 		expect(within(nav).getByText("Settings")).toBeTruthy();
+	});
+
+	it("FR-29: the Users item is shown to admins only", () => {
+		renderWithApi(
+			<Harness />,
+			{} as Api,
+			signedInAuth({ user: { email: "e@abc.com", role: "editor" } }),
+		);
+		expect(screen.queryByRole("link", { name: "Users" })).toBeNull();
+		expect(screen.getByRole("link", { name: "Account" })).toBeTruthy();
 	});
 
 	it("marks the current item (aria-current)", () => {
@@ -104,7 +115,8 @@ describe("Sidebar", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
 		const nav = screen.getByRole("navigation", { name: "Menu" });
 		const links = within(nav).getAllByRole("link");
-		expect(links).toHaveLength(7);
+		// 5 main items + Alert email, Account and Users (signed in as admin).
+		expect(links).toHaveLength(8);
 		for (const a of links) {
 			expect(a.style.justifyContent).toBe("center");
 			expect(a.querySelector("svg")?.getAttribute("width")).toBe("20");

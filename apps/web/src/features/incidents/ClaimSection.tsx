@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime } from "@/lib/format";
 
@@ -99,6 +100,7 @@ export function ClaimSection({ incident }: { incident: IncidentDetail }) {
 	const [note, setNote] = useState("");
 	const resolve = useResolveClaims(() => setNote(""));
 	const pending = incident.claims.some((c) => c.outcome === "pending");
+	const canHandle = useCan()("handle_incidents");
 	return (
 		<Stack gap="sm">
 			<Title order={3} fz="md">
@@ -109,7 +111,7 @@ export function ClaimSection({ incident }: { incident: IncidentDetail }) {
 					{incident.claimNote}
 				</Text>
 			)}
-			{incident.state !== "closed" && !pending && (
+			{canHandle && incident.state !== "closed" && !pending && (
 				<Stack gap="xs" maw={640}>
 					<Text size="sm" c="dimmed">
 						{t("claims.hint")}

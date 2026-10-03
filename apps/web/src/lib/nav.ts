@@ -1,3 +1,4 @@
+import type { Action } from "@linkwatch/core";
 import type { ComponentType, SVGProps } from "react";
 import {
 	IconAlert,
@@ -7,6 +8,7 @@ import {
 	IconMail,
 	IconOverview,
 	IconUser,
+	IconUsers,
 } from "@/components/icons";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
@@ -18,6 +20,8 @@ export type NavItem = {
 	icon: IconComponent;
 	/** Screen in the SRS/wireframe. */
 	screen: string;
+	/** HLR-09: shown only to roles allowed this action. */
+	requires?: Action;
 };
 
 /** Main menu (SRS 4, wireframe SCR-01 … SCR-07). */
@@ -34,7 +38,7 @@ export const MAIN_NAV: NavItem[] = [
 	{ key: "incidents", href: "/incidents/", icon: IconAlert, screen: "SCR-07" },
 ];
 
-/** Settings group (SCR-08/09). */
+/** Settings group (SCR-08/09; Users = FR-29, admin only). */
 export const SETTINGS_NAV: NavItem[] = [
 	{
 		key: "settingsEmail",
@@ -47,6 +51,13 @@ export const SETTINGS_NAV: NavItem[] = [
 		href: "/settings/account/",
 		icon: IconUser,
 		screen: "SCR-09",
+	},
+	{
+		key: "settingsUsers",
+		href: "/settings/users/",
+		icon: IconUsers,
+		screen: "SCR-09",
+		requires: "manage_users",
 	},
 ];
 

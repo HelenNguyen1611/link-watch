@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { type Api, ApiError } from "@/lib/api";
-import { renderWithApi } from "@/test/render";
+import { renderWithApi, signedInAuth } from "@/test/render";
 import { stubApi } from "@/test/stub-api";
 import { SchedulesPage } from "./SchedulesPage";
 
@@ -152,5 +152,36 @@ describe("SchedulesPage — SCR-06", () => {
 				}),
 			),
 		);
+	});
+});
+
+describe("SchedulesPage roles — HLR-09", () => {
+	it("FR-11: an editor manages templates but cannot edit the system default", async () => {
+		renderWithApi(
+			<SchedulesPage />,
+			fakeApi(),
+			signedInAuth({ user: { email: "e@abc.com", role: "editor" } }),
+		);
+		const def = within(
+			(await screen.findByText("System default")).closest("tr") as HTMLElement,
+		);
+		expect(def.queryByRole("button", { name: /Edit/ })).toBeNull();
+		const other = within(
+			screen.getByText("Quarter-hourly").closest("tr") as HTMLElement,
+		);
+		expect(other.getByRole("button", { name: /Edit/ })).toBeTruthy();
+		expect(other.getByRole("button", { name: /Delete/ })).toBeTruthy();
+		expect(screen.getByRole("button", { name: "New schedule" })).toBeTruthy();
+	});
+
+	it("HLR-09: a viewer only reads schedules", async () => {
+		renderWithApi(
+			<SchedulesPage />,
+			fakeApi(),
+			signedInAuth({ user: { email: "v@abc.com", role: "viewer" } }),
+		);
+		expect(await screen.findByText("Quarter-hourly")).toBeTruthy();
+		expect(screen.queryByRole("button", { name: "New schedule" })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Edit|Delete/ })).toBeNull();
 	});
 });

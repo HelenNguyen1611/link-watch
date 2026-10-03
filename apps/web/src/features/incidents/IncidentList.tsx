@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { useResolveClaims } from "./ClaimSection";
@@ -37,6 +38,9 @@ export function IncidentList() {
 	const [tab, setTab] = useState<Tab>("active");
 	// FR-41: several open incidents can be reported fixed at once.
 	const [selected, setSelected] = useState<string[]>([]);
+	// HLR-09: only roles that handle incidents select rows for "Fixed — check again".
+	const canHandle = useCan()("handle_incidents");
+	const selecting = tab === "active" && canHandle;
 	const resolve = useResolveClaims(() => setSelected([]));
 	const query = useInfiniteQuery({
 		queryKey: ["incidents", tab],
@@ -77,7 +81,7 @@ export function IncidentList() {
 				<Text c="dimmed">{t(`incidents.empty.${tab}`)}</Text>
 			) : (
 				<>
-					{tab === "active" && selected.length > 0 && (
+					{selecting && selected.length > 0 && (
 						<Group gap="xs" role="toolbar" aria-label={t("claims.bulkLabel")}>
 							<Text size="sm" fw={500}>
 								{t("links.bulk.selected", { count: selected.length })}
@@ -104,7 +108,7 @@ export function IncidentList() {
 						<Table highlightOnHover verticalSpacing="sm" borderColor="gray.2">
 							<Table.Thead>
 								<Table.Tr>
-									{tab === "active" && <Table.Th w={1} />}
+									{selecting && <Table.Th w={1} />}
 									{["url", "type", "state", "opened", "duration", "error"].map(
 										(k) => (
 											<Table.Th key={k} c="dimmed" fz="xs" fw={400}>
@@ -120,7 +124,7 @@ export function IncidentList() {
 										key={i.id}
 										incident={i}
 										now={now}
-										selectable={tab === "active" && i.state === "open"}
+										selectable={selecting && i.state === "open"}
 										selected={selected.includes(i.id)}
 										onToggle={() =>
 											setSelected((s) =>
@@ -129,7 +133,7 @@ export function IncidentList() {
 													: [...s, i.id],
 											)
 										}
-										showSelect={tab === "active"}
+										showSelect={selecting}
 									/>
 								))}
 							</Table.Tbody>

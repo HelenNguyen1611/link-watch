@@ -81,6 +81,22 @@ describe("createCognitoAuth", () => {
 		expect(amplify.signOut).toHaveBeenCalledTimes(1);
 	});
 
+	it("HLR-09: the role comes from the cognito:groups claim (highest wins)", async () => {
+		const auth = createCognitoAuth(config);
+		amplify.fetchAuthSession.mockResolvedValue({
+			tokens: {
+				idToken: {
+					toString: () => "t",
+					payload: { email: "a@b.com", "cognito:groups": ["viewer", "editor"] },
+				},
+			},
+		});
+		expect(await auth.currentUser()).toEqual({
+			email: "a@b.com",
+			role: "editor",
+		});
+	});
+
 	it("FR-28: ID token and email come from the Amplify session (refreshed by Amplify)", async () => {
 		const auth = createCognitoAuth(config);
 		amplify.fetchAuthSession.mockResolvedValue({
@@ -92,7 +108,10 @@ describe("createCognitoAuth", () => {
 			},
 		});
 		expect(await auth.getIdToken()).toBe("eyJ.id.token");
-		expect(await auth.currentUser()).toEqual({ email: "a@b.com" });
+		expect(await auth.currentUser()).toEqual({
+			email: "a@b.com",
+			role: "viewer",
+		});
 		amplify.fetchAuthSession.mockResolvedValue({ tokens: undefined });
 		expect(await auth.getIdToken()).toBeNull();
 		expect(await auth.currentUser()).toBeNull();

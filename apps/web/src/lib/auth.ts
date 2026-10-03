@@ -1,10 +1,15 @@
+import type { Role } from "@linkwatch/core";
 import { z } from "zod";
 
 /**
  * FR-28: sign-in with email + password (Cognito User Pool). Two implementations share this
  * interface: `createCognitoAuth` (production, Amplify) and `createLocalAuth` (`next dev` only).
  */
-export type AuthUser = { email: string };
+export type AuthUser = {
+	email: string;
+	/** HLR-09: from the `cognito:groups` claim of the ID token; the API enforces it. */
+	role: Role;
+};
 
 export type SignInResult =
 	| { kind: "signedIn" }

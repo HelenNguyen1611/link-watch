@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { IconChevronLeft } from "@/components/icons";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { ClaimSection } from "./ClaimSection";
@@ -146,6 +147,7 @@ function Acknowledge({ incident: i }: { incident: Detail }) {
 	const api = useApi();
 	const queryClient = useQueryClient();
 	const [note, setNote] = useState(i.note ?? "");
+	const canHandle = useCan()("handle_incidents");
 	const ack = useMutation({
 		mutationFn: () => api.ackIncident(i.id, note.trim()),
 		onSuccess: (saved) => {
@@ -188,7 +190,7 @@ function Acknowledge({ incident: i }: { incident: Detail }) {
 					)}
 				</Text>
 			)}
-			{i.state !== "closed" && (
+			{canHandle && i.state !== "closed" && (
 				<>
 					<Textarea
 						label={t("incidents.ack.note")}
@@ -209,7 +211,7 @@ function Acknowledge({ incident: i }: { incident: Detail }) {
 					</Group>
 				</>
 			)}
-			{i.state === "closed" && i.note && (
+			{(i.state === "closed" || !canHandle) && i.note && (
 				<Text size="sm">
 					{t("incidents.ack.note")}: {i.note}
 				</Text>

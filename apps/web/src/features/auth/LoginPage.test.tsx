@@ -204,7 +204,7 @@ describe("LoginPage", () => {
 	it("FR-28: already signed in → straight to ?next", async () => {
 		renderLogin(fakeClient(), {
 			status: "signedIn",
-			user: { email: "a@b.com" },
+			user: { email: "a@b.com", role: "admin" },
 		});
 		await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/links/"));
 	});

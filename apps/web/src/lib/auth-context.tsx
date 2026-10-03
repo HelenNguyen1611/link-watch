@@ -1,5 +1,6 @@
 "use client";
 
+import { type Action, can } from "@linkwatch/core";
 import {
 	createContext,
 	type ReactNode,
@@ -42,6 +43,15 @@ export const AuthContext = createContext<AuthState>({
 	signOut: noop,
 });
 export const useAuth = () => useContext(AuthContext);
+
+/** HLR-09: `can(action)` for the signed-in user — hides actions the API would refuse (403). */
+export function useCan(): (action: Action) => boolean {
+	const { user } = useAuth();
+	return useCallback(
+		(action: Action) => (user ? can(user.role, action) : false),
+		[user],
+	);
+}
 
 /** Production: Cognito from `/auth-config.json`; `next dev` without it: local fake sign-in. */
 async function defaultClient(): Promise<AuthClient | null> {

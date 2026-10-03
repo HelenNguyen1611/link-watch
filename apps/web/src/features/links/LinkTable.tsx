@@ -25,6 +25,7 @@ import {
 	IconTrash,
 } from "@/components/icons";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
 import { formatDateTime, formatMs } from "@/lib/format";
 import { EditLinkDialog } from "./EditLinkDialog";
@@ -250,6 +251,8 @@ export function LinkTable({
 	const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 	const [selected, setSelected] = useState<string[]>([]);
 	const [editing, setEditing] = useState<LinkView | null>(null);
+	// HLR-09: viewers see the table without selection, edit or delete.
+	const canEdit = useCan()("edit");
 	const sorted = useMemo(() => sortLinks(links, sort), [links, sort]);
 	const view = paginate(sorted, page, pageSize);
 
@@ -297,7 +300,7 @@ export function LinkTable({
 	);
 	return (
 		<>
-			{selected.length > 0 && (
+			{canEdit && selected.length > 0 && (
 				<BulkBar
 					selected={selected}
 					rows={links}
@@ -329,13 +332,15 @@ export function LinkTable({
 								aria-sort={ariaSort(sort, "url")}
 							>
 								<Group gap="xs" wrap="nowrap">
-									<Checkbox
-										size="xs"
-										aria-label={t("links.bulk.selectPage")}
-										checked={allOnPage}
-										indeterminate={someOnPage && !allOnPage}
-										onChange={togglePage}
-									/>
+									{canEdit && (
+										<Checkbox
+											size="xs"
+											aria-label={t("links.bulk.selectPage")}
+											checked={allOnPage}
+											indeterminate={someOnPage && !allOnPage}
+											onChange={togglePage}
+										/>
+									)}
 									<SortLabel column="url" sort={sort} onSort={onSort} />
 								</Group>
 							</Table.Th>
@@ -360,13 +365,15 @@ export function LinkTable({
 							>
 								<Table.Td className={css.sticky} data-sticky="true">
 									<Group gap="xs" wrap="nowrap" align="flex-start">
-										<Checkbox
-											size="xs"
-											mt={3}
-											aria-label={t("links.bulk.select", { url: l.url })}
-											checked={selected.includes(l.id)}
-											onChange={() => toggle(l.id)}
-										/>
+										{canEdit && (
+											<Checkbox
+												size="xs"
+												mt={3}
+												aria-label={t("links.bulk.select", { url: l.url })}
+												checked={selected.includes(l.id)}
+												onChange={() => toggle(l.id)}
+											/>
+										)}
 										<Stack gap={0} style={{ minWidth: 0 }}>
 											<Anchor
 												href={l.url}
@@ -442,17 +449,19 @@ export function LinkTable({
 									{formatDateTime(l.createdAt)}
 								</Table.Td>
 								<Table.Td>
-									<Group gap={4} wrap="nowrap">
-										<Button
-											size="xs"
-											variant="subtle"
-											onClick={() => setEditing(l)}
-											aria-label={t("links.editFor", { url: l.url })}
-										>
-											{t("links.edit")}
-										</Button>
-										<DeleteButton id={l.id} />
-									</Group>
+									{canEdit && (
+										<Group gap={4} wrap="nowrap">
+											<Button
+												size="xs"
+												variant="subtle"
+												onClick={() => setEditing(l)}
+												aria-label={t("links.editFor", { url: l.url })}
+											>
+												{t("links.edit")}
+											</Button>
+											<DeleteButton id={l.id} />
+										</Group>
+									)}
 								</Table.Td>
 							</Table.Tr>
 						))}

@@ -30,6 +30,7 @@ import {
 } from "@/features/incidents/IncidentBadges";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration, formatMs } from "@/lib/format";
 import { StatusBadge } from "../StatusBadge";
@@ -146,6 +147,7 @@ function LinkDetail({ id }: { id: string }) {
 		enabled: link.isSuccess,
 	});
 	const checkNow = useCheckNow(link.data, () => void link.refetch());
+	const canHandle = useCan()("handle_incidents");
 	// FR-41: the open incident of this link can be reported fixed from here.
 	const resolve = useResolveClaims();
 	const openIncident = incidents.data?.items.find((i) => i.state === "open");
@@ -202,16 +204,18 @@ function LinkDetail({ id }: { id: string }) {
 					</Text>
 				</Stack>
 				<Group gap="xs">
-					<Button
-						variant="light"
-						leftSection={<IconRefresh size={16} />}
-						loading={checkNow.checking}
-						disabled={l.paused}
-						onClick={checkNow.run}
-					>
-						{t("linkDetail.checkNow.button")}
-					</Button>
-					{openIncident && (
+					{canHandle && (
+						<Button
+							variant="light"
+							leftSection={<IconRefresh size={16} />}
+							loading={checkNow.checking}
+							disabled={l.paused}
+							onClick={checkNow.run}
+						>
+							{t("linkDetail.checkNow.button")}
+						</Button>
+					)}
+					{canHandle && openIncident && (
 						<Button
 							variant="light"
 							color={PALETTE.success}

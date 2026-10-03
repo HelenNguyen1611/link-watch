@@ -9,6 +9,7 @@ import { IconRefresh } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
+import { useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
 import { formatClock } from "@/lib/format";
 import { AddLinkForm } from "./AddLinkForm";
@@ -64,6 +65,7 @@ function LinksContent() {
 	const data = useLinksData();
 	const [filter, setFilter] = useState<LinkFilter>(EMPTY_FILTER);
 	const [importing, setImporting] = useState(false);
+	const canEdit = useCan()("edit");
 	const all = data?.rows ?? [];
 	const shown = useMemo(() => filterLinks(all, filter), [all, filter]);
 	const options = useMemo(() => filterOptions(all), [all]);
@@ -87,9 +89,15 @@ function LinksContent() {
 							})}
 						</Text>
 					)}
-					<Button size="xs" variant="subtle" onClick={() => setImporting(true)}>
-						{t("links.import")}
-					</Button>
+					{canEdit && (
+						<Button
+							size="xs"
+							variant="subtle"
+							onClick={() => setImporting(true)}
+						>
+							{t("links.import")}
+						</Button>
+					)}
 					<ExportButton />
 					<Button
 						size="xs"
@@ -134,12 +142,13 @@ function LinksContent() {
 /** SCR-03: link list from the snapshot (step 19b) + add form, filters, bulk actions. */
 export function LinksPage() {
 	const { t } = useTranslation();
+	const canEdit = useCan()("edit");
 	return (
 		<LinksDataProvider>
 			<PageHeader
 				title={t("links.title")}
 				description={t("links.subtitle")}
-				action={<AddLinkForm />}
+				action={canEdit && <AddLinkForm />}
 				mb={32}
 			/>
 			<LinksContent />
