@@ -1,6 +1,12 @@
-import { Button, Link, Section, Text } from "react-email";
 import { confirmUrl, formatTime, incidentUrl } from "./format";
-import { itemStyles, Layout } from "./layout";
+import {
+	Details,
+	Hint,
+	ItemCard,
+	Layout,
+	PrimaryButton,
+	TextLink,
+} from "./layout";
 import { en } from "./strings";
 import type { IncidentEmailProps, IncidentItem } from "./types";
 
@@ -12,46 +18,30 @@ export function IncidentItemBlock(props: {
 }) {
 	const { item } = props;
 	return (
-		<Section style={itemStyles.item}>
-			<Text style={itemStyles.url}>{item.url}</Text>
-			<Text style={itemStyles.line}>
-				{en.fields.type}: {en.incidentType[item.type]}
-			</Text>
-			{item.errorType && (
-				<Text style={itemStyles.line}>
-					{en.fields.error}: {en.errorType[item.errorType]}
-				</Text>
-			)}
-			{item.httpCode !== undefined && (
-				<Text style={itemStyles.line}>
-					{en.fields.httpCode}: {item.httpCode}
-				</Text>
-			)}
-			<Text style={itemStyles.line}>
-				{en.fields.detectedAt}: {formatTime(item.detectedAt)}
-			</Text>
-			{props.extra && (
-				<Text style={itemStyles.line}>
-					{props.extra.label}: {props.extra.value}
-				</Text>
-			)}
-			<Text style={itemStyles.line}>
-				<Link
-					href={incidentUrl(props.appUrl, item.incidentId)}
-					style={itemStyles.link}
-				>
-					{en.fields.viewIncident}
-				</Link>
-			</Text>
+		<ItemCard tone="danger" url={item.url}>
+			<Details
+				rows={[
+					[en.fields.type, en.incidentType[item.type]],
+					!!item.errorType && [en.fields.error, en.errorType[item.errorType]],
+					item.httpCode !== undefined && [
+						en.fields.httpCode,
+						String(item.httpCode),
+					],
+					[en.fields.detectedAt, formatTime(item.detectedAt)],
+					props.extra && [props.extra.label, props.extra.value],
+				]}
+			/>
 			{item.confirmToken && (
-				<Button
-					href={confirmUrl(props.appUrl, item.confirmToken)}
-					style={itemStyles.button}
-				>
+				<PrimaryButton href={confirmUrl(props.appUrl, item.confirmToken)}>
 					{en.confirm.button}
-				</Button>
+				</PrimaryButton>
 			)}
-		</Section>
+			<p style={{ margin: "8px 0 0" }}>
+				<TextLink href={incidentUrl(props.appUrl, item.incidentId)}>
+					{en.fields.viewIncident}
+				</TextLink>
+			</p>
+		</ItemCard>
 	);
 }
 
@@ -65,20 +55,22 @@ export function IncidentEmail({
 	return (
 		<Layout
 			preview={en.incident.preview(domain, items.length)}
+			tone="danger"
+			badge={en.incident.badge}
 			heading={en.incident.heading(domain)}
 			intro={en.incident.intro}
+			appUrl={appUrl}
+			footer={en.footer.alert}
 		>
 			{items.map((item) => (
 				<IncidentItemBlock key={item.incidentId} item={item} appUrl={appUrl} />
 			))}
 			{groupToken && items.length > 1 && (
-				<Button href={confirmUrl(appUrl, groupToken)} style={itemStyles.button}>
+				<PrimaryButton href={confirmUrl(appUrl, groupToken)}>
 					{en.confirm.groupButton}
-				</Button>
+				</PrimaryButton>
 			)}
-			{items.some((i) => i.confirmToken) && (
-				<Text style={itemStyles.hint}>{en.confirm.hint}</Text>
-			)}
+			{items.some((i) => i.confirmToken) && <Hint>{en.confirm.hint}</Hint>}
 		</Layout>
 	);
 }

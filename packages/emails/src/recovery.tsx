@@ -1,6 +1,5 @@
-import { Link, Section, Text } from "react-email";
 import { formatDuration, formatTime, incidentUrl } from "./format";
-import { itemStyles, Layout } from "./layout";
+import { Details, ItemCard, Layout, TextLink } from "./layout";
 import { en } from "./strings";
 import type { RecoveryEmailProps } from "./types";
 
@@ -9,32 +8,28 @@ export function RecoveryEmail({ domain, items, appUrl }: RecoveryEmailProps) {
 	return (
 		<Layout
 			preview={en.recovery.preview(domain, items.length)}
+			tone="success"
+			badge={en.recovery.badge}
 			heading={en.recovery.heading(domain)}
 			intro={en.recovery.intro}
+			appUrl={appUrl}
+			footer={en.footer.alert}
 		>
 			{items.map((item) => (
-				<Section key={item.incidentId} style={itemStyles.recovered}>
-					<Text style={itemStyles.url}>{item.url}</Text>
-					<Text style={itemStyles.line}>
-						{en.fields.downtime}: {formatDuration(item.downtimeMs)}
-					</Text>
-					<Text style={itemStyles.line}>
-						{en.fields.recoveredAt}: {formatTime(item.recoveredAt)}
-					</Text>
-					{item.fixedBy && (
-						<Text style={itemStyles.line}>
-							{en.fixedBy}: {item.fixedBy}
-						</Text>
-					)}
-					<Text style={itemStyles.line}>
-						<Link
-							href={incidentUrl(appUrl, item.incidentId)}
-							style={itemStyles.link}
-						>
+				<ItemCard key={item.incidentId} tone="success" url={item.url}>
+					<Details
+						rows={[
+							[en.fields.downtime, formatDuration(item.downtimeMs)],
+							[en.fields.recoveredAt, formatTime(item.recoveredAt)],
+							!!item.fixedBy && [en.fixedBy, item.fixedBy],
+						]}
+					/>
+					<p style={{ margin: "8px 0 0" }}>
+						<TextLink href={incidentUrl(appUrl, item.incidentId)}>
 							{en.fields.viewIncident}
-						</Link>
-					</Text>
-				</Section>
+						</TextLink>
+					</p>
+				</ItemCard>
 			))}
 		</Layout>
 	);

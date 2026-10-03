@@ -45,13 +45,20 @@ export type ReminderEmailProps = Common & {
 
 /** SRS 5.2 step 5: system-wide outage notice for the admin. */
 export type OutageEmailProps = {
+	/** Web app URL for the header and footer link (optional). */
+	appUrl?: string;
 	dispatchedAt: string;
 	checked: number;
 	failed: number;
 };
 
 /** FR-26: test email. */
-export type TestEmailProps = { sender: string; requestedBy: string };
+export type TestEmailProps = {
+	sender: string;
+	requestedBy: string;
+	/** Web app URL for the header and footer link (optional). */
+	appUrl?: string;
+};
 
 /** FR-38: sent only to the person who reported the link fixed, after 3 failed checks. */
 export type StillFailingEmailProps = Common & {

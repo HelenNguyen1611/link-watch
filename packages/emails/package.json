@@ -6,7 +6,7 @@
 	"main": "src/index.ts",
 	"exports": {
 		".": "./src/index.ts",
-		"./cognito-invite": "./src/cognito-invite.ts"
+		"./cognito": "./src/cognito.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-sesv2": "^3.1141.0",

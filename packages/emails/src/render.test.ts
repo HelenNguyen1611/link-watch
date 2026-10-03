@@ -164,7 +164,7 @@ describe("renderTestEmail — FR-26", () => {
 		});
 		expect(email.subject).toBe("[LinkWatch] Test email");
 		expect(email.text).toContain("sent from noreply@watch.hueai.net");
-		expect(email.text).toContain("Requested by helen@wootech.co.");
+		expect(email.text).toContain("Requested by: helen@wootech.co");
 	});
 });
 
@@ -245,8 +245,70 @@ describe("Fixed — check again (FR-33, FR-37, FR-38)", () => {
 			"[LinkWatch][STILL FAILING] abc.com — 1 link still failing after your fix",
 		);
 		expect(email.text).toContain(
-			"Check 3 (2026-09-30 10:05 (GMT+7)): Timed out",
+			"Check 3: 2026-09-30 10:05 (GMT+7) — Timed out",
 		);
 		expect(email.text).toContain("Only you receive this email");
+	});
+});
+
+describe("one look for every email (same frame as the Cognito invitation)", () => {
+	it("every alert email has the LinkWatch header, a status badge and a footer saying why", async () => {
+		const at = "2026-09-30T03:00:00.000Z";
+		const emails = await Promise.all([
+			renderIncidentEmail({ domain: "abc.com", items, appUrl: APP }),
+			renderRecoveryEmail({
+				domain: "abc.com",
+				appUrl: APP,
+				items: [
+					{
+						incidentId: "L1@x",
+						url: "https://abc.com/",
+						recoveredAt: at,
+						downtimeMs: 60_000,
+					},
+				],
+			}),
+			renderReminderEmail({
+				domain: "abc.com",
+				items,
+				appUrl: APP,
+				intervalHours: 24,
+				now: at,
+			}),
+			renderOutageEmail({
+				dispatchedAt: at,
+				checked: 100,
+				failed: 92,
+				appUrl: APP,
+			}),
+			renderTestEmail({
+				sender: "noreply@watch.hueai.net",
+				requestedBy: "helen@wootech.co",
+			}),
+			renderStillFailingEmail({
+				domain: "abc.com",
+				appUrl: APP,
+				url: "https://abc.com/",
+				incidentId: "L1@x",
+				claimedAt: at,
+				attempts: [{ attempt: 1, at, result: "down", errorType: "timeout" }],
+			}),
+		]);
+		const badges = [
+			"Down",
+			"Recovered",
+			"Reminder",
+			"Admin notice",
+			"Test",
+			"Still failing",
+		];
+		emails.forEach((e, i) => {
+			expect(e.html).toContain(">LinkWatch</span>");
+			expect(e.html).toContain("#0f766e");
+			expect(e.text).toContain(badges[i]);
+			expect(e.text).toMatch(/You receive this email|Sent because/);
+		});
+		// The web app link sits in the footer when the app URL is known.
+		expect(emails[0]?.text).toContain("Open LinkWatch https://watch.hueai.net");
 	});
 });

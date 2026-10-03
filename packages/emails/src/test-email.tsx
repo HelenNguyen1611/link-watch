@@ -1,5 +1,4 @@
-import { Text } from "react-email";
-import { Layout } from "./layout";
+import { Details, Layout, Notice } from "./layout";
 import { en } from "./strings";
 import type { TestEmailProps } from "./types";
 
@@ -8,10 +7,20 @@ export function TestEmail(props: TestEmailProps) {
 	return (
 		<Layout
 			preview={en.test.preview}
+			tone="info"
+			badge={en.test.badge}
 			heading={en.test.heading}
 			intro={en.test.intro(props.sender)}
+			{...(props.appUrl && { appUrl: props.appUrl })}
+			footer={en.footer.test}
 		>
-			<Text>{en.test.requestedBy(props.requestedBy)}</Text>
+			<Details
+				rows={[
+					[en.test.senderLabel, props.sender],
+					[en.test.requestedByLabel, props.requestedBy],
+				]}
+			/>
+			<Notice tone="success">{en.test.works}</Notice>
 		</Layout>
 	);
 }

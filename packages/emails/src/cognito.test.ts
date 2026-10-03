@@ -4,7 +4,8 @@ import {
 	COGNITO_EMAIL_MAX_LENGTH,
 	COGNITO_USERNAME,
 	cognitoInviteEmail,
-} from "./cognito-invite";
+	cognitoVerificationEmail,
+} from "./cognito";
 
 const email = cognitoInviteEmail({
 	appUrl: "https://watch.hueai.net/",
@@ -52,5 +53,34 @@ describe("cognitoInviteEmail — FR-29", () => {
 				senderAddress: "a@b.c",
 			}).html,
 		).toContain("expires in 1 day<");
+	});
+});
+
+describe("cognitoVerificationEmail — FR-28 (Forgot password)", () => {
+	const v = cognitoVerificationEmail({
+		appUrl: "https://watch.hueai.net",
+		senderAddress: "no-reply@verificationemail.com",
+	});
+
+	it("FR-28: has the code placeholder once and fits Cognito's limit", () => {
+		expect(v.html.split(COGNITO_CODE)).toHaveLength(2);
+		expect(v.html).not.toContain(COGNITO_USERNAME);
+		expect(v.html.length).toBeLessThan(COGNITO_EMAIL_MAX_LENGTH);
+	});
+
+	it("FR-28: says what the code is for, how long it lasts and what to do if unexpected", () => {
+		expect(v.subject).toBe("Your LinkWatch verification code");
+		expect(v.html).toContain("reset the password of your LinkWatch account");
+		expect(v.html).toContain("1 hour");
+		expect(v.html).toContain("Did not ask for this?");
+		expect(v.html).toContain("no-reply@verificationemail.com");
+	});
+
+	it("FR-28: same frame as the invitation (header, badge, footer)", () => {
+		for (const html of [v.html, email.html]) {
+			expect(html).toContain(">LinkWatch</span>");
+			expect(html).toContain("watch.hueai.net</span>");
+			expect(html).toContain("Replies to this address are not read.");
+		}
 	});
 });

@@ -188,6 +188,16 @@ describe("LinkWatch-Api", () => {
 		).toBe(7);
 	});
 
+	it("FR-28: Forgot password code email from packages/emails (code style)", () => {
+		template.hasResourceProperties("AWS::Cognito::UserPool", {
+			VerificationMessageTemplate: Match.objectLike({
+				DefaultEmailOption: "CONFIRM_WITH_CODE",
+				EmailSubject: "Your LinkWatch verification code",
+				EmailMessage: Match.stringLikeRegexp("\\{####\\}.*1 hour"),
+			}),
+		});
+	});
+
 	it("throttles requests so abuse cannot drive up cost", () => {
 		template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
 			StageName: "$default",

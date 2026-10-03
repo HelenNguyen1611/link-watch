@@ -284,7 +284,10 @@ async function notifyOutage(
 		return;
 	}
 	if (!(await claimOutageNotice(deps.db, outage.dispatchedAt, now))) return;
-	const email = await renderOutageEmail(outage);
+	const email = await renderOutageEmail({
+		...outage,
+		appUrl: deps.config.appUrl,
+	});
 	const result = await sendEmail(
 		{ ses: deps.ses, ...(deps.sleep && { sleep: deps.sleep }) },
 		{ from: sender.from, to: sender.adminEmail, ...email },

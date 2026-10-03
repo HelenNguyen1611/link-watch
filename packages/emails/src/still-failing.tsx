@@ -1,6 +1,5 @@
-import { Link, Section, Text } from "react-email";
 import { formatTime, incidentUrl } from "./format";
-import { itemStyles, Layout } from "./layout";
+import { Details, Hint, ItemCard, Layout, TextLink } from "./layout";
 import { en } from "./strings";
 import type { StillFailingEmailProps } from "./types";
 
@@ -9,29 +8,34 @@ export function StillFailingEmail(props: StillFailingEmailProps) {
 	return (
 		<Layout
 			preview={en.stillFailing.preview(props.url)}
+			tone="danger"
+			badge={en.stillFailing.badge}
 			heading={en.stillFailing.heading}
 			intro={en.stillFailing.intro(props.url)}
+			appUrl={props.appUrl}
+			footer={en.footer.claimer}
 		>
-			<Section style={itemStyles.item}>
-				<Text style={itemStyles.url}>{props.url}</Text>
-				{props.attempts.map((a) => (
-					<Text key={a.attempt} style={itemStyles.line}>
-						{en.stillFailing.attempt(a.attempt)} ({formatTime(a.at)}):{" "}
-						{[a.httpCode, a.errorType && en.errorType[a.errorType]]
-							.filter(Boolean)
-							.join(" · ") || a.result}
-					</Text>
-				))}
-				<Text style={itemStyles.line}>
-					<Link
-						href={incidentUrl(props.appUrl, props.incidentId)}
-						style={itemStyles.link}
-					>
+			<ItemCard tone="danger" url={props.url}>
+				<Details
+					rows={props.attempts.map(
+						(a) =>
+							[
+								en.stillFailing.attempt(a.attempt),
+								`${formatTime(a.at)} — ${
+									[a.httpCode, a.errorType && en.errorType[a.errorType]]
+										.filter(Boolean)
+										.join(" · ") || a.result
+								}`,
+							] as const,
+					)}
+				/>
+				<p style={{ margin: "8px 0 0" }}>
+					<TextLink href={incidentUrl(props.appUrl, props.incidentId)}>
 						{en.fields.viewIncident}
-					</Link>
-				</Text>
-			</Section>
-			<Text style={itemStyles.hint}>{en.stillFailing.onlyYou}</Text>
+					</TextLink>
+				</p>
+			</ItemCard>
+			<Hint>{en.stillFailing.onlyYou}</Hint>
 		</Layout>
 	);
 }

@@ -10,8 +10,12 @@ export function ReminderEmail(props: ReminderEmailProps) {
 	return (
 		<Layout
 			preview={en.reminder.preview(props.domain, props.items.length)}
+			tone="warning"
+			badge={en.reminder.badge}
 			heading={en.reminder.heading(props.domain)}
 			intro={en.reminder.intro(props.intervalHours)}
+			appUrl={props.appUrl}
+			footer={en.footer.alert}
 		>
 			{props.items.map((item) => (
 				<IncidentItemBlock
