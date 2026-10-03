@@ -12,6 +12,8 @@ type FakeOptions = {
 	deleteStatus?: number;
 	/** Status of DELETE on an unknown link (CloudFront used to turn it into HTML). */
 	missingStatus?: number;
+	/** Status of GET /api/users for the smoke user (an editor → 403). */
+	usersStatus?: number;
 };
 
 /** In-memory stand-in for the deployed API, mirroring the real routes. */
@@ -31,6 +33,10 @@ function fakeApi(o: FakeOptions = {}) {
 		if (url.pathname === "/api/health")
 			return json(o.healthStatus ?? 200, { ok: true });
 		if (!hasKey) return json(o.noKeyStatus ?? 401, { error: "unauthorized" });
+		if (url.pathname === "/api/users")
+			return o.usersStatus === undefined
+				? json(403, { error: "forbidden", required: "manage_users" })
+				: json(o.usersStatus, { items: [] });
 		if (url.pathname === "/api/links" && method === "POST") {
 			const body = JSON.parse(String(init.body)) as { url: string };
 			const link = {
@@ -174,6 +180,16 @@ describe("smoke test (steps 40a, 40b)", () => {
 		expect(report.ok).toBe(false);
 		expect(report.failures).toEqual([
 			expect.stringContaining('expected 404 {"error":"not_found"}'),
+		]);
+		expect(api.deleted).toHaveLength(0);
+	});
+
+	it("HLR-09: fails when the editor smoke user can list users", async () => {
+		const api = fakeApi({ checkedAs: expectedByUrl, usersStatus: 200 });
+		const report = await runSmoke(opts(api));
+		expect(report.ok).toBe(false);
+		expect(report.failures).toEqual([
+			expect.stringContaining("GET /api/users as the editor smoke user"),
 		]);
 		expect(api.deleted).toHaveLength(0);
 	});

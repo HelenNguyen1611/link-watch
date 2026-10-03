@@ -4,7 +4,7 @@
  *   SMOKE_EMAIL=… SMOKE_PASSWORD=… AWS_PROFILE=linkwatch pnpm smoke
  *
  * Milestone 1 part: /api/health → request without a token gets 401 → API errors stay JSON
- * through CloudFront (step 37c) → add 4 sample links → wait for the Dispatcher/Checker
+ * through CloudFront (step 37c) → the editor smoke user gets 403 on /api/users (HLR-09) → add 4 sample links → wait for the Dispatcher/Checker
  * (up to 15 minutes: failures are Suspect first and confirmed by the 2-minute recheck, SRS 5.2)
  * → each link has the expected status → delete the sample links.
  * Milestone 2 part (smoke-incident.ts): 404 link → incident → email → fix → recovery email;
@@ -114,6 +114,15 @@ export async function runSmoke(opts: SmokeOptions): Promise<SmokeReport> {
 	)
 		failures.push(
 			`DELETE /api/links/<unknown>: expected 404 {"error":"not_found"}, got ${missing.status} ${JSON.stringify(missing.body)}`,
+		);
+	// HLR-09 / FR-29: the smoke user is an editor (RUNBOOK §2b) — it may edit links, not manage users.
+	const users = await call("/users");
+	if (
+		users.status !== 403 ||
+		(users.body as { error?: string } | undefined)?.error !== "forbidden"
+	)
+		failures.push(
+			`GET /api/users as the editor smoke user: expected 403 {"error":"forbidden"}, got ${users.status} ${JSON.stringify(users.body)}`,
 		);
 	if (opts.checkWebNotFound) {
 		const page = await doFetch(

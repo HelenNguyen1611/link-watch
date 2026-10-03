@@ -514,7 +514,7 @@
 - `/users/` (chỉ Admin thấy trong sidebar): bảng user, Invite, đổi vai trò, Disable/Enable, Resend invite, Delete. Account hiện vai trò thật. Ẩn nút ghi với Viewer/Editor theo `can()`.
 - **Xong khi:** `pnpm --filter @linkwatch/web build` xuất được `out/`.
 
-#### Bước 46 — RUNBOOK + smoke
+#### Bước 46 — RUNBOOK + smoke ✅
 - RUNBOOK: sau lần push đầu, thêm `helen@wootech.co` vào `admin`, `smoke@watch.hueai.net` vào `editor` (CLI), đăng xuất/đăng nhập lại. Smoke kiểm tra `/api/users` 403 với Editor.
 
 ---

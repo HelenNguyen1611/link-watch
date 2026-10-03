@@ -68,6 +68,35 @@ Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` 
 - Gửi tới địa chỉ chưa xác thực: SES trả `MessageRejected`; LinkWatch ghi `MAIL#` với `status = failed` (không retry, FR-25). Màn Settings → "Send test email" hiện lỗi này.
 - Thoát sandbox (khi có người nhận ngoài công ty): SES → Account dashboard → Request production access.
 
+## 2b. Vai trò Admin / Editor / Viewer (Bước 41–46, HLR-09, FR-29) — ngay sau lần push đầu có vai trò
+
+Vai trò là **Cognito Groups** `admin`, `editor`, `viewer` (CDK tạo trong `LinkWatch-Api`), đi vào ID token qua claim `cognito:groups`. User **chưa thuộc nhóm nào = Viewer** (chỉ xem). Vì vậy sau lần deploy đầu tiên, **mọi user hiện có đều thành Viewer** cho tới khi được gán nhóm — làm ngay 2 lệnh sau:
+
+```bash
+POOL=ap-southeast-1_aRg2XEinV   # output UserPoolId của LinkWatch-Api (mục 2, bước 1)
+# Admin đầu tiên (sau đó quản lý mọi user khác trong app: Settings → Users)
+aws cognito-idp admin-add-user-to-group --user-pool-id "$POOL" --username helen@wootech.co \
+  --group-name admin --region ap-southeast-1 --profile linkwatch
+# User smoke test phải là Editor (thêm/sửa link; smoke kiểm tra /api/users → 403)
+aws cognito-idp admin-add-user-to-group --user-pool-id "$POOL" --username smoke@watch.hueai.net \
+  --group-name editor --region ap-southeast-1 --profile linkwatch
+```
+
+Rồi **đăng xuất và đăng nhập lại** (ID token cũ chưa có nhóm; tự làm mới sau ≤ 1 giờ).
+
+| Vai trò | Quyền |
+| --- | --- |
+| Admin | Toàn quyền: Settings → Users, Settings → Alert email + email thử, lịch mặc định 06:00 |
+| Editor | Thêm/sửa/xóa link, domain, lịch mẫu (trừ `default`), người nhận; Acknowledge, "Fixed — check again", Check now |
+| Viewer | Chỉ xem |
+
+**Quản lý user trong app** (Admin): Settings → Users — mời (Cognito gửi mật khẩu tạm 7 ngày), đổi vai trò, Disable/Enable, Resend invite, Delete.
+
+- Admin không tự hạ vai trò/khóa/xóa chính mình; luôn phải còn ≥ 1 Admin đang bật (API trả 409 `self_change` / `last_admin`).
+- Đổi vai trò hoặc khóa → API gọi `AdminUserGlobalSignOut`; quyền mới có hiệu lực khi user đăng nhập lại, muộn nhất sau 1 giờ (hạn ID token).
+- Không đổi được email (email là tên đăng nhập): xóa rồi mời lại.
+- Lỡ khóa mất Admin cuối cùng (ví dụ xóa trên Console): chạy lại lệnh `admin-add-user-to-group … --group-name admin` ở trên.
+
 ## 3. Giới hạn đồng thời của Checker
 
 - Hạn mức concurrency Lambda của tài khoản **hiện là 10** (29/09/2026; đã/sẽ xin tăng lên 1000 trong Service Quotas → AWS Lambda → Concurrent executions).
@@ -93,7 +122,7 @@ Từ Bước 18b/37b, web và API dùng Cognito; header tạm `x-linkwatch-key` 
 
 Chạy sau mỗi lần push `main` khi workflow deploy đã xanh, bằng credentials AWS của bạn (`scripts/smoke.ts`, `scripts/smoke-features.ts`, `scripts/smoke-incident.ts`).
 
-**Chuẩn bị một lần:** tạo user Cognito cho smoke test với mật khẩu cố định (mục 2, bước 3) và xác thực người nhận trong SES (mục 2a).
+**Chuẩn bị một lần:** tạo user Cognito cho smoke test với mật khẩu cố định (mục 2, bước 3), gán nhóm `editor` (mục 2b) và xác thực người nhận trong SES (mục 2a).
 
 ```bash
 AWS_PROFILE=linkwatch SMOKE_EMAIL=smoke@watch.hueai.net SMOKE_PASSWORD='<mật khẩu>' pnpm smoke
