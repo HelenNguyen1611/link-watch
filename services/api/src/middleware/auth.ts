@@ -1,13 +1,14 @@
+import { type Role, roleFromGroups } from "@linkwatch/core";
 import type { MiddlewareHandler } from "hono";
 
-/** FR-28 (MVP): every signed-in Cognito user is an Admin. */
-export type AuthUser = { sub: string; email: string };
+/** FR-28 + HLR-09: the signed-in Cognito user and their role (from `cognito:groups`). */
+export type AuthUser = { sub: string; email: string; role: Role };
 
 export type AuthMode =
 	/** Production: API Gateway's JWT authorizer already verified the Cognito ID token. */
 	| { kind: "apiGateway" }
-	/** Local development: any `Authorization: Bearer …` header signs in as `user`. */
-	| { kind: "local"; user: AuthUser };
+	/** Local development: any `Authorization: Bearer …` header signs in as `user` (admin unless set). */
+	| { kind: "local"; user: Omit<AuthUser, "role"> & { role?: Role } };
 
 export type AuthVariables = { user: AuthUser };
 
@@ -48,7 +49,7 @@ export function auth(
 		if (mode.kind === "local") {
 			if (!/^Bearer\s+\S+/.test(c.req.header("authorization") ?? ""))
 				return c.json(unauthorized, 401);
-			c.set("user", mode.user);
+			c.set("user", { role: "admin", ...mode.user });
 			return next();
 		}
 
@@ -61,7 +62,11 @@ export function auth(
 			typeof email !== "string"
 		)
 			return c.json(unauthorized, 401);
-		c.set("user", { sub, email });
+		c.set("user", {
+			sub,
+			email,
+			role: roleFromGroups(claims["cognito:groups"]),
+		});
 		return next();
 	};
 }

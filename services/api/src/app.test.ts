@@ -37,6 +37,7 @@ const ID_CLAIMS = {
 	sub: "c0ffee",
 	email: "admin@abc.com",
 	token_use: "id",
+	"cognito:groups": "[admin]",
 };
 const signedIn = lambdaEnv(ID_CLAIMS);
 const json = (body: string) => ({
@@ -87,7 +88,11 @@ describe("API auth — FR-28, NFR-07", () => {
 	it("FR-28: Cognito claims → the user is available to routes", async () => {
 		const res = await app().request("/api/_test/me", {}, signedIn);
 		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({ sub: "c0ffee", email: "admin@abc.com" });
+		expect(await res.json()).toEqual({
+			sub: "c0ffee",
+			email: "admin@abc.com",
+			role: "admin",
+		});
 	});
 
 	it("NFR-07: the temporary x-linkwatch-key header no longer grants access", async () => {
@@ -111,6 +116,7 @@ describe("API auth — FR-28, NFR-07", () => {
 		expect(await res.json()).toEqual({
 			sub: "local-dev",
 			email: "dev@localhost",
+			role: "admin",
 		});
 	});
 });

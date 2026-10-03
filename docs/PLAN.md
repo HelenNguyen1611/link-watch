@@ -498,7 +498,7 @@
 - **File:** `packages/core/src/schema/user.ts` (`Role`, `UserInvite`, `UserUpdate`, `UserView`), `src/roles.ts` (`roleFromGroups`, `can(role, action)`, `canEditSchedule`, quy tắc chống tự khóa).
 - **FR/AC:** HLR-09, FR-29. **Xong khi:** unit test pass.
 
-#### Bước 42 — API: vai trò từ token, `requireRole` cho mọi route ghi
+#### Bước 42 — API: vai trò từ token, `requireRole` cho mọi route ghi ✅
 - `AuthUser` có `role`; HTTP API JWT authorizer chuyển mảng `cognito:groups` thành chuỗi `"[admin editor]"` → parse cả 2 dạng. Chế độ local mặc định Admin.
 - **Xong khi:** test: Viewer chỉ đọc (403 khi ghi), Editor không vào `/settings` ghi và `/users`, Editor không sửa lịch `default`.
 

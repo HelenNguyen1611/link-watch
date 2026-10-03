@@ -3,6 +3,7 @@ import type { SendPriorityJob, SnapshotStore } from "@linkwatch/core/usecases";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type AuthMode, type AuthVariables, auth } from "./middleware/auth";
+import { authorize } from "./middleware/authorize";
 import { onError } from "./middleware/error";
 import { domainRoutes } from "./routes/domains";
 import { incidentRoutes } from "./routes/incidents";
@@ -42,7 +43,10 @@ export function createApp(deps: AppDeps) {
 		);
 	}
 	// /api/public/*: token links from emails (milestone 3), no sign-in.
-	app.use("*", auth(deps.auth, ["/api/health", "/api/public"]));
+	const publicPrefixes = ["/api/health", "/api/public"];
+	app.use("*", auth(deps.auth, publicPrefixes));
+	// HLR-09: role check for every signed-in route.
+	app.use("*", authorize(publicPrefixes));
 	app.onError(onError(log));
 	app.notFound((c) => c.json({ error: "not_found" }, 404));
 	app.get("/health", (c) => c.json({ ok: true }));
