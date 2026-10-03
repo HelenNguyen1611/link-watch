@@ -252,6 +252,9 @@ importers:
       '@aws-lambda-powertools/tracer':
         specifier: ^2.35.0
         version: 2.35.0
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.1143.0
+        version: 3.1143.0
       '@aws-sdk/client-s3':
         specifier: ^3.1141.0
         version: 3.1143.0

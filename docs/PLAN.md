@@ -502,7 +502,7 @@
 - `AuthUser` có `role`; HTTP API JWT authorizer chuyển mảng `cognito:groups` thành chuỗi `"[admin editor]"` → parse cả 2 dạng. Chế độ local mặc định Admin.
 - **Xong khi:** test: Viewer chỉ đọc (403 khi ghi), Editor không vào `/settings` ghi và `/users`, Editor không sửa lịch `default`.
 
-#### Bước 43 — API quản lý user (Cognito Admin API)
+#### Bước 43 — API quản lý user (Cognito Admin API) ✅
 - `GET/POST /api/users`, `PATCH/DELETE /api/users/:email`, `POST /api/users/:email/resend-invite`; test bằng `aws-sdk-client-mock`.
 - **Xong khi:** test pass gồm chống tự khóa, ≥ 1 Admin, email trùng → 409.
 

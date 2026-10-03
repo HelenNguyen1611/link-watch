@@ -1,4 +1,5 @@
 import { Logger } from "@aws-lambda-powertools/logger";
+import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client } from "@aws-sdk/client-s3";
 import { SESv2Client } from "@aws-sdk/client-sesv2";
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
@@ -21,6 +22,12 @@ const priorityQueueUrl = env("PRIORITY_QUEUE_URL");
 const app = createApp({
 	db: createDb(),
 	auth: { kind: "apiGateway" },
+	...(process.env.USER_POOL_ID && {
+		users: {
+			cognito: new CognitoIdentityProviderClient({}),
+			userPoolId: process.env.USER_POOL_ID,
+		},
+	}),
 	snapshot: s3SnapshotStore(new S3Client({}), env("SNAPSHOT_BUCKET")),
 	// FR-16: Check now without delay; FR-37 verification attempts at 0, +120, +300 s.
 	sendPriorityJob: async (job, delaySeconds = 0) => {

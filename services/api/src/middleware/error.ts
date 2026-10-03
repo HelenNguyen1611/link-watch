@@ -40,6 +40,9 @@ export function onError(
 			return c.json({ error: "incident_closed", message: err.message }, 409);
 		if (code === "not_found")
 			return c.json({ error: "not_found", message: err.message }, 404);
+		// FR-29: Cognito admin API on an unknown user.
+		if (err.name === "UserNotFoundException")
+			return c.json({ error: "not_found" }, 404);
 		log("Unexpected error", { error: String(err), stack: err.stack });
 		return c.json({ error: "internal" }, 500);
 	};

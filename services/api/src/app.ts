@@ -12,6 +12,7 @@ import { publicClaimRoutes } from "./routes/public-claims";
 import { recipientRoutes } from "./routes/recipients";
 import { scheduleRoutes } from "./routes/schedules";
 import { type EmailDeps, settingsRoutes } from "./routes/settings";
+import { type UserDirectory, userRoutes } from "./routes/users";
 
 export type AppDeps = {
 	db: Db;
@@ -21,6 +22,8 @@ export type AppDeps = {
 	email: EmailDeps;
 	/** FR-16: sends Check now jobs to the priority queue; undefined → Check now answers 503. */
 	sendPriorityJob?: SendPriorityJob;
+	/** FR-29: Cognito User Pool for the Users screen; undefined → /api/users answers 503. */
+	users?: UserDirectory;
 	/** Step 19b: stored links snapshot; undefined → built on the fly (local API). */
 	snapshot?: SnapshotStore;
 	log?: (message: string, extra?: Record<string, unknown>) => void;
@@ -57,5 +60,6 @@ export function createApp(deps: AppDeps) {
 	app.route("/domains", domainRoutes(deps.db, deps.snapshot));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));
+	app.route("/users", userRoutes(deps.users));
 	return app;
 }
