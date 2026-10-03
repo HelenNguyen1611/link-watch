@@ -506,7 +506,7 @@
 - `GET/POST /api/users`, `PATCH/DELETE /api/users/:email`, `POST /api/users/:email/resend-invite`; test bằng `aws-sdk-client-mock`.
 - **Xong khi:** test pass gồm chống tự khóa, ≥ 1 Admin, email trùng → 409.
 
-#### Bước 44 — Infra: Cognito groups + quyền IAM
+#### Bước 44 — Infra: Cognito groups + quyền IAM ✅
 - 3 `CfnUserPoolGroup`, quyền `cognito-idp:Admin*`/`ListUsers`/`ListUsersInGroup` cho Lambda API giới hạn ARN pool, env `USER_POOL_ID`. Không đổi logical ID User Pool.
 - **Xong khi:** `pnpm synth` + test assertions pass.
 

@@ -116,6 +116,54 @@ describe("LinkWatch-Api", () => {
 		template.resourceCountIs("AWS::Cognito::UserPoolClient", 2);
 	});
 
+	it("HLR-09: admin, editor and viewer Cognito groups on the existing User Pool", () => {
+		template.resourceCountIs("AWS::Cognito::UserPoolGroup", 3);
+		for (const GroupName of ["admin", "editor", "viewer"])
+			template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
+				GroupName,
+				UserPoolId: { Ref: Match.stringLikeRegexp("^UserPool") },
+			});
+		// The pool keeps its logical ID (real accounts live in it).
+		expect(
+			Object.keys(template.findResources("AWS::Cognito::UserPool")),
+		).toEqual([expect.stringMatching(/^UserPool[0-9A-F]{8}$/)]);
+	});
+
+	it("FR-29: the API manages users of this pool only, and knows its id", () => {
+		const statements = Object.values(
+			template.findResources("AWS::IAM::Policy"),
+		).flatMap(
+			(p) =>
+				(p as { Properties: { PolicyDocument: { Statement: unknown[] } } })
+					.Properties.PolicyDocument.Statement,
+		) as { Action: string | string[]; Resource: unknown }[];
+		const cognitoStatements = statements.filter((s) =>
+			[s.Action].flat().some((a) => a.startsWith("cognito-idp:")),
+		);
+		expect(cognitoStatements).toHaveLength(1);
+		const [statement] = cognitoStatements;
+		expect([statement?.Action].flat()).toEqual(
+			expect.arrayContaining([
+				"cognito-idp:ListUsers",
+				"cognito-idp:AdminCreateUser",
+				"cognito-idp:AdminAddUserToGroup",
+				"cognito-idp:AdminDisableUser",
+				"cognito-idp:AdminDeleteUser",
+				"cognito-idp:AdminUserGlobalSignOut",
+			]),
+		);
+		expect(statement?.Resource).toEqual({
+			"Fn::GetAtt": [expect.stringMatching(/^UserPool/), "Arn"],
+		});
+		template.hasResourceProperties("AWS::Lambda::Function", {
+			Environment: {
+				Variables: Match.objectLike({
+					USER_POOL_ID: { Ref: Match.stringLikeRegexp("^UserPool") },
+				}),
+			},
+		});
+	});
+
 	it("throttles requests so abuse cannot drive up cost", () => {
 		template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
 			StageName: "$default",

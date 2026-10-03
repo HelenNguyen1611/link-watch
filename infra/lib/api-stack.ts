@@ -97,6 +97,35 @@ export class ApiStack extends cdk.Stack {
 			preventUserExistenceErrors: true,
 			idTokenValidity: cdk.Duration.hours(1),
 		});
+		// HLR-09 / FR-29: roles are Cognito groups (in the ID token as cognito:groups);
+		// no group → viewer. The API manages users through the admin API on this pool only.
+		const roles = [
+			["admin", "Full access: users, email settings, default schedule"],
+			["editor", "Links, domains, schedules, recipients; handles incidents"],
+			["viewer", "Read only"],
+		] as const;
+		for (const [groupName, description] of roles)
+			new cognito.CfnUserPoolGroup(this, `Group${groupName}`, {
+				userPoolId: userPool.userPoolId,
+				groupName,
+				description,
+			});
+		userPool.grant(
+			fn,
+			"cognito-idp:ListUsers",
+			"cognito-idp:ListUsersInGroup",
+			"cognito-idp:AdminGetUser",
+			"cognito-idp:AdminListGroupsForUser",
+			"cognito-idp:AdminCreateUser",
+			"cognito-idp:AdminAddUserToGroup",
+			"cognito-idp:AdminRemoveUserFromGroup",
+			"cognito-idp:AdminEnableUser",
+			"cognito-idp:AdminDisableUser",
+			"cognito-idp:AdminDeleteUser",
+			"cognito-idp:AdminUserGlobalSignOut",
+		);
+		fn.addEnvironment("USER_POOL_ID", userPool.userPoolId);
+
 		this.userPoolId = userPool.userPoolId;
 		this.userPoolClientId = client.userPoolClientId;
 
