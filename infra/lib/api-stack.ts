@@ -1,3 +1,4 @@
+import { cognitoInviteEmail } from "@linkwatch/emails/cognito-invite";
 import * as apigw from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpUserPoolAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
@@ -55,6 +56,15 @@ export class ApiStack extends cdk.Stack {
 		// FR-26: test email from the Settings screen.
 		grantSendEmail(fn);
 
+		// FR-29: invitation email (temporary password). Sent by Cognito's default sender until
+		// the SES account leaves the sandbox (RUNBOOK §2a); only the content is ours.
+		const TEMP_PASSWORD_DAYS = 7;
+		const invite = cognitoInviteEmail({
+			appUrl: `https://${config.domainName}`,
+			validityDays: TEMP_PASSWORD_DAYS,
+			senderAddress: "no-reply@verificationemail.com",
+		});
+
 		// FR-28 (MVP): email + password, a single Admin role; users are created by an admin (RUNBOOK).
 		const userPool = new cognito.UserPool(this, "UserPool", {
 			userPoolName: "linkwatch-users",
@@ -69,8 +79,9 @@ export class ApiStack extends cdk.Stack {
 				requireUppercase: true,
 				requireDigits: true,
 				requireSymbols: false,
-				tempPasswordValidity: cdk.Duration.days(7),
+				tempPasswordValidity: cdk.Duration.days(TEMP_PASSWORD_DAYS),
 			},
+			userInvitation: { emailSubject: invite.subject, emailBody: invite.html },
 			accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
 			mfa: cognito.Mfa.OFF,
 			// Users are real accounts: keep them if the stack is ever deleted.

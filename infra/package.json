@@ -15,6 +15,7 @@
 		"vitest": "^5.0.2"
 	},
 	"dependencies": {
+		"@linkwatch/emails": "workspace:*",
 		"aws-cdk-lib": "^2.270.0",
 		"constructs": "^10.5.0"
 	}

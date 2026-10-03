@@ -181,6 +181,9 @@ describe("POST /api/users — FR-29 invite", () => {
 			UserPoolId: POOL,
 			Username: "new@abc.com",
 			DesiredDeliveryMediums: ["EMAIL"],
+			TemporaryPassword: expect.stringMatching(
+				/^[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}$/,
+			),
 			UserAttributes: [
 				{ Name: "email", Value: "new@abc.com" },
 				{ Name: "email_verified", Value: "true" },
@@ -294,7 +297,11 @@ describe("resend invite and DELETE — FR-29", () => {
 		expect(res.status).toBe(200);
 		expect(
 			cognito.commandCalls(AdminCreateUserCommand)[0]?.args[0].input,
-		).toMatchObject({ Username: "new@abc.com", MessageAction: "RESEND" });
+		).toMatchObject({
+			Username: "new@abc.com",
+			MessageAction: "RESEND",
+			TemporaryPassword: expect.stringMatching(/^\w{4}-\w{4}-\w{4}$/),
+		});
 	});
 
 	it("FR-29: an active user has no invite to resend → 409", async () => {

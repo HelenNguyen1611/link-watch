@@ -23,6 +23,7 @@ import {
 	UserUpdate,
 	type UserView,
 } from "@linkwatch/core";
+import { newTemporaryPassword } from "@linkwatch/core/token";
 import { Hono } from "hono";
 import type { AuthVariables } from "../middleware/auth";
 
@@ -173,6 +174,8 @@ export function userRoutes(dir?: UserDirectory) {
 					new AdminCreateUserCommand({
 						UserPoolId,
 						Username: email,
+						// Readable password (no look-alikes, no symbol at the ends) instead of Cognito's own.
+						TemporaryPassword: newTemporaryPassword(),
 						UserAttributes: [
 							{ Name: "email", Value: email },
 							{ Name: "email_verified", Value: "true" },
@@ -234,6 +237,7 @@ export function userRoutes(dir?: UserDirectory) {
 					UserPoolId,
 					Username: email,
 					MessageAction: "RESEND",
+					TemporaryPassword: newTemporaryPassword(),
 					DesiredDeliveryMediums: ["EMAIL"],
 				}),
 			);

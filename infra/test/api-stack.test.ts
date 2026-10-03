@@ -164,6 +164,30 @@ describe("LinkWatch-Api", () => {
 		});
 	});
 
+	it("FR-29: invitation email from packages/emails, with Cognito's placeholders and a 7-day password", () => {
+		const pool = Object.values(
+			template.findResources("AWS::Cognito::UserPool"),
+		)[0] as {
+			Properties: {
+				AdminCreateUserConfig: {
+					InviteMessageTemplate: { EmailSubject: string; EmailMessage: string };
+				};
+				Policies: { PasswordPolicy: { TemporaryPasswordValidityDays: number } };
+			};
+		};
+		const invite = pool.Properties.AdminCreateUserConfig.InviteMessageTemplate;
+		expect(invite.EmailSubject).toBe(
+			"Your LinkWatch invitation and temporary password",
+		);
+		expect(invite.EmailMessage).toContain("{username}");
+		expect(invite.EmailMessage).toContain("{####}");
+		expect(invite.EmailMessage).toContain("https://watch.hueai.net/login/");
+		expect(invite.EmailMessage).toContain("expires in 7 days");
+		expect(
+			pool.Properties.Policies.PasswordPolicy.TemporaryPasswordValidityDays,
+		).toBe(7);
+	});
+
 	it("throttles requests so abuse cannot drive up cost", () => {
 		template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
 			StageName: "$default",
