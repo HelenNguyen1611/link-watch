@@ -253,7 +253,8 @@
 		"subtitle": "Open and closed incidents: how long a link was down, who was emailed, and notes.",
 		"tabs": {
 			"active": "Open",
-			"closed": "Closed"
+			"closed": "Closed",
+			"all": "All"
 		},
 		"col": {
 			"url": "URL",
@@ -271,7 +272,8 @@
 		},
 		"empty": {
 			"active": "No open incidents. Every link is working.",
-			"closed": "No closed incidents yet."
+			"closed": "No closed incidents yet.",
+			"all": "No incidents yet."
 		},
 		"loadError": "Could not load incidents.",
 		"loadMore": "Load more",
@@ -620,6 +622,8 @@
 		"attention": "Domains needing attention",
 		"allDomains": "All domains",
 		"openIncidents": "Open incidents",
+		"recentlyResolved": "Resolved in the last 24 hours",
+		"noneResolved": "No incidents resolved in the last 24 hours.",
 		"allIncidents": "All incidents",
 		"stat": {
 			"domains": "Domains",

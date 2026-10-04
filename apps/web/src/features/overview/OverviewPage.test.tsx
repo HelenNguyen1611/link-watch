@@ -36,14 +36,21 @@ const incident: IncidentView = {
 	openedAt: "2026-09-30T08:00:00.000Z",
 };
 
-function fakeApi(domains: DomainSummary[], incidents: IncidentView[] = []) {
+function fakeApi(
+	domains: DomainSummary[],
+	incidents: IncidentView[] = [],
+	closed: IncidentView[] = [],
+) {
 	return {
 		...stubApi(),
 		listDomains: vi.fn(async () => ({
 			items: domains,
 			generatedAt: "2026-09-30T09:00:00.000Z",
 		})),
-		listIncidents: vi.fn(async () => ({ items: incidents, cursor: null })),
+		listIncidents: vi.fn(async ({ state }: { state: "active" | "closed" }) => ({
+			items: state === "active" ? incidents : closed,
+			cursor: null,
+		})),
 	} satisfies Api;
 }
 
@@ -117,6 +124,54 @@ describe("OverviewPage — SCR-01 (FR-09, FR-10)", () => {
 		expect(await screen.findByText("Every domain is Normal.")).toBeTruthy();
 		expect(
 			await screen.findByText("No open incidents. Every link is working."),
+		).toBeTruthy();
+	});
+
+	it("SCR-01: incidents resolved in the last 24 hours stay visible after they close", async () => {
+		const closedAt = (msAgo: number) =>
+			new Date(Date.now() - msAgo).toISOString();
+		renderWithApi(
+			<OverviewPage />,
+			fakeApi(
+				[summary({})],
+				[],
+				[
+					{
+						...incident,
+						id: "L2@x",
+						url: "https://fixed.vn/",
+						state: "closed",
+						closedAt: closedAt(60 * 60_000),
+						downtimeMs: 4 * 60 * 60_000,
+					},
+					{
+						...incident,
+						id: "L3@x",
+						url: "https://old.vn/",
+						state: "closed",
+						closedAt: closedAt(2 * 24 * 60 * 60_000),
+						downtimeMs: 600_000,
+					},
+				],
+			),
+		);
+		expect(
+			await screen.findByText("Resolved in the last 24 hours (1)"),
+		).toBeTruthy();
+		const table = screen.getByRole("table", {
+			name: "Resolved in the last 24 hours",
+		});
+		expect(
+			within(table).getByRole("link", { name: "https://fixed.vn/" }),
+		).toBeTruthy();
+		expect(within(table).getByText("4 h")).toBeTruthy();
+		expect(screen.queryByRole("link", { name: "https://old.vn/" })).toBeNull();
+	});
+
+	it("no incident resolved in the last 24 hours → says so", async () => {
+		renderWithApi(<OverviewPage />, fakeApi([summary({})]));
+		expect(
+			await screen.findByText("No incidents resolved in the last 24 hours."),
 		).toBeTruthy();
 	});
 

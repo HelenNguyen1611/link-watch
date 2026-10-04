@@ -1,6 +1,6 @@
-import type { DomainSummary } from "@linkwatch/core";
+import type { DomainSummary, IncidentView } from "@linkwatch/core";
 import { describe, expect, it } from "vitest";
-import { needsAttention, overviewTotals } from "./totals";
+import { needsAttention, overviewTotals, recentlyClosed } from "./totals";
 
 const d = (over: Partial<DomainSummary>): DomainSummary => ({
 	name: "a.vn",
@@ -66,5 +66,41 @@ describe("overview totals — SCR-01 (FR-09, FR-10)", () => {
 			d({ name: "off.vn", status: "down", enabled: false }),
 		]);
 		expect(list.map((x) => x.name)).toEqual(["a.vn", "z.vn", "e.vn", "w.vn"]);
+	});
+});
+
+describe("recentlyClosed — SCR-01", () => {
+	const now = new Date("2026-10-05T00:00:00.000Z");
+	const inc = (id: string, over: Partial<IncidentView>): IncidentView => ({
+		id,
+		linkId: id,
+		domain: "a.vn",
+		url: `https://a.vn/${id}`,
+		type: "down",
+		state: "closed",
+		openedAt: "2026-10-01T00:00:00.000Z",
+		...over,
+	});
+
+	it("keeps closed incidents within the window, most recently closed first", () => {
+		const out = recentlyClosed(
+			[
+				inc("a", { closedAt: "2026-10-04T01:00:00.000Z" }),
+				inc("b", { closedAt: "2026-10-04T23:00:00.000Z" }),
+				inc("old", { closedAt: "2026-10-03T23:59:59.000Z" }),
+				inc("open", { state: "open" }),
+			],
+			now,
+		);
+		expect(out.map((i) => i.id)).toEqual(["b", "a"]);
+	});
+
+	it("the window edge is inclusive", () => {
+		expect(
+			recentlyClosed(
+				[inc("edge", { closedAt: "2026-10-04T00:00:00.000Z" })],
+				now,
+			),
+		).toHaveLength(1);
 	});
 });

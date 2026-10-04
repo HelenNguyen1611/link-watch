@@ -1,4 +1,9 @@
-import type { DomainStatus, DomainSummary, LinkStatus } from "@linkwatch/core";
+import type {
+	DomainStatus,
+	DomainSummary,
+	IncidentView,
+	LinkStatus,
+} from "@linkwatch/core";
 
 /** Worst first — the order of the "needs attention" list (FR-09). */
 export const DOMAIN_SEVERITY: readonly DomainStatus[] = [
@@ -54,4 +59,24 @@ export function needsAttention(
 	return domains
 		.filter((d) => d.enabled && d.status !== "normal")
 		.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+}
+
+/** Window of the "resolved recently" list on the overview. */
+export const RECENT_WINDOW_MS = 24 * 60 * 60_000;
+
+/** SCR-01: incidents closed within `windowMs` before `now`, most recently closed first. */
+export function recentlyClosed(
+	incidents: readonly IncidentView[],
+	now: Date,
+	windowMs = RECENT_WINDOW_MS,
+): IncidentView[] {
+	const since = now.getTime() - windowMs;
+	return incidents
+		.filter(
+			(i) =>
+				i.state === "closed" &&
+				i.closedAt !== undefined &&
+				Date.parse(i.closedAt) >= since,
+		)
+		.sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""));
 }

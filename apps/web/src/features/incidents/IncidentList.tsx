@@ -13,11 +13,12 @@ import {
 	Table,
 	Text,
 } from "@mantine/core";
+import { useLocalStorage } from "@mantine/hooks";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError } from "@/lib/api";
+import { type Api, ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { useCan } from "@/lib/auth-context";
 import { PALETTE } from "@/lib/colors";
@@ -29,26 +30,55 @@ import { IncidentStateBadge, IncidentTypeBadge } from "./IncidentBadges";
 /** Open incidents change with every recheck (10 min): refresh every minute. */
 export const INCIDENTS_REFRESH_MS = 60_000;
 
-type Tab = "active" | "closed";
+const TABS = ["active", "closed", "all"] as const;
+type Tab = (typeof TABS)[number];
 
-/** FR-19: incidents newest first — active (open / verifying) or closed (paged). */
+/** The last tab the viewer picked, so returning from an incident keeps it. */
+export const INCIDENTS_TAB_STORAGE_KEY = "linkwatch.incidentsTab";
+
+/**
+ * "All": the first page is every active incident plus the first page of closed ones,
+ * newest first; later pages are older closed incidents.
+ */
+async function listAll(api: Api, cursor: string | null) {
+	if (cursor) return api.listIncidents({ state: "closed", cursor });
+	const [active, closed] = await Promise.all([
+		api.listIncidents({ state: "active" }),
+		api.listIncidents({ state: "closed" }),
+	]);
+	return {
+		items: [...active.items, ...closed.items].sort((a, b) =>
+			b.openedAt.localeCompare(a.openedAt),
+		),
+		cursor: closed.cursor,
+	};
+}
+
+/** FR-19: incidents newest first — active (open / verifying), closed (paged) or all. */
 export function IncidentList() {
 	const { t } = useTranslation();
 	const api = useApi();
-	const [tab, setTab] = useState<Tab>("active");
+	const [stored, setTab] = useLocalStorage<Tab>({
+		key: INCIDENTS_TAB_STORAGE_KEY,
+		defaultValue: "active",
+		getInitialValueInEffect: true,
+	});
+	const tab: Tab = TABS.includes(stored) ? stored : "active";
 	// FR-41: several open incidents can be reported fixed at once.
 	const [selected, setSelected] = useState<string[]>([]);
 	// HLR-09: only roles that handle incidents select rows for "Fixed — check again".
 	const canHandle = useCan()("handle_incidents");
-	const selecting = tab === "active" && canHandle;
+	const selecting = tab !== "closed" && canHandle;
 	const resolve = useResolveClaims(() => setSelected([]));
 	const query = useInfiniteQuery({
 		queryKey: ["incidents", tab],
 		queryFn: ({ pageParam }) =>
-			api.listIncidents({ state: tab, cursor: pageParam }),
+			tab === "all"
+				? listAll(api, pageParam)
+				: api.listIncidents({ state: tab, cursor: pageParam }),
 		initialPageParam: null as string | null,
 		getNextPageParam: (last) => last.cursor,
-		refetchInterval: tab === "active" ? INCIDENTS_REFRESH_MS : false,
+		refetchInterval: tab === "closed" ? false : INCIDENTS_REFRESH_MS,
 	});
 	const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 	const unauthorized =
@@ -63,10 +93,10 @@ export function IncidentList() {
 					setTab(v as Tab);
 					setSelected([]);
 				}}
-				data={[
-					{ value: "active", label: t("incidents.tabs.active") },
-					{ value: "closed", label: t("incidents.tabs.closed") },
-				]}
+				data={TABS.map((v) => ({
+					value: v,
+					label: t(`incidents.tabs.${v}`),
+				}))}
 				w="fit-content"
 			/>
 			{query.isPending ? (

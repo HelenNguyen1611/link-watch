@@ -29,7 +29,7 @@ import { ApiError } from "@/lib/api";
 import { useApi } from "@/lib/api-context";
 import { COLOR, PALETTE } from "@/lib/colors";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import { needsAttention, overviewTotals } from "./totals";
+import { needsAttention, overviewTotals, recentlyClosed } from "./totals";
 
 /** Rows shown in each list; the full lists are one click away. */
 const LIST_LIMIT = 10;
@@ -110,18 +110,27 @@ function AttentionTable({ domains }: { domains: DomainSummary[] }) {
 	);
 }
 
-function OpenIncidents({ items }: { items: IncidentView[] }) {
-	const { t } = useTranslation();
+function IncidentTable({
+	items,
+	label,
+	empty,
+	emptyColor = COLOR.success,
+}: {
+	items: IncidentView[];
+	label: string;
+	empty: string;
+	emptyColor?: string;
+}) {
 	const now = new Date();
 	if (items.length === 0)
 		return (
-			<Text size="sm" c={COLOR.success}>
-				{t("incidents.empty.active")}
+			<Text size="sm" c={emptyColor}>
+				{empty}
 			</Text>
 		);
 	return (
 		<Table.ScrollContainer minWidth={560}>
-			<Table verticalSpacing="xs" aria-label={t("overview.openIncidents")}>
+			<Table verticalSpacing="xs" aria-label={label}>
 				<Table.Tbody>
 					{items.slice(0, LIST_LIMIT).map((i) => (
 						<Table.Tr key={i.id}>
@@ -164,6 +173,13 @@ export function OverviewPage() {
 	const incidents = useQuery({
 		queryKey: ["incidents", "overview"],
 		queryFn: () => api.listIncidents({ state: "active" }),
+		refetchInterval: 60_000,
+	});
+	// Closed incidents are paged newest-opened first; the first page covers the last day
+	// unless an incident stayed open for longer than 50 newer ones took to open.
+	const closed = useQuery({
+		queryKey: ["incidents", "overview", "closed"],
+		queryFn: () => api.listIncidents({ state: "closed" }),
 		refetchInterval: 60_000,
 	});
 
@@ -211,6 +227,7 @@ export function OverviewPage() {
 	const totals = overviewTotals(items);
 	const failing = totals.links.down + totals.links.dead;
 	const open = incidents.data?.items ?? [];
+	const resolved = recentlyClosed(closed.data?.items ?? [], new Date());
 	return (
 		<>
 			{header}
@@ -273,7 +290,28 @@ export function OverviewPage() {
 					{incidents.isPending ? (
 						<Loader size="sm" />
 					) : (
-						<OpenIncidents items={open} />
+						<IncidentTable
+							items={open}
+							label={t("overview.openIncidents")}
+							empty={t("incidents.empty.active")}
+						/>
+					)}
+				</Stack>
+
+				<Stack gap="xs">
+					<Title order={2} fz="md">
+						{t("overview.recentlyResolved")}
+						{closed.data && ` (${resolved.length})`}
+					</Title>
+					{closed.isPending ? (
+						<Loader size="sm" />
+					) : (
+						<IncidentTable
+							items={resolved}
+							label={t("overview.recentlyResolved")}
+							empty={t("overview.noneResolved")}
+							emptyColor="dimmed"
+						/>
 					)}
 				</Stack>
 			</Stack>

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type Api, ApiError } from "@/lib/api";
 import { renderWithApi } from "@/test/render";
 import { stubApi } from "@/test/stub-api";
+import { INCIDENTS_TAB_STORAGE_KEY } from "./IncidentList";
 import { IncidentsPage } from "./IncidentsPage";
 
 let search = new URLSearchParams();
@@ -16,6 +17,7 @@ vi.mock("next/navigation", () => ({
 }));
 beforeEach(() => {
 	search = new URLSearchParams();
+	localStorage.clear();
 });
 
 const OPENED = "2026-09-30T08:13:29.704Z";
@@ -148,6 +150,54 @@ describe("IncidentsPage — list (FR-19)", () => {
 			within(b.closest("tr") as HTMLElement).getByText("1 h"),
 		).toBeTruthy();
 		expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+	});
+
+	it("FR-19: All tab lists open and closed incidents together, newest first", async () => {
+		const api = fakeApi({
+			active: [incident({ id: "O@1", url: "https://open.vn/" })],
+			closed: [
+				incident({
+					id: "C@1",
+					url: "https://fixed.vn/",
+					state: "closed",
+					openedAt: "2026-10-05T02:09:00.000Z",
+					closedAt: "2026-10-05T06:12:00.000Z",
+					downtimeMs: 3_600_000,
+				}),
+			],
+		});
+		renderWithApi(<IncidentsPage />, api);
+		await screen.findByRole("link", { name: "https://open.vn/" });
+		await userEvent.click(screen.getByText("All"));
+		const fixed = await screen.findByRole("link", {
+			name: "https://fixed.vn/",
+		});
+		const links = screen
+			.getAllByRole("link")
+			.map((l) => l.textContent)
+			.filter((x) => x?.startsWith("https://"));
+		expect(links).toEqual(["https://fixed.vn/", "https://open.vn/"]);
+		expect(
+			within(fixed.closest("tr") as HTMLElement).getByText("Closed"),
+		).toBeTruthy();
+	});
+
+	it("remembers the last tab picked", async () => {
+		const api = fakeApi({
+			closed: [
+				incident({ id: "C@1", url: "https://fixed.vn/", state: "closed" }),
+			],
+		});
+		const first = renderWithApi(<IncidentsPage />, api);
+		await screen.findByText("No open incidents. Every link is working.");
+		await userEvent.click(screen.getByText("Closed"));
+		await screen.findByRole("link", { name: "https://fixed.vn/" });
+		expect(localStorage.getItem(INCIDENTS_TAB_STORAGE_KEY)).toBe('"closed"');
+		first.unmount();
+		renderWithApi(<IncidentsPage />, api);
+		expect(
+			await screen.findByRole("link", { name: "https://fixed.vn/" }),
+		).toBeTruthy();
 	});
 
 	it("load error → error box", async () => {
