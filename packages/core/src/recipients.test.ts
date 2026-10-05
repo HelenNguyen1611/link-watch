@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { groupByRecipient, resolveRecipients } from "./recipients";
+import {
+	groupByRecipient,
+	resolveRecipients,
+	withAlertEmail,
+} from "./recipients";
 
 describe("resolveRecipients — FR-20", () => {
 	it("FR-20: union of link and domain recipients, link recipients first", () => {
@@ -41,6 +45,28 @@ describe("resolveRecipients — FR-20", () => {
 		).toEqual(["admin@x.com"]);
 	});
 
+	it("FR-20: alert users get every link's alerts, on top of the domain recipients", () => {
+		expect(
+			resolveRecipients({
+				linkRecipients: [],
+				domainRecipients: ["b@x.com"],
+				defaultAdminEmail: "admin@x.com",
+				alertEmails: ["u@x.com", "B@x.com"],
+			}),
+		).toEqual(["b@x.com", "u@x.com"]);
+	});
+
+	it("FR-20: alert users are added to the default admin fallback", () => {
+		expect(
+			resolveRecipients({
+				linkRecipients: [],
+				domainRecipients: [],
+				defaultAdminEmail: "admin@x.com",
+				alertEmails: ["u@x.com", "admin@x.com"],
+			}),
+		).toEqual(["admin@x.com", "u@x.com"]);
+	});
+
 	it("FR-20: no recipients and no admin email → empty list", () => {
 		expect(
 			resolveRecipients({ linkRecipients: [], domainRecipients: ["  "] }),
@@ -73,5 +99,22 @@ describe("groupByRecipient — FR-20, FR-22", () => {
 			(i) => i.to,
 		);
 		expect(byRecipient.get("a@x.com")).toHaveLength(1);
+	});
+});
+
+describe("withAlertEmail — FR-20", () => {
+	it("FR-20: switching on adds the normalized email once, sorted", () => {
+		expect(withAlertEmail(["b@x.com"], " A@X.com ", true)).toEqual([
+			"a@x.com",
+			"b@x.com",
+		]);
+		expect(withAlertEmail(["a@x.com"], "A@x.com", true)).toEqual(["a@x.com"]);
+	});
+
+	it("FR-20: switching off removes it; unknown emails are a no-op", () => {
+		expect(withAlertEmail(["a@x.com", "b@x.com"], "A@x.com", false)).toEqual([
+			"b@x.com",
+		]);
+		expect(withAlertEmail(["a@x.com"], "z@x.com", false)).toEqual(["a@x.com"]);
 	});
 });

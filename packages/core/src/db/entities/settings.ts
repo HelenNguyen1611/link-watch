@@ -22,6 +22,8 @@ export function settingsEntity(client: DynamoDBDocumentClient, table: string) {
 				senderName: { type: "string", default: "LinkWatch" },
 				/** FR-20: used when a link and its domain have no recipients. */
 				defaultAdminEmail: { type: "string" },
+				/** FR-20: active users who get every alert (Users screen). */
+				alertEmails: { type: "list", items: { type: "string" } },
 				/** FR-23: reminders for unacknowledged open incidents. */
 				remindersEnabled: { type: "boolean", default: true },
 				reminderIntervalHours: {

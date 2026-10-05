@@ -315,6 +315,12 @@ export function createApi(opts: ApiOptions) {
 			),
 		deleteUser: (email: string) =>
 			call<void>(`/users/${encodeURIComponent(email)}`, { method: "DELETE" }),
+		/** FR-20: every alert to this user; `not_active` and `disabled` are 409. */
+		setUserAlerts: (email: string, on: boolean) =>
+			call<{ email: string; alerts: boolean }>(
+				`/users/${encodeURIComponent(email)}/alerts`,
+				{ method: "PUT", body: JSON.stringify({ on }) },
+			),
 	};
 }
 

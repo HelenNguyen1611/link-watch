@@ -90,11 +90,17 @@ export async function loadIncidents(db: Db, incidentIds: readonly string[]) {
 	return data;
 }
 
-/** FR-20: recipients of one link = link ∪ domain recipients, else the default admin email. */
+/**
+ * FR-20: recipients of one link = (link ∪ domain recipients, else the default admin email)
+ * ∪ the users with alerts switched on.
+ */
 export async function recipientsForLink(
 	db: Db,
 	link: { domain: string; linkId: string },
-	defaultAdminEmail?: string,
+	{
+		defaultAdminEmail,
+		alertEmails = [],
+	}: { defaultAdminEmail?: string; alertEmails?: readonly string[] } = {},
 ): Promise<string[]> {
 	const [linkRcp, domainRcp] = await Promise.all([
 		db.Recipient.query.byTarget({ scope: "LINK", target: link.linkId }).go(),
@@ -104,6 +110,7 @@ export async function recipientsForLink(
 		linkRecipients: linkRcp.data.map((r) => r.email),
 		domainRecipients: domainRcp.data.map((r) => r.email),
 		defaultAdminEmail,
+		alertEmails,
 	});
 }
 

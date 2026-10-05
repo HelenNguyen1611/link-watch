@@ -44,9 +44,14 @@ export type AlertDeps = {
 };
 
 export type Incident = Awaited<ReturnType<typeof loadIncidents>>[number];
-export type Sender = { from: string; adminEmail?: string };
+export type Sender = {
+	from: string;
+	adminEmail?: string;
+	/** FR-20: users who get every alert (Users screen). */
+	alertEmails?: readonly string[];
+};
 
-/** FR-26: sender and default admin from Settings, falling back to the infra config. */
+/** FR-26: sender, default admin and alert users from Settings, falling back to the infra config. */
 export async function resolveSender(deps: AlertDeps): Promise<Sender> {
 	const { data } = await deps.db.Settings.get({}).go();
 	const settings = effectiveSettings(data, deps.config.defaults);
@@ -55,6 +60,7 @@ export async function resolveSender(deps: AlertDeps): Promise<Sender> {
 		...(settings.defaultAdminEmail && {
 			adminEmail: settings.defaultAdminEmail,
 		}),
+		alertEmails: settings.alertEmails,
 	};
 }
 
@@ -94,7 +100,10 @@ export async function sendGrouped(
 		if (!recipients.has(i.linkId))
 			recipients.set(
 				i.linkId,
-				await recipientsForLink(deps.db, i, sender.adminEmail),
+				await recipientsForLink(deps.db, i, {
+					...(sender.adminEmail && { defaultAdminEmail: sender.adminEmail }),
+					...(sender.alertEmails && { alertEmails: sender.alertEmails }),
+				}),
 			);
 
 	const byRecipient = groupByRecipient(

@@ -7,6 +7,7 @@ import {
 } from "@linkwatch/core";
 import {
 	Alert,
+	Anchor,
 	Box,
 	Button,
 	Divider,
@@ -22,6 +23,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -131,6 +133,11 @@ export function EmailSettingsPage() {
 						</Alert>
 					)}
 					<SettingsForm settings={settings.data} readOnly={!canConfigure} />
+					<Divider />
+					<AlertUsers
+						emails={settings.data.alertEmails}
+						canEdit={canConfigure}
+					/>
 					{canConfigure && (
 						<>
 							<Divider />
@@ -140,6 +147,75 @@ export function EmailSettingsPage() {
 				</Stack>
 			)}
 		</>
+	);
+}
+
+/**
+ * FR-20: users who get every alert (switched on the Users screen). Removing one here also
+ * covers an email left over from an account deleted outside LinkWatch.
+ */
+function AlertUsers({
+	emails,
+	canEdit,
+}: {
+	emails: string[];
+	canEdit: boolean;
+}) {
+	const { t } = useTranslation();
+	const api = useApi();
+	const queryClient = useQueryClient();
+	const remove = useMutation({
+		mutationFn: (email: string) => api.setUserAlerts(email, false),
+		onSuccess: (res) => {
+			void queryClient.invalidateQueries({ queryKey: SETTINGS_KEY });
+			void queryClient.invalidateQueries({ queryKey: ["users"] });
+			notifications.show({
+				color: PALETTE.success,
+				message: t("settingsEmail.alertUsers.removed", { email: res.email }),
+			});
+		},
+		onError: () =>
+			notifications.show({
+				color: PALETTE.danger,
+				message: t("settingsEmail.alertUsers.failed"),
+			}),
+	});
+	return (
+		<Section
+			title={t("settingsEmail.alertUsers.title")}
+			description={t("settingsEmail.alertUsers.description")}
+		>
+			{emails.length === 0 ? (
+				<Text size="sm" c="dimmed">
+					{t("settingsEmail.alertUsers.empty")}
+				</Text>
+			) : (
+				<Stack gap={4} component="ul" p={0} m={0} style={{ listStyle: "none" }}>
+					{emails.map((email) => (
+						<Group key={email} component="li" justify="space-between">
+							<Text size="sm">{email}</Text>
+							{canEdit && (
+								<Button
+									size="xs"
+									variant="subtle"
+									color="gray"
+									loading={remove.isPending && remove.variables === email}
+									onClick={() => remove.mutate(email)}
+									aria-label={`${t("settingsEmail.alertUsers.remove")} ${email}`}
+								>
+									{t("settingsEmail.alertUsers.remove")}
+								</Button>
+							)}
+						</Group>
+					))}
+				</Stack>
+			)}
+			{canEdit && (
+				<Anchor component={Link} href="/settings/users/" size="sm">
+					{t("settingsEmail.alertUsers.manage")} →
+				</Anchor>
+			)}
+		</Section>
 	);
 }
 

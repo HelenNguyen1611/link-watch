@@ -17,13 +17,16 @@ import {
 	checkUserChange,
 	Role,
 	roleFromGroups,
+	UserAlertsInput,
 	type UserChange,
 	UserInvite,
 	type UserStatus,
 	UserUpdate,
 	type UserView,
 } from "@linkwatch/core";
+import type { Db } from "@linkwatch/core/db";
 import { newTemporaryPassword } from "@linkwatch/core/token";
+import { getAlertEmails, setAlertEmail } from "@linkwatch/core/usecases";
 import { Hono } from "hono";
 import type { AuthVariables } from "../middleware/auth";
 
@@ -48,8 +51,11 @@ const emailOf = (u: UserType) =>
 const isNamed = (err: unknown, name: string) =>
 	(err as { name?: unknown } | null)?.name === name;
 
-/** FR-29: user management through the Cognito admin API (admin only, see authorize). */
-export function userRoutes(dir?: UserDirectory) {
+/**
+ * FR-29: user management through the Cognito admin API (admin only, see authorize).
+ * FR-20: also switches a user's alerts on or off (list kept in Settings).
+ */
+export function userRoutes(db: Db, dir?: UserDirectory) {
 	const app = new Hono<{ Variables: AuthVariables }>();
 	if (!dir)
 		return app.all("*", (c) => c.json({ error: "users_unavailable" }, 503));
@@ -77,7 +83,8 @@ export function userRoutes(dir?: UserDirectory) {
 		});
 
 	const listUsers = async (): Promise<UserView[]> => {
-		const [users, ...members] = await Promise.all([
+		const [alerts, users, ...members] = await Promise.all([
+			getAlertEmails(db),
 			pages(async (PaginationToken) => {
 				const r = await cognito.send(
 					new ListUsersCommand({ UserPoolId, PaginationToken }),
@@ -86,6 +93,7 @@ export function userRoutes(dir?: UserDirectory) {
 			}),
 			...ROLES.map(groupMembers),
 		]);
+		const alertSet = new Set(alerts);
 		const groups = new Map<string, Role[]>();
 		ROLES.forEach((role, i) => {
 			for (const u of members[i] ?? [])
@@ -102,6 +110,7 @@ export function userRoutes(dir?: UserDirectory) {
 						role: roleFromGroups(groups.get(u.Username ?? "") ?? []),
 						status: statusOf(u.UserStatus),
 						enabled: u.Enabled ?? true,
+						alerts: alertSet.has(email),
 						...(u.UserCreateDate && {
 							createdAt: u.UserCreateDate.toISOString(),
 						}),
@@ -165,92 +174,127 @@ export function userRoutes(dir?: UserDirectory) {
 
 	const target = (raw: string) => decodeURIComponent(raw).trim().toLowerCase();
 
-	return app
-		.get("/", async (c) => c.json({ items: await listUsers() }))
-		.post("/", async (c) => {
-			const { email, role } = UserInvite.parse(await c.req.json());
-			try {
+	return (
+		app
+			.get("/", async (c) => c.json({ items: await listUsers() }))
+			.post("/", async (c) => {
+				const { email, role } = UserInvite.parse(await c.req.json());
+				try {
+					await cognito.send(
+						new AdminCreateUserCommand({
+							UserPoolId,
+							Username: email,
+							// Readable password (no look-alikes, no symbol at the ends) instead of Cognito's own.
+							TemporaryPassword: newTemporaryPassword(),
+							UserAttributes: [
+								{ Name: "email", Value: email },
+								{ Name: "email_verified", Value: "true" },
+							],
+							DesiredDeliveryMediums: ["EMAIL"],
+						}),
+					);
+				} catch (err) {
+					if (isNamed(err, "UsernameExistsException"))
+						return c.json(
+							{
+								error: "duplicate",
+								message: `${email} already has an account`,
+							},
+							409,
+						);
+					throw err;
+				}
+				await setRole(email, role, []);
+				const view: UserView = {
+					email,
+					role,
+					status: "invited",
+					enabled: true,
+					alerts: false,
+				};
+				return c.json(view, 201);
+			})
+			.patch("/:email", async (c) => {
+				const email = target(c.req.param("email"));
+				const input = UserUpdate.parse(await c.req.json());
+				const user = await getUser(email);
+				const error = await guard(c.get("user").email, user, {
+					kind: "update",
+					...input,
+				});
+				if (error) return c.json({ error }, 409);
+
+				const roleChanged =
+					input.role !== undefined && input.role !== user.role;
+				if (input.role !== undefined)
+					await setRole(email, input.role, user.groups);
+				// Revoke refresh tokens so the new role / disabled state applies at the next refresh (≤ 1 h).
+				if (roleChanged || (input.enabled === false && user.enabled))
+					await cognito.send(
+						new AdminUserGlobalSignOutCommand({ UserPoolId, Username: email }),
+					);
+				if (input.enabled !== undefined && input.enabled !== user.enabled)
+					await cognito.send(
+						input.enabled
+							? new AdminEnableUserCommand({ UserPoolId, Username: email })
+							: new AdminDisableUserCommand({ UserPoolId, Username: email }),
+					);
+				// FR-20: a disabled account stops getting alerts (switched on again by hand).
+				const alerts =
+					input.enabled === false
+						? await setAlertEmail(db, email, false)
+						: await getAlertEmails(db);
+				const view: UserView = {
+					email,
+					role: input.role ?? user.role,
+					status: user.status,
+					enabled: input.enabled ?? user.enabled,
+					alerts: alerts.includes(email),
+				};
+				return c.json(view);
+			})
+			// FR-20: only an active (password set), enabled account can be switched on; switching
+			// off needs no account, so an email left over from a deleted user can be removed.
+			.put("/:email/alerts", async (c) => {
+				const email = target(c.req.param("email"));
+				const { on } = UserAlertsInput.parse(await c.req.json());
+				if (on) {
+					const user = await getUser(email);
+					if (!user.enabled) return c.json({ error: "disabled" }, 409);
+					if (user.status !== "active")
+						return c.json({ error: "not_active" }, 409);
+				}
+				const alerts = await setAlertEmail(db, email, on);
+				return c.json({ email, alerts: alerts.includes(email) });
+			})
+			.post("/:email/resend-invite", async (c) => {
+				const email = target(c.req.param("email"));
+				const user = await getUser(email);
+				if (user.status !== "invited")
+					return c.json({ error: "not_invited" }, 409);
 				await cognito.send(
 					new AdminCreateUserCommand({
 						UserPoolId,
 						Username: email,
-						// Readable password (no look-alikes, no symbol at the ends) instead of Cognito's own.
+						MessageAction: "RESEND",
 						TemporaryPassword: newTemporaryPassword(),
-						UserAttributes: [
-							{ Name: "email", Value: email },
-							{ Name: "email_verified", Value: "true" },
-						],
 						DesiredDeliveryMediums: ["EMAIL"],
 					}),
 				);
-			} catch (err) {
-				if (isNamed(err, "UsernameExistsException"))
-					return c.json(
-						{ error: "duplicate", message: `${email} already has an account` },
-						409,
-					);
-				throw err;
-			}
-			await setRole(email, role, []);
-			const view: UserView = { email, role, status: "invited", enabled: true };
-			return c.json(view, 201);
-		})
-		.patch("/:email", async (c) => {
-			const email = target(c.req.param("email"));
-			const input = UserUpdate.parse(await c.req.json());
-			const user = await getUser(email);
-			const error = await guard(c.get("user").email, user, {
-				kind: "update",
-				...input,
-			});
-			if (error) return c.json({ error }, 409);
-
-			const roleChanged = input.role !== undefined && input.role !== user.role;
-			if (input.role !== undefined)
-				await setRole(email, input.role, user.groups);
-			// Revoke refresh tokens so the new role / disabled state applies at the next refresh (≤ 1 h).
-			if (roleChanged || (input.enabled === false && user.enabled))
+				return c.json({ status: "sent", to: email });
+			})
+			.delete("/:email", async (c) => {
+				const email = target(c.req.param("email"));
+				const user = await getUser(email);
+				const error = await guard(c.get("user").email, user, {
+					kind: "delete",
+				});
+				if (error) return c.json({ error }, 409);
 				await cognito.send(
-					new AdminUserGlobalSignOutCommand({ UserPoolId, Username: email }),
+					new AdminDeleteUserCommand({ UserPoolId, Username: email }),
 				);
-			if (input.enabled !== undefined && input.enabled !== user.enabled)
-				await cognito.send(
-					input.enabled
-						? new AdminEnableUserCommand({ UserPoolId, Username: email })
-						: new AdminDisableUserCommand({ UserPoolId, Username: email }),
-				);
-			const view: UserView = {
-				email,
-				role: input.role ?? user.role,
-				status: user.status,
-				enabled: input.enabled ?? user.enabled,
-			};
-			return c.json(view);
-		})
-		.post("/:email/resend-invite", async (c) => {
-			const email = target(c.req.param("email"));
-			const user = await getUser(email);
-			if (user.status !== "invited")
-				return c.json({ error: "not_invited" }, 409);
-			await cognito.send(
-				new AdminCreateUserCommand({
-					UserPoolId,
-					Username: email,
-					MessageAction: "RESEND",
-					TemporaryPassword: newTemporaryPassword(),
-					DesiredDeliveryMediums: ["EMAIL"],
-				}),
-			);
-			return c.json({ status: "sent", to: email });
-		})
-		.delete("/:email", async (c) => {
-			const email = target(c.req.param("email"));
-			const user = await getUser(email);
-			const error = await guard(c.get("user").email, user, { kind: "delete" });
-			if (error) return c.json({ error }, 409);
-			await cognito.send(
-				new AdminDeleteUserCommand({ UserPoolId, Username: email }),
-			);
-			return c.body(null, 204);
-		});
+				await setAlertEmail(db, email, false);
+				return c.body(null, 204);
+			})
+	);
 }

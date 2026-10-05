@@ -21,6 +21,10 @@ export type UserStatus = z.infer<typeof UserStatus>;
 export const UserInvite = z.object({ email, role: Role });
 export type UserInvite = z.infer<typeof UserInvite>;
 
+/** FR-20: switch a user's alerts on or off (Users screen). */
+export const UserAlertsInput = z.object({ on: z.boolean() }).strict();
+export type UserAlertsInput = z.infer<typeof UserAlertsInput>;
+
 /** FR-29: change the role and/or enable or disable the account. */
 export const UserUpdate = z
 	.object({ role: Role, enabled: z.boolean() })
@@ -35,6 +39,8 @@ export const UserView = z.object({
 	role: Role,
 	status: UserStatus,
 	enabled: z.boolean(),
+	/** FR-20: gets every incident, reminder and recovery email. */
+	alerts: z.boolean(),
 	createdAt: z.string().optional(),
 });
 export type UserView = z.infer<typeof UserView>;

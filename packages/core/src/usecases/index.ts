@@ -1,3 +1,4 @@
+export * from "./alert-users";
 export * from "./alerts";
 export * from "./check-now";
 export * from "./checks";

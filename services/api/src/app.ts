@@ -60,6 +60,6 @@ export function createApp(deps: AppDeps) {
 	app.route("/domains", domainRoutes(deps.db, deps.snapshot));
 	app.route("/recipients", recipientRoutes(deps.db));
 	app.route("/settings", settingsRoutes(deps.db, deps.email));
-	app.route("/users", userRoutes(deps.users));
+	app.route("/users", userRoutes(deps.db, deps.users));
 	return app;
 }

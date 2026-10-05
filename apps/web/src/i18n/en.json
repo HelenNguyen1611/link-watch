@@ -220,6 +220,15 @@
 			"description": "Receives alerts for links and domains that have no recipients of their own, and the network-problem notice.",
 			"email": "Admin email"
 		},
+		"alertUsers": {
+			"title": "Users who get every alert",
+			"description": "Incident, reminder and recovery emails for every link, on top of each domain's own recipients. Switch it on or off on the Users screen.",
+			"empty": "Nobody yet.",
+			"manage": "Manage on the Users screen",
+			"remove": "Remove",
+			"removed": "{{email}} no longer gets every alert.",
+			"failed": "Could not update. Try again."
+		},
 		"reminders": {
 			"title": "Reminders",
 			"description": "Remind recipients while an incident stays open and nobody has acknowledged it.",
@@ -682,7 +691,15 @@
 			"email": "Email",
 			"role": "Role",
 			"status": "Status",
+			"alerts": "Alerts",
 			"created": "Created"
+		},
+		"alerts": {
+			"label": "Every alert to {{email}}",
+			"onlyActive": "Available once the user has set their password.",
+			"on": "{{email}} now gets every alert.",
+			"off": "{{email}} no longer gets every alert.",
+			"note": "Alerts on: the user gets the incident, reminder and recovery emails of every link, on top of each domain's own recipients."
 		},
 		"status": {
 			"active": "Active",
@@ -699,6 +716,8 @@
 			"self_change": "You cannot change your own role, disable or delete yourself.",
 			"last_admin": "At least one enabled admin must remain.",
 			"not_invited": "This user has already set a password; there is no invite to resend.",
+			"not_active": "Alerts can be switched on once the user has set their password.",
+			"disabled": "A disabled account cannot get alerts.",
 			"forbidden": "Only admins can manage users.",
 			"failed": "Something went wrong. Please try again."
 		}

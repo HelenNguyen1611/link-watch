@@ -250,6 +250,35 @@ describe("Alert — incident email (FR-20 → FR-22, FR-25)", () => {
 		expect(emails().map((e) => e.to)).toEqual([["admin@linkwatch.test"]]);
 	});
 
+	it("FR-20: alert users get the incident too, even when the domain has its own recipient", async () => {
+		await t.db.Settings.patch({})
+			.set({ alertEmails: ["ops@linkwatch.test"] })
+			.go();
+		try {
+			const [owned] = await addLinks("alerts-owned.vn", 1, "owner@owned.vn");
+			const [orphan] = await addLinks("alerts-orphan.vn", 1);
+			if (!owned || !orphan) throw new Error();
+			await handlerAt(at(3))(
+				streamEvent(
+					await openIncident(owned, at(0)),
+					await openIncident(orphan, at(0)),
+				),
+			);
+			await deliverFlushes(at(8));
+			const to = emails()
+				.map((e) => `${e.to[0]} ${e.subject}`)
+				.sort();
+			expect(to).toEqual([
+				"admin@linkwatch.test [LinkWatch][DOWN] alerts-orphan.vn — 1 broken link",
+				"ops@linkwatch.test [LinkWatch][DOWN] alerts-orphan.vn — 1 broken link",
+				"ops@linkwatch.test [LinkWatch][DOWN] alerts-owned.vn — 1 broken link",
+				"owner@owned.vn [LinkWatch][DOWN] alerts-owned.vn — 1 broken link",
+			]);
+		} finally {
+			await t.db.Settings.patch({}).remove(["alertEmails"]).go();
+		}
+	});
+
 	it("FR-25: SES failing → 3 retries, logged as failed", async () => {
 		sesMock.on(SendEmailCommand).rejects(
 			Object.assign(new Error("slow down"), {

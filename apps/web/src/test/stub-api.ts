@@ -46,6 +46,7 @@ export function stubApi(): Api {
 		"updateUser",
 		"resendInvite",
 		"deleteUser",
+		"setUserAlerts",
 	] as const satisfies readonly (keyof Api)[];
 	return Object.fromEntries(
 		methods.map((m) => [

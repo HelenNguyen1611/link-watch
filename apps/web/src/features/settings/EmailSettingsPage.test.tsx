@@ -12,6 +12,7 @@ const DEFAULTS: SettingsView = {
 	senderEmail: "noreply@watch.hueai.net",
 	senderName: "LinkWatch",
 	defaultAdminEmail: "helen@wootech.co",
+	alertEmails: [],
 	remindersEnabled: true,
 	reminderIntervalHours: 24,
 	sesIdentity: "watch.hueai.net",
@@ -26,6 +27,13 @@ function fakeApi(initial: SettingsView = DEFAULTS) {
 		updateSettings: vi.fn(async (input: SettingsInput) => {
 			settings = { ...settings, ...input };
 			return settings;
+		}),
+		setUserAlerts: vi.fn(async (email: string, on: boolean) => {
+			settings = {
+				...settings,
+				alertEmails: settings.alertEmails.filter((e) => on || e !== email),
+			};
+			return { email, alerts: on };
 		}),
 		sendTestEmail: vi.fn(async (to?: string) => ({
 			status: "sent" as const,
@@ -282,6 +290,30 @@ describe("EmailSettingsPage — test email (FR-26)", () => {
 	});
 });
 
+describe("EmailSettingsPage alert users — FR-20", () => {
+	it("FR-20: lists the users who get every alert; Remove switches one off", async () => {
+		const api = fakeApi({
+			...DEFAULTS,
+			alertEmails: ["gone@abc.com", "ops@abc.com"],
+		});
+		renderWithApi(<EmailSettingsPage />, api);
+		expect(await screen.findByText("Users who get every alert")).toBeTruthy();
+		expect(screen.getByText("ops@abc.com")).toBeTruthy();
+		await userEvent.click(
+			screen.getByRole("button", { name: "Remove gone@abc.com" }),
+		);
+		await waitFor(() =>
+			expect(api.setUserAlerts).toHaveBeenCalledWith("gone@abc.com", false),
+		);
+		await waitFor(() => expect(screen.queryByText("gone@abc.com")).toBeNull());
+	});
+
+	it("FR-20: nobody switched on → says so", async () => {
+		renderWithApi(<EmailSettingsPage />, fakeApi());
+		expect(await screen.findByText("Nobody yet.")).toBeTruthy();
+	});
+});
+
 describe("EmailSettingsPage roles — HLR-09", () => {
 	it("FR-26: non-admins see the settings read-only, without save or test email", async () => {
 		renderWithApi(
@@ -301,5 +333,6 @@ describe("EmailSettingsPage roles — HLR-09", () => {
 		expect(
 			screen.queryByRole("button", { name: "Send test email" }),
 		).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
 	});
 });

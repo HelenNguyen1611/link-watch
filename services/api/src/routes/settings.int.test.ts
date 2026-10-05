@@ -136,6 +136,7 @@ describe("Settings API — FR-20, FR-23, FR-26", () => {
 			senderEmail: "noreply@watch.hueai.net",
 			senderName: "LinkWatch",
 			defaultAdminEmail: "helen@wootech.co",
+			alertEmails: [],
 			remindersEnabled: true,
 			reminderIntervalHours: 24,
 			sesIdentity: "watch.hueai.net",

@@ -15,21 +15,38 @@ export type RecipientSources = {
 	domainRecipients: readonly string[];
 	/** FR-26: default admin email from Settings; undefined when not configured yet. */
 	defaultAdminEmail?: string;
+	/** FR-20: users the admin switched alerts on for; they get every link's alerts. */
+	alertEmails?: readonly string[];
 };
 
 /**
- * FR-20: recipients = link recipients ∪ domain recipients, or the default admin email
- * when both lists are empty. Emails are trimmed, lowercased and deduplicated, order kept.
+ * FR-20: recipients = (link recipients ∪ domain recipients, or the default admin email
+ * when both lists are empty) ∪ alert users. Emails are trimmed, lowercased and
+ * deduplicated, order kept.
  */
 export function resolveRecipients(sources: RecipientSources): string[] {
 	const explicit = uniqueEmails([
 		...sources.linkRecipients,
 		...sources.domainRecipients,
 	]);
-	if (explicit.length > 0) return explicit;
-	return uniqueEmails(
-		sources.defaultAdminEmail ? [sources.defaultAdminEmail] : [],
-	);
+	const base =
+		explicit.length > 0
+			? explicit
+			: sources.defaultAdminEmail
+				? [sources.defaultAdminEmail]
+				: [];
+	return uniqueEmails([...base, ...(sources.alertEmails ?? [])]);
+}
+
+/** FR-20: switches one user's alerts on or off; the list stays normalized and sorted. */
+export function withAlertEmail(
+	list: readonly string[],
+	email: string,
+	on: boolean,
+): string[] {
+	const target = normalizeEmail(email);
+	const rest = uniqueEmails(list).filter((e) => e !== target);
+	return (on && target ? [...rest, target] : rest).sort();
 }
 
 /**

@@ -10,9 +10,11 @@ import {
 	Modal,
 	Select,
 	Stack,
+	Switch,
 	Table,
 	Text,
 	TextInput,
+	Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,6 +39,8 @@ function errorKey(err: unknown): string {
 			code === "self_change" ||
 			code === "last_admin" ||
 			code === "not_invited" ||
+			code === "not_active" ||
+			code === "disabled" ||
 			code === "forbidden"
 		)
 			return code;
@@ -197,6 +201,49 @@ function DeleteUser({ user }: { user: UserView }) {
 	);
 }
 
+/** FR-20: every alert to this user; only an active, enabled account can be switched on. */
+function AlertsSwitch({ user }: { user: UserView }) {
+	const { t } = useTranslation();
+	const api = useApi();
+	const queryClient = useQueryClient();
+	const toggle = useMutation({
+		mutationFn: (on: boolean) => api.setUserAlerts(user.email, on),
+		onSuccess: (res) => {
+			void queryClient.invalidateQueries({ queryKey: USERS_KEY });
+			void queryClient.invalidateQueries({ queryKey: ["settings"] });
+			notifications.show({
+				color: PALETTE.success,
+				message: t(res.alerts ? "users.alerts.on" : "users.alerts.off", {
+					email: user.email,
+				}),
+			});
+		},
+		onError: (err) =>
+			notifications.show({
+				color: PALETTE.danger,
+				message: t(`users.errors.${errorKey(err)}`),
+			}),
+	});
+	const allowed = user.enabled && user.status === "active";
+	const control = (
+		<Switch
+			size="sm"
+			checked={user.alerts}
+			// Switching off stays possible, e.g. for an account disabled meanwhile.
+			disabled={toggle.isPending || (!allowed && !user.alerts)}
+			onChange={(e) => toggle.mutate(e.currentTarget.checked)}
+			aria-label={t("users.alerts.label", { email: user.email })}
+		/>
+	);
+	return allowed || user.alerts ? (
+		control
+	) : (
+		<Tooltip label={t("users.alerts.onlyActive")} withArrow>
+			<span>{control}</span>
+		</Tooltip>
+	);
+}
+
 function UserRow({ user, isSelf }: { user: UserView; isSelf: boolean }) {
 	const { t } = useTranslation();
 	const api = useApi();
@@ -249,6 +296,9 @@ function UserRow({ user, isSelf }: { user: UserView; isSelf: boolean }) {
 							: "users.status.disabled",
 					)}
 				</Badge>
+			</Table.Td>
+			<Table.Td>
+				<AlertsSwitch user={user} />
 			</Table.Td>
 			<Table.Td>
 				<Text size="sm" c="dimmed">
@@ -333,7 +383,7 @@ export function UsersPage() {
 					<Table verticalSpacing="sm" borderColor="gray.2" highlightOnHover>
 						<Table.Thead>
 							<Table.Tr>
-								{["email", "role", "status", "created"].map((k) => (
+								{["email", "role", "status", "alerts", "created"].map((k) => (
 									<Table.Th key={k} c="dimmed" fz="xs" fw={400}>
 										{t(`users.col.${k}`)}
 									</Table.Th>
@@ -354,6 +404,9 @@ export function UsersPage() {
 				</Table.ScrollContainer>
 			)}
 			<Text size="xs" c="dimmed" mt="md">
+				{t("users.alerts.note")}
+			</Text>
+			<Text size="xs" c="dimmed" mt={4}>
 				{t("users.signOutNote")}
 			</Text>
 			<InviteDialog opened={inviting} onClose={() => setInviting(false)} />

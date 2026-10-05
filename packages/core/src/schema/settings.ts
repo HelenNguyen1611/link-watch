@@ -49,6 +49,8 @@ export const SettingsView = z.object({
 	senderEmail: z.string(),
 	senderName: z.string(),
 	defaultAdminEmail: z.string().optional(),
+	/** FR-20: users who get every alert; changed on the Users screen, not by PATCH. */
+	alertEmails: z.array(z.string()),
 	remindersEnabled: z.boolean(),
 	reminderIntervalHours: z.number(),
 	/** FR-26: the verified SES identity; the sender address must belong to it. */
@@ -73,6 +75,7 @@ export function effectiveSettings(
 				senderEmail?: string;
 				senderName?: string;
 				defaultAdminEmail?: string;
+				alertEmails?: string[];
 				remindersEnabled?: boolean;
 				reminderIntervalHours?: number;
 		  }
@@ -85,6 +88,7 @@ export function effectiveSettings(
 		senderEmail: stored?.senderEmail ?? defaults.senderEmail,
 		senderName: stored?.senderName ?? "LinkWatch",
 		...(admin && { defaultAdminEmail: admin }),
+		alertEmails: stored?.alertEmails ?? [],
 		remindersEnabled: stored?.remindersEnabled ?? true,
 		reminderIntervalHours:
 			stored?.reminderIntervalHours ?? DEFAULT_REMINDER_HOURS,

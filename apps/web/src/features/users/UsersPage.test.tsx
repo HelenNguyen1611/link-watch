@@ -1,4 +1,5 @@
 import type { UserInvite, UserView } from "@linkwatch/core";
+import { notifications } from "@mantine/notifications";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -13,10 +14,23 @@ const users: UserView[] = [
 		role: "admin",
 		status: "active",
 		enabled: true,
+		alerts: true,
 		createdAt: "2026-09-30T00:00:00.000Z",
 	},
-	{ email: "ops@abc.com", role: "editor", status: "active", enabled: true },
-	{ email: "new@abc.com", role: "viewer", status: "invited", enabled: true },
+	{
+		email: "ops@abc.com",
+		role: "editor",
+		status: "active",
+		enabled: true,
+		alerts: false,
+	},
+	{
+		email: "new@abc.com",
+		role: "viewer",
+		status: "invited",
+		enabled: true,
+		alerts: false,
+	},
 ];
 
 function fakeApi() {
@@ -28,6 +42,7 @@ function fakeApi() {
 				...input,
 				status: "invited",
 				enabled: true,
+				alerts: false,
 			}),
 		),
 		updateUser: vi.fn(async (email: string, input: Partial<UserView>) => ({
@@ -39,6 +54,10 @@ function fakeApi() {
 			to: email,
 		})),
 		deleteUser: vi.fn(async () => undefined),
+		setUserAlerts: vi.fn(async (email: string, on: boolean) => ({
+			email,
+			alerts: on,
+		})),
 	} satisfies Api;
 }
 
@@ -131,6 +150,65 @@ describe("UsersPage — SCR-09, FR-29", () => {
 			ops.getByRole("button", { name: "Confirm delete ops@abc.com" }),
 		);
 		await waitFor(() => expect(api.deleteUser).toHaveBeenCalledTimes(1));
+	});
+
+	it("FR-20: switches every alert on for an active user; an invited user cannot be switched on", async () => {
+		const show = vi.spyOn(notifications, "show");
+		const api = fakeApi();
+		renderWithApi(<UsersPage />, api);
+		const me = await row("admin@abc.com");
+		expect(
+			(
+				me.getByRole("switch", {
+					name: "Every alert to admin@abc.com",
+				}) as HTMLInputElement
+			).checked,
+		).toBe(true);
+		const invited = await row("new@abc.com");
+		expect(
+			(
+				invited.getByRole("switch", {
+					name: "Every alert to new@abc.com",
+				}) as HTMLInputElement
+			).disabled,
+		).toBe(true);
+		await userEvent.click(
+			(await row("ops@abc.com")).getByRole("switch", {
+				name: "Every alert to ops@abc.com",
+			}),
+		);
+		await waitFor(() =>
+			expect(api.setUserAlerts).toHaveBeenCalledWith("ops@abc.com", true),
+		);
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(
+				expect.objectContaining({
+					message: "ops@abc.com now gets every alert.",
+				}),
+			),
+		);
+	});
+
+	it("FR-20: API refusing (not_active) → says why", async () => {
+		const show = vi.spyOn(notifications, "show");
+		const api = fakeApi();
+		api.setUserAlerts.mockRejectedValue(
+			new ApiError(409, { error: "not_active" }),
+		);
+		renderWithApi(<UsersPage />, api);
+		await userEvent.click(
+			(await row("ops@abc.com")).getByRole("switch", {
+				name: "Every alert to ops@abc.com",
+			}),
+		);
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(
+				expect.objectContaining({
+					message:
+						"Alerts can be switched on once the user has set their password.",
+				}),
+			),
+		);
 	});
 
 	it("HLR-09: a non-admin sees a notice and the API is not called", () => {

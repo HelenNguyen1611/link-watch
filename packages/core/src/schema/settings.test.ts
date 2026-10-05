@@ -57,6 +57,7 @@ describe("effectiveSettings — FR-20, FR-26", () => {
 			senderEmail: "noreply@watch.hueai.net",
 			senderName: "LinkWatch",
 			defaultAdminEmail: "helen@wootech.co",
+			alertEmails: [],
 			remindersEnabled: true,
 			reminderIntervalHours: 24,
 			sesIdentity: "watch.hueai.net",
@@ -70,6 +71,15 @@ describe("effectiveSettings — FR-20, FR-26", () => {
 				defaults,
 			),
 		).toMatchObject({ senderName: "Ops", defaultAdminEmail: "ops@abc.com" });
+	});
+
+	it("FR-20: stored alert users are kept; PATCH cannot set them", () => {
+		expect(
+			effectiveSettings({ alertEmails: ["a@abc.com"] }, defaults).alertEmails,
+		).toEqual(["a@abc.com"]);
+		expect(
+			SettingsInput.safeParse({ alertEmails: ["x@evil.com"] }).success,
+		).toBe(false);
 	});
 
 	it("FR-26: sender must belong to the verified SES identity", () => {

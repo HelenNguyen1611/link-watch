@@ -19,8 +19,22 @@ import type { SESv2Client } from "@aws-sdk/client-sesv2";
 import type { Role } from "@linkwatch/core";
 import type { Db } from "@linkwatch/core/db";
 import { mockClient } from "aws-sdk-client-mock";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
+
+// FR-20: the alert list lives in Settings (DynamoDB); an in-memory list stands in for it here.
+const alertList = vi.hoisted(() => ({ emails: [] as string[] }));
+vi.mock("@linkwatch/core/usecases", async (importOriginal) => {
+	const core = await import("@linkwatch/core");
+	return {
+		...(await importOriginal<object>()),
+		getAlertEmails: vi.fn(async () => alertList.emails),
+		setAlertEmail: vi.fn(async (_db: unknown, email: string, on: boolean) => {
+			alertList.emails = core.withAlertEmail(alertList.emails, email, on);
+			return alertList.emails;
+		}),
+	};
+});
 
 const POOL = "ap-southeast-1_test";
 const cognito = mockClient(CognitoIdentityProviderClient);
@@ -90,10 +104,14 @@ const target = (opts: {
 	});
 };
 
-beforeEach(() => cognito.reset());
+beforeEach(() => {
+	cognito.reset();
+	alertList.emails = [];
+});
 
 describe("GET /api/users — FR-29", () => {
 	it("FR-29: lists users with role from groups, status and enabled flag", async () => {
+		alertList.emails = [ACTOR];
 		cognito.on(ListUsersCommand).resolves({
 			Users: [
 				user("u2", "viewer@abc.com", { status: "FORCE_CHANGE_PASSWORD" }),
@@ -117,6 +135,7 @@ describe("GET /api/users — FR-29", () => {
 				role: "editor",
 				status: "active",
 				enabled: false,
+				alerts: false,
 				createdAt: "2026-09-30T00:00:00.000Z",
 			},
 			{
@@ -124,6 +143,7 @@ describe("GET /api/users — FR-29", () => {
 				role: "admin",
 				status: "active",
 				enabled: true,
+				alerts: true,
 				createdAt: "2026-09-30T00:00:00.000Z",
 			},
 			{
@@ -131,6 +151,7 @@ describe("GET /api/users — FR-29", () => {
 				role: "viewer",
 				status: "invited",
 				enabled: true,
+				alerts: false,
 				createdAt: "2026-09-30T00:00:00.000Z",
 			},
 		]);
@@ -174,6 +195,7 @@ describe("POST /api/users — FR-29 invite", () => {
 			role: "editor",
 			status: "invited",
 			enabled: true,
+			alerts: false,
 		});
 		expect(
 			cognito.commandCalls(AdminCreateUserCommand)[0]?.args[0].input,
@@ -245,6 +267,17 @@ describe("PATCH /api/users/:email — FR-29", () => {
 		expect((await res.json()).enabled).toBe(false);
 		expect(cognito.commandCalls(AdminUserGlobalSignOutCommand)).toHaveLength(1);
 		expect(cognito.commandCalls(AdminDisableUserCommand)).toHaveLength(1);
+	});
+
+	it("FR-20: a disabled user stops getting alerts", async () => {
+		alertList.emails = ["ops@abc.com", "x@abc.com"];
+		target({ groups: ["editor"] });
+		const res = await app().request(
+			"/api/users/ops%40abc.com",
+			req("PATCH", { enabled: false }),
+		);
+		expect((await res.json()).alerts).toBe(false);
+		expect(alertList.emails).toEqual(["x@abc.com"]);
 	});
 
 	it("FR-29: an admin cannot demote themself → 409 self_change", async () => {
@@ -324,6 +357,14 @@ describe("resend invite and DELETE — FR-29", () => {
 		).toEqual({ UserPoolId: POOL, Username: "ops@abc.com" });
 	});
 
+	it("FR-20: a deleted user stops getting alerts", async () => {
+		alertList.emails = ["ops@abc.com"];
+		target({ groups: ["editor"] });
+		cognito.on(AdminDeleteUserCommand).resolves({});
+		await app().request("/api/users/ops%40abc.com", req("DELETE"));
+		expect(alertList.emails).toEqual([]);
+	});
+
 	it("FR-29: an admin cannot delete themself", async () => {
 		target({ groups: ["admin"] });
 		const res = await app().request(
@@ -332,5 +373,58 @@ describe("resend invite and DELETE — FR-29", () => {
 		);
 		expect(res.status).toBe(409);
 		expect(cognito.commandCalls(AdminDeleteUserCommand)).toHaveLength(0);
+	});
+});
+
+describe("PUT /api/users/:email/alerts — FR-20", () => {
+	it("FR-20: switches alerts on for an active, enabled user", async () => {
+		target({ groups: ["viewer"] });
+		const res = await app().request(
+			"/api/users/Ops%40abc.com/alerts",
+			req("PUT", { on: true }),
+		);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ email: "ops@abc.com", alerts: true });
+		expect(alertList.emails).toEqual(["ops@abc.com"]);
+	});
+
+	it("FR-20: a user still on the temporary password → 409 not_active", async () => {
+		target({ groups: ["viewer"], status: "FORCE_CHANGE_PASSWORD" });
+		const res = await app().request(
+			"/api/users/new%40abc.com/alerts",
+			req("PUT", { on: true }),
+		);
+		expect(res.status).toBe(409);
+		expect(await res.json()).toEqual({ error: "not_active" });
+		expect(alertList.emails).toEqual([]);
+	});
+
+	it("FR-20: a disabled user → 409 disabled", async () => {
+		target({ groups: ["viewer"], enabled: false });
+		const res = await app().request(
+			"/api/users/ops%40abc.com/alerts",
+			req("PUT", { on: true }),
+		);
+		expect(res.status).toBe(409);
+		expect(await res.json()).toEqual({ error: "disabled" });
+	});
+
+	it("FR-20: switching off needs no account (cleans up a deleted user)", async () => {
+		alertList.emails = ["gone@abc.com"];
+		const res = await app().request(
+			"/api/users/gone%40abc.com/alerts",
+			req("PUT", { on: false }),
+		);
+		expect(res.status).toBe(200);
+		expect(alertList.emails).toEqual([]);
+		expect(cognito.commandCalls(AdminGetUserCommand)).toHaveLength(0);
+	});
+
+	it("HLR-09: an editor gets 403", async () => {
+		const res = await app("editor").request(
+			"/api/users/ops%40abc.com/alerts",
+			req("PUT", { on: true }),
+		);
+		expect(res.status).toBe(403);
 	});
 });

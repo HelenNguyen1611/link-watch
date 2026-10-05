@@ -205,7 +205,7 @@ Wireframe 10 màn hình: [LinkWatch Wireframe](https://claude.ai/artifact/AQYJpW
 
 | Mã | Yêu cầu |
 | --- | --- |
-| FR-20 | Người nhận = hợp của (người nhận link) ∪ (người nhận domain) ∪ (email admin mặc định nếu hai danh sách trên rỗng); loại trùng. |
+| FR-20 | Người nhận = hợp của (người nhận link) ∪ (người nhận domain) ∪ (email admin mặc định nếu hai danh sách trên rỗng) ∪ (user được bật "Alerts" — nhận cảnh báo của mọi link); loại trùng. Chỉ user đã kích hoạt (đặt mật khẩu) và đang bật mới được bật Alerts; vô hiệu hóa/xóa user thì tự gỡ khỏi danh sách (bổ sung 05/10/2026). |
 | FR-21 | Gửi email **Sự cố** khi mở incident và email **Hồi phục** khi đóng incident (kèm thời lượng down). |
 | FR-22 | Gộp email: các sự cố cùng domain phát sinh trong 5 phút được gộp thành một email liệt kê từng link. |
 | FR-23 | Nhắc lại nếu incident chưa được Acknowledge và vẫn mở: mặc định mỗi 24 giờ, cấu hình được; tắt được. |
