@@ -11,6 +11,7 @@ import {
 	LinkUpdate,
 	type LinkUpdateRaw,
 } from "../schema/link";
+import { closeIncidentsOfDeletedLink } from "./deleted-links";
 import { rescheduleLinks } from "./reschedule";
 import { assertScheduleExists } from "./schedule-admin";
 
@@ -119,7 +120,10 @@ export async function getLink(db: Db, id: string) {
 	return link;
 }
 
-/** FR-04: soft delete — sets deletedAt, drops next_run_at (leaves GSI1), removes the URL lock so it can be re-added. */
+/**
+ * FR-04: soft delete — sets deletedAt, drops next_run_at (leaves GSI1), removes the URL lock
+ * so it can be re-added, then closes the link's open incidents (no more reminders, FR-23).
+ */
 export async function deleteLink(
 	db: Db,
 	id: string,
@@ -137,6 +141,7 @@ export async function deleteLink(
 		])
 		.go();
 	if (tx.canceled) throw new LinkNotFoundError(id);
+	await closeIncidentsOfDeletedLink(db, id, { now });
 }
 
 /** Fields cleared when the URL changes: the last result belongs to the old URL. */

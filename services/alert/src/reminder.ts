@@ -1,5 +1,9 @@
 import { isReminderDue } from "@linkwatch/core";
 import { DEFAULT_REMINDER_INTERVAL_HOURS } from "@linkwatch/core/db";
+import {
+	closeIncidentsOfDeletedLink,
+	findDeletedLinkIds,
+} from "@linkwatch/core/usecases";
 import { renderReminderEmail } from "@linkwatch/emails";
 import {
 	type AlertDeps,
@@ -27,6 +31,8 @@ async function activeIncidents(deps: AlertDeps): Promise<Incident[]> {
  * open, not acknowledged and were announced by an incident email, once per interval.
  * One email per domain and recipient; `lastReminderAt` is set even when sending fails,
  * so a broken address is retried next interval instead of every run (the failure is logged, FR-25).
+ * FR-04: an incident whose link was deleted is closed instead of reminded (incidents left
+ * open by deletions made before deleting closed them).
  */
 export async function sendReminders(
 	deps: AlertDeps,
@@ -37,7 +43,7 @@ export async function sendReminders(
 	const hours =
 		settings?.reminderIntervalHours ?? DEFAULT_REMINDER_INTERVAL_HOURS;
 
-	const due = (await activeIncidents(deps)).filter(
+	const candidates = (await activeIncidents(deps)).filter(
 		(i) =>
 			i.downNotifiedAt &&
 			isReminderDue(
@@ -51,6 +57,15 @@ export async function sendReminders(
 				now,
 			),
 	);
+	const deleted = await findDeletedLinkIds(
+		deps.db,
+		candidates.map((i) => i.linkId),
+	);
+	for (const linkId of deleted) {
+		const closed = await closeIncidentsOfDeletedLink(deps.db, linkId, { now });
+		deps.log?.("Closed incidents of a deleted link", { linkId, closed });
+	}
+	const due = candidates.filter((i) => !deleted.has(i.linkId));
 	if (due.length === 0) return 0;
 
 	const sender = await resolveSender(deps);

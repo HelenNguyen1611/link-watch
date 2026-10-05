@@ -156,6 +156,44 @@ describe("listLinks / deleteLink", () => {
 		expect(again.url).toBe("https://del.vn/a");
 	});
 
+	it("FR-04: deleting a link closes its open incident (link_deleted), older closed ones untouched", async () => {
+		const link = await createLink(t.db, { url: "https://del.vn/inc" }, { now });
+		const opened = new Date(now.getTime() - 3_600_000).toISOString();
+		await t.db.Incident.create({
+			linkId: link.id,
+			openedAt: "2026-01-01T00:00:00.000Z",
+			domain: "del.vn",
+			url: link.url,
+			type: "down",
+			state: "closed",
+			closedAt: "2026-01-01T01:00:00.000Z",
+			closedReason: "recovered",
+			downtimeMs: 3_600_000,
+		}).go();
+		await t.db.Incident.create({
+			linkId: link.id,
+			openedAt: opened,
+			domain: "del.vn",
+			url: link.url,
+			type: "down",
+		}).go();
+		await deleteLink(t.db, link.id, { now });
+		const { data } = await t.db.Incident.query
+			.primary({ linkId: link.id })
+			.go();
+		const byOpened = Object.fromEntries(data.map((i) => [i.openedAt, i]));
+		expect(byOpened[opened]).toMatchObject({
+			state: "closed",
+			closedReason: "link_deleted",
+			closedAt: now.toISOString(),
+			downtimeMs: 3_600_000,
+		});
+		expect(byOpened["2026-01-01T00:00:00.000Z"]).toMatchObject({
+			closedReason: "recovered",
+			closedAt: "2026-01-01T01:00:00.000Z",
+		});
+	});
+
 	it("FR-04: deleting a missing or already deleted link → LinkNotFoundError", async () => {
 		await expect(deleteLink(t.db, "KHONGCO", { now })).rejects.toBeInstanceOf(
 			LinkNotFoundError,

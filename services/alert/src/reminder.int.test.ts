@@ -2,6 +2,7 @@ import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { incidentId } from "@linkwatch/core";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
+import { createLink } from "@linkwatch/core/usecases";
 import { mockClient } from "aws-sdk-client-mock";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createHandler } from "./handler";
@@ -103,5 +104,37 @@ describe("Reminders — FR-23", () => {
 		sesMock.resetHistory();
 		expect(await run(after(200 * HOUR))).toEqual({ reminded: 0 });
 		expect(emails()).toEqual([]);
+	});
+});
+
+describe("Reminders — deleted links (FR-04, FR-23)", () => {
+	it("FR-04: an incident left open by a deleted link is closed instead of reminded", async () => {
+		// Deleted before deleteLink closed incidents: the record is kept with deletedAt only.
+		const link = await createLink(
+			t.db,
+			{ url: "https://gone.vn/page" },
+			{ now: new Date(OPENED) },
+		);
+		await t.db.Link.patch({ domain: "gone.vn", id: link.id })
+			.set({ deletedAt: after(HOUR).toISOString() })
+			.go();
+		await incident(link.id, { domain: "gone.vn", url: link.url });
+
+		const now = after(30 * 24 * HOUR);
+		await run(now);
+		expect(emails().filter((e) => e.subject?.includes("gone.vn"))).toEqual([]);
+		const { data } = await t.db.Incident.get({
+			linkId: link.id,
+			openedAt: OPENED,
+		}).go();
+		expect(data).toMatchObject({
+			state: "closed",
+			closedReason: "link_deleted",
+			closedAt: now.toISOString(),
+		});
+		const log = await t.db.Notification.query
+			.byIncident({ incidentId: incidentId(link.id, OPENED) })
+			.go();
+		expect(log.data).toEqual([]);
 	});
 });

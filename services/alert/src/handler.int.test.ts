@@ -3,7 +3,12 @@ import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import type { ClassifiedCheck } from "@linkwatch/core";
 import { createTestDb, type TestDb } from "@linkwatch/core/db/testing";
-import { createLink, recordCheck, recordTick } from "@linkwatch/core/usecases";
+import {
+	createLink,
+	deleteLink,
+	recordCheck,
+	recordTick,
+} from "@linkwatch/core/usecases";
 import type { DynamoDBRecord, DynamoDBStreamEvent, SQSEvent } from "aws-lambda";
 import { mockClient } from "aws-sdk-client-mock";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -380,6 +385,22 @@ describe("Alert — recovery email (FR-21)", () => {
 			"[LinkWatch][RECOVERED] ac07.vn — 1 link back up",
 		);
 		expect(sent[0]?.text).toContain("Downtime: 45 min");
+	});
+
+	it("FR-04: deleting the link closes the incident without a recovery email", async () => {
+		const [link] = await addLinks("deleted.vn", 1, "owner@deleted.vn");
+		if (!link) throw new Error();
+		const insert = await openIncident(link, at(0));
+		await handlerAt(at(2))(streamEvent(insert));
+		await deliverFlushes(at(7));
+		sesMock.resetHistory();
+
+		const before = await incidentImage(link.id, at(2).toISOString());
+		await deleteLink(t.db, link.id, { now: at(30) });
+		const after = await incidentImage(link.id, at(2).toISOString());
+		await handlerAt(at(30))(streamEvent(streamRecord("MODIFY", after, before)));
+		await deliverFlushes(at(35));
+		expect(emails()).toEqual([]);
 	});
 
 	it("FR-21: no recovery email when the incident email was never sent", async () => {

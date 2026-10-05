@@ -3,6 +3,7 @@ export * from "./alerts";
 export * from "./check-now";
 export * from "./checks";
 export * from "./claims";
+export * from "./deleted-links";
 export * from "./domains";
 export * from "./history";
 export * from "./import";

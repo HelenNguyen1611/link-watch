@@ -291,6 +291,7 @@
 		"viewLink": "Link details",
 		"openUrl": "Open URL",
 		"closedAt": "Closed",
+		"closedLinkDeleted": "Closed because the link was deleted. No recovery email was sent.",
 		"ack": {
 			"title": "Acknowledge",
 			"hint": "Acknowledge to tell the team you are on it. Reminders stop once acknowledged.",

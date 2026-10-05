@@ -2,8 +2,12 @@ import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Entity } from "electrodb";
 import { IncidentState, IncidentType } from "../../schema/enums";
 
-/** FR-37 / FR-42: why an incident was closed. */
-export const CLOSED_REASONS = ["recovered", "verified_fix"] as const;
+/** FR-37 / FR-42 / FR-04: why an incident was closed (`link_deleted`: no recovery email). */
+export const CLOSED_REASONS = [
+	"recovered",
+	"verified_fix",
+	"link_deleted",
+] as const;
 
 /**
  * SRS 6.2: Incident — PK LINK#<linkId>, SK INC#<openedAt>; kept forever (NFR-08, no TTL).

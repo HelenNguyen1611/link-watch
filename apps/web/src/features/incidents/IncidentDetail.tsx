@@ -134,6 +134,11 @@ export function IncidentDetail({ id }: { id: string }) {
 						.join(" · ") || "—"}
 				</Field>
 			</SimpleGrid>
+			{i.closedReason === "link_deleted" && (
+				<Text size="sm" c="dimmed">
+					{t("incidents.closedLinkDeleted")}
+				</Text>
+			)}
 
 			<ClaimSection incident={i} />
 			<Acknowledge incident={i} />

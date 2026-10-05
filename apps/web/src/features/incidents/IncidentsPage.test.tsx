@@ -287,6 +287,22 @@ describe("IncidentsPage — detail (FR-19, links in emails)", () => {
 		).toBeTruthy();
 	});
 
+	it("FR-04: an incident closed by deleting its link says so", async () => {
+		const closed = {
+			...detail,
+			state: "closed" as const,
+			closedAt: "2026-09-30T08:23:31.128Z",
+			closedReason: "link_deleted",
+		};
+		search = new URLSearchParams({ id: closed.id });
+		renderWithApi(<IncidentsPage />, fakeApi({ detail: closed }));
+		expect(
+			await screen.findByText(
+				"Closed because the link was deleted. No recovery email was sent.",
+			),
+		).toBeTruthy();
+	});
+
 	it("a closed incident has no Acknowledge button", async () => {
 		const closed = {
 			...detail,

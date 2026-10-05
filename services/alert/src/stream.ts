@@ -13,6 +13,7 @@ type IncidentImage = {
 	domain?: string;
 	state?: string;
 	closedAt?: string;
+	closedReason?: string;
 };
 
 const image = (
@@ -34,7 +35,8 @@ export type StillFailingEvent = {
 
 /**
  * FR-21 / FR-38: turns one Streams record into a notification event —
- * a new incident → `down`; an incident that just became closed → `recovery`;
+ * a new incident → `down`; an incident that just became closed → `recovery` (not when its
+ * link was deleted);
  * Verifying → Open again → `still_failing`.
  */
 export function toNotificationEvent(
@@ -59,6 +61,8 @@ export function toNotificationEvent(
 	if (record.eventName === "MODIFY" && next.state === "closed") {
 		const prev = image(record.dynamodb, "OldImage");
 		if (prev?.state === "closed") return undefined;
+		// FR-04: closed because the link was deleted — it did not come back up.
+		if (next.closedReason === "link_deleted") return undefined;
 		return {
 			kind: "recovery",
 			domain,
